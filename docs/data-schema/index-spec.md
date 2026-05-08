@@ -103,3 +103,9 @@ The LLM uses the index for a lookup strategy in **two phases**, both of which ar
 - **Linearly scaling.** 500 pages = ~25 KB index — easily fits in a single LLM read.
 
 Optionally, for vaults >500 pages, an embedding index (via `sentence-transformers` or `ollama`) can be added. The curated index remains the primary navigation mechanism, however.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — overall vault structure
+* [format-spec.md](format-spec.md) — YAML frontmatter fields indexed here
+* [../operations/compile.md](../operations/compile.md) — index is generated during compile phase 2

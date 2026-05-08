@@ -56,3 +56,9 @@ updated: 2026-05-02
 - Reports have **no** Human Block — they are completely regenerated and contain no personal notes.
 - Claims are identified in dashboards via their `page-id#claim-id` reference.
 - Reports are optional — the compile only generates those for which data exists.
+
+## See Also
+
+* [../operations/compile.md](../operations/compile.md) — reports are generated during compile phase 4
+* [vault-layout.md](vault-layout.md) — where reports live in the vault
+* [format-spec.md](format-spec.md) — YAML frontmatter conventions

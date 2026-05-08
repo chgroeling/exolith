@@ -109,3 +109,9 @@ The human can confirm (→ new page is created), discard, or modify.
 | L2    | TL;DR        | First paragraph of the page    | Quick content grasp               |
 | L3    | Full Page    | Complete page                  | Deep analysis, synthesis          |
 | L4    | Source Links | Claims with `*Beleg:*`         | Provenance check, further reading |
+
+## See Also
+
+* [../architecture.md](../architecture.md) — architectural overview
+* [../data-schema/index-spec.md](../data-schema/index-spec.md) — index.md used in phase 1 (index scan)
+* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claims referenced in synthesis answers

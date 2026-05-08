@@ -419,3 +419,10 @@ Meditations — less cryptic, more directly applicable.
 - `entity.uni-tuebingen` — newly created or expanded
 
 In total, a single source touched **8-10 pages** — exactly Karpathy's "a single source might touch 10-15 wiki pages."
+
+## See Also
+
+* [../architecture.md](../architecture.md) — architectural overview
+* [../data-schema/source-spec.md](../data-schema/source-spec.md) — source page specification (created in step 3)
+* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim specification (extracted in step 4)
+* [compile.md](compile.md) — compile step (triggered in step 6)

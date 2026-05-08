@@ -77,3 +77,9 @@ partially supports it.
 - A synthesis is **not created automatically** with every ingest — it is a deliberate step (query filing or manual trigger).
 - Bootstrap mode: With <50 pages in the vault, no syntheses are automatically suggested.
 - The confidence of a synthesis is the weighted average of all referenced claims.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — where syntheses live in the vault
+* [format-spec.md](format-spec.md) — YAML frontmatter and format conventions
+* [claim-spec.md](claim-spec.md) — claim structure used in syntheses

@@ -55,3 +55,9 @@ Calibrated Confidence = 0.90 → rounded to 0.9
 ```
 
 The LLM initially sets an estimated confidence. The compiler calibrates it using the four factors. The calibrated confidence is written back into the claim and as the page-level average into the frontmatter.
+
+## See Also
+
+* [claim-spec.md](claim-spec.md) — claim structure (confidence field in context)
+* [vault-layout.md](vault-layout.md) — page types and YAML frontmatter requirements
+* [../architecture.md](../architecture.md) — architectural overview

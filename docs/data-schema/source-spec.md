@@ -103,3 +103,9 @@ updated: {YYYY-MM-DD}
 - Neither Main Points nor Key Takeaways change after the source is created. Both are extracted from the Raw Source and taken exclusively from it. They are part of the source page, which — with the exception of the `## Linked Wiki Pages` list — remains stable after Step 3 and is never overwritten by the LLM.
 
 The source page is never modified by the LLM after the first ingest — with one exception: The list of linked wiki pages is automatically updated during the compile. It contains all Entities, Concepts, and Syntheses that reference at least one claim from this source. The number in parentheses indicates how deeply the source is anchored in the respective page.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — where sources live in the vault
+* [format-spec.md](format-spec.md) — YAML frontmatter and format conventions
+* [claim-spec.md](claim-spec.md) — claim structure used in sources

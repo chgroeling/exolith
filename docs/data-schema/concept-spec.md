@@ -71,3 +71,9 @@ presentations. The empirical confirmation makes it more credible for me.
 - A concept without empirical evidence is valid but receives lower confidence.
 - Concepts grow with each new source — they are Evergreen Notes in the classic sense.
 - Everything outside the human block markers is implicitly LLM-managed.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — where concepts live in the vault
+* [format-spec.md](format-spec.md) — YAML frontmatter and format conventions
+* [claim-spec.md](claim-spec.md) — claim structure used in concepts

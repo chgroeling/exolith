@@ -23,3 +23,10 @@
 | **Schema**          | AGENTS.md / wiki-schema.md — defines structure, conventions, and workflows for the LLM.                                                                                                                                                                                                         |
 | **Dashboard**       | Auto-generated report page (`reports/`) visualizing the wiki's health status. Claims are referenced by `page-id#claim-id`.                                                                                                                                                                      |
 | **Agent Digest**    | Machine-readable JSON file (`.llm-wiki/cache/agent-digest.json`) with a compact summary of all wiki pages including claim IDs.                                                                                                                                                                  |
+
+## See Also
+
+* [architecture.md](architecture.md) — full architectural overview
+* [data-schema/vault-layout.md](data-schema/vault-layout.md) — vault layout and page types
+* [data-schema/format-spec.md](data-schema/format-spec.md) — format conventions and confidence model
+* [operations/](operations/) — detailed operation specifications

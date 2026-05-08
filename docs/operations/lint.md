@@ -78,3 +78,10 @@ Lint is not just a validator, but an idea generator. The `info` and `warning` me
 4. 🟢 **Low-confidence claim** on Seneca's anxiety thesis — opportunity to read an empirical source alongside the next Stoicism ingest
 
 The human can accept individual agenda items (→ task is tracked), reject them (→ not suggested again on next lint run), or defer them.
+
+## See Also
+
+* [../architecture.md](../architecture.md) — architectural overview
+* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim structure checked by lint
+* [../data-schema/format-spec.md](../data-schema/format-spec.md) — format conventions validated by lint
+* [resolution.md](resolution.md) — resolving contested claims detected by lint

@@ -63,3 +63,10 @@ During ingest, the update prompt marks contradictions but does not resolve them 
 > **Mark contradictions** — If a new claim contradicts an existing one: do NOT resolve independently. Mark both with `status:contested`.
 
 This ensures that contradictions are detected and documented, but resolution remains a controlled, traceable process.
+
+## See Also
+
+* [../architecture.md](../architecture.md) — architectural overview (sections on conflict detection)
+* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim status values including `contested`
+* [lint.md](lint.md) — lint detects and reports contested claims
+* [ingest.md](ingest.md) — ingest marks contradictions during update step 5

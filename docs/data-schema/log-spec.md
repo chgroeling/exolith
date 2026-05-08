@@ -33,3 +33,9 @@ Index regenerated (12 → 15 pages). Backlinks updated.
 ```
 
 The log is kept append-only — new entries go on top (reverse-chronological). At the start of a session, the LLM reads the first 15-20 lines of the log and immediately knows what has happened since last time. No filesystem timestamp comparison needed.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — where log.md lives in the vault
+* [../architecture.md](../architecture.md) — architectural overview
+* [../operations/ingest.md](../operations/ingest.md) — log entries are written during ingest step 7

@@ -51,5 +51,11 @@ Claims in the `## Claims` chapter have a unique ID. Evidence is always a wikilin
   not from real suffering"
   *Evidence:* [[sources/letters-to-lucilius]] (13th Letter)
   *Limitation:* Philosophical assertion, 2,000 years old, no empirical evidence
-  *updated:* 2026-05-02
+   *updated:* 2026-05-02
 ```
+
+## See Also
+
+* [format-spec.md](format-spec.md) — confidence calibration model and format conventions
+* [vault-layout.md](vault-layout.md) — where claims live in the vault structure
+* [../operations/resolution.md](../operations/resolution.md) — contested claims resolution workflow

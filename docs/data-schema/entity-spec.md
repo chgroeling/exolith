@@ -72,3 +72,9 @@ Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
 - `## Verknüpfungen` lists directed relationships to other Entities and Concepts (e.g. `definierte → [[concepts/praemeditatio-malorum]]`).
 - An Entity can reference claims from different Sources — each claim carries its own reference.
 - Everything outside of `<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->` is implicitly LLM-managed.
+
+## See Also
+
+* [vault-layout.md](vault-layout.md) — where entities live in the vault
+* [format-spec.md](format-spec.md) — YAML frontmatter and format conventions
+* [claim-spec.md](claim-spec.md) — claim structure used in entities

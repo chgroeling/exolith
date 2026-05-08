@@ -99,3 +99,10 @@ Compile always regenerates the index **fully** — not incrementally. This is a 
 - Optional: update embedding index
 
 Compile separates "writing data" (ingest) from "updating structure" — cleaner than doing both in one step.
+
+## See Also
+
+* [../architecture.md](../architecture.md) — architectural overview
+* [../data-schema/index-spec.md](../data-schema/index-spec.md) — index.md specification (generated in phase 2)
+* [../data-schema/report-spec.md](../data-schema/report-spec.md) — dashboard specification (generated in phase 4)
+* [ingest.md](ingest.md) — ingest triggers compile as step 6
