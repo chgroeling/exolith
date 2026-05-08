@@ -2,10 +2,10 @@
 import { createWriteStream } from 'node:fs';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
+import { program } from 'commander';
 import pino from 'pino';
 
-const logStream = createWriteStream('exolith.log', { flags: 'w' });
-const logger = pino({ name: 'hello-world' }, logStream);
+let logger = pino({ name: 'hello-world' });
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -27,9 +27,21 @@ export async function askQuestion(): Promise<string> {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  logger.info('CLI started');
-  console.log(greet());
-  const answer = await askQuestion();
-  console.log(answer);
-  logger.info('CLI finished');
+  program
+    .name('hello-world')
+    .description('A CLI that greets and asks an AI question')
+    .option('-l, --log-file <path>', 'path to log file', 'exolith.log')
+    .option('--log-level <level>', 'log level', 'info')
+    .action(async (options) => {
+      const logStream = createWriteStream(options.logFile, { flags: 'w' });
+      logger = pino({ name: 'hello-world', level: options.logLevel }, logStream);
+
+      logger.info('CLI started');
+      console.log(greet());
+      const answer = await askQuestion();
+      console.log(answer);
+      logger.info('CLI finished');
+    });
+
+  program.parse();
 }

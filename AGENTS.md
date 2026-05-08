@@ -15,6 +15,36 @@ An LLM-maintained wiki — compile knowledge once, query it forever.
 | `pnpm lint`      | Run Biome linter                   |
 | `pnpm format`    | Run Biome formatter (in-place fix) |
 
+## Project Structure
+
+```
+exolith/
+├── src/
+│   └── index.ts          # CLI entry point, greet(), askQuestion()
+├── tests/
+│   └── index.test.ts     # Vitest tests for exported functions
+├── dist/
+│   └── index.js          # tsup ESM bundle (git-ignored)
+├── docs/
+│   ├── architecture.md   # Technical design document
+│   ├── data-schema/      # Data schema documentation
+│   ├── glossary.md       # Terminology reference
+│   └── operations/       # Operations documentation
+├── package.json          # ESM package, bin: "hello-world"
+├── tsconfig.json         # TypeScript configuration
+├── biome.json            # Biome linter/formatter configuration
+├── exolith.log           # Pino log output (git-ignored)
+└── AGENTS.md             # This file — LLM-maintained wiki
+```
+
+| File/Dir        | Purpose                                       |
+|-----------------|-----------------------------------------------|
+| `src/index.ts`  | Sole source file: CLI, `greet()`, `askQuestion()`, logging setup |
+| `tests/`        | Vitest test suite (unit tests for exported fns) |
+| `dist/`         | Compiled ESM output from `pnpm build`         |
+| `docs/`         | Architecture and design documents             |
+| `biome.json`    | Biome config (linter + formatter)             |
+
 ## Biome
 
 Linting and formatting are handled by [Biome](https://biomejs.dev). Configuration lives in `biome.json`.
