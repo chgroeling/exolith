@@ -1,5 +1,9 @@
 # AGENTS.md
 
+An LLM-maintained wiki — compile knowledge once, query it forever.
+
+> [Technical design →](docs/architecture.md)
+
 ## Running the project
 
 | Command          | Description                        |
