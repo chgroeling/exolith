@@ -1,65 +1,65 @@
-# Contested Claims — Auflösungs-Workflow
+# Contested Claims — Resolution Workflow
 
-Wenn der Compile Widersprüche zwischen Claims erkennt, setzt er den Status auf `contested`. Der Resolve-Prozess ist eine First-Class-Operation, die diese Widersprüche formal auflöst.
+When compile detects contradictions between claims, it sets the status to `contested`. The resolve process is a first-class operation that formally resolves these contradictions.
 
 ## Status: `contested`
 
-Zwei Claims widersprechen sich → beide erhalten `status: contested`. Das System legt ein Widerspruchs-Cluster an, das die Claims per `page-id#claim-id`-Referenz verlinkt:
+Two claims contradict each other → both receive `status: contested`. The system creates a contradiction cluster that links the claims via `page-id#claim-id` reference:
 
 ```
-Widerspruchs-Cluster:
+Contradiction cluster:
   entity.seneca#claim-cortisol-senkung
   ↔ concept.kvt#claim-cortisol-kein-effekt
 ```
 
-## Konflikt-Erkennung beim Ingest
+## Conflict Detection During Ingest
 
-Bevor neue Claims gemerged werden, prüft das System:
+Before new claims are merged, the system checks:
 
-1. **Widerspricht der neue Claim einem bestehenden?** → Beide als `contested` markieren, Widerspruchs-Cluster anlegen
-2. **Überschreibt der neue Claim einen älteren mit höherer Autorität?** → Confidence-Gewichtung nach Quellentyp (peer-reviewed > Buch > Blogpost)
-3. **Ist der bestehende Claim veraltet?** → `stale`-Flag mit neuem Claim als Update-Kandidat
+1. **Does the new claim contradict an existing one?** → Mark both as `contested`, create contradiction cluster
+2. **Does the new claim supersede an older one with higher authority?** → Confidence weighting by source type (peer-reviewed > book > blog post)
+3. **Is the existing claim outdated?** → `stale` flag with new claim as update candidate
 
-Die Konflikt-Erkennung arbeitet **zweistufig**:
-1. Embedding-basierter Similarity-Vergleich
-2. LLM-Validierung ("Sind die ähnlichen Claims wirklich widersprüchlich?")
+Conflict detection works in **two stages**:
+1. Embedding-based similarity comparison
+2. LLM validation ("Are the similar claims actually contradictory?")
 
-## Auflösungsregeln
+## Resolution Rules
 
-| Regel                | Beschreibung                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| **Confidence-Delta** | Hat einer der Claims signifikant höhere Confidence (Δ > 0.3)? → höherer gewinnt                   |
-| **Quellenalter**     | Ist einer der Belege signifikant neuer (>5 Jahre Unterschied)? → neuerer gewinnt                  |
-| **Methodische Qualität** | peer-reviewed > Buch > Blogpost. Qualitativ höherwertige Quelle gewinnt                       |
-| **Automatisch**      | Wenn Confidence-Delta > 0.5 UND Quellentyp-Differenz ≥ 2 Stufen → automatische Auflösung         |
-| **Menschlich**       | In allen anderen Fällen: menschliche Entscheidung erforderlich                                   |
+| Rule                     | Description                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| **Confidence delta**     | Does one claim have significantly higher confidence (Δ > 0.3)? → higher wins                    |
+| **Source age**           | Is one piece of evidence significantly newer (>5 years difference)? → newer wins                |
+| **Methodological quality** | peer-reviewed > book > blog post. Qualitatively higher-grade source wins                     |
+| **Automatic**            | If confidence delta > 0.5 AND source-type difference ≥ 2 levels → automatic resolution          |
+| **Human**                | In all other cases: human decision required                                                     |
 
-## Resolve als First-Class-Operation
+## Resolve as a First-Class Operation
 
-Resolve steht neben Ingest, Query und Lint als eigenständige Operation:
+Resolve stands alongside Ingest, Query, and Lint as an independent operation:
 
 ```
 python llm-wiki.py resolve --claim entity.seneca#claim-cortisol-senkung
 ```
 
-Der Resolve-Workflow:
+The Resolve Workflow:
 
-1. **Widerspruchs-Cluster laden:** Alle `contested`-Claims im Cluster anzeigen
-2. **Belege vergleichen:** Sources, Confidence, Alter, Quellentyp gegenüberstellen
-3. **Entscheidung:** Nach den Auflösungsregeln automatisch oder menschlich entscheiden
-4. **Dokumentation:** `resolved_by`-Feld im Claim setzen, `## Resolutions`-Sektion aktualisieren
-5. **Kaskadierung:** Abhängige Claims prüfen — wenn ein referenzierter Claim aufgelöst wird, könnten davon abgeleitete Claims ebenfalls betroffen sein
+1. **Load contradiction cluster:** Display all `contested` claims in the cluster
+2. **Compare evidence:** Juxtapose sources, confidence, age, source type
+3. **Decision:** Resolve automatically or by human decision according to the resolution rules
+4. **Documentation:** Set `resolved_by` field in the claim, update `## Resolutions` section
+5. **Cascading:** Check dependent claims — if a referenced claim is resolved, claims derived from it could also be affected
 
-## Auflösungsdokumentation
+## Resolution Documentation
 
-- **`resolved_by`-Feld im Claim:** Wer hat entschieden? (`auto`, `human`, `source-xyz`)
-- **`resolved_at`-Feld im Claim:** Wann wurde aufgelöst?
-- **`## Resolutions`-Sektion** im Report `reports/contradictions.md`: Historische Übersicht aller Auflösungen
+- **`resolved_by` field in the claim:** Who decided? (`auto`, `human`, `source-xyz`)
+- **`resolved_at` field in the claim:** When was it resolved?
+- **`## Resolutions` section** in the report `reports/contradictions.md`: Historical overview of all resolutions
 
-## Update-Prompt: Widersprüche markieren
+## Update Prompt: Marking Contradictions
 
-Beim Ingest markiert der Update-Prompt Widersprüche, löst sie aber nicht eigenständig. Regel 5 des Update-Prompts:
+During ingest, the update prompt marks contradictions but does not resolve them independently. Rule 5 of the update prompt:
 
-> **Widersprüche markieren** — Wenn ein neuer Claim einem bestehenden widerspricht: NICHT eigenständig lösen. Beide mit `status:contested` markieren.
+> **Mark contradictions** — If a new claim contradicts an existing one: do NOT resolve independently. Mark both with `status:contested`.
 
-Das stellt sicher, dass Widersprüche erkannt und dokumentiert werden, aber die Auflösung ein kontrollierter, nachvollziehbarer Prozess bleibt.
+This ensures that contradictions are detected and documented, but resolution remains a controlled, traceable process.

@@ -1,10 +1,10 @@
-# Entity — identifizierbare Dinge
+# Entity — identifiable things
 
-Der Page-Typ `entity` beschreibt eine **identifizierbare Sache**: Person, Organisation, Projekt, Tool, Ort oder Ereignis. Entities sind die "Substantive" des Wikis — sie sind das, *wortüber* gesprochen wird.
+The Page type `entity` describes an **identifiable thing**: person, organization, project, tool, place, or event. Entities are the "nouns" of the wiki — they are *what* is being talked about.
 
-**Wann entsteht eine Entity?** Bei der Extraktion (Schritt 4 des Ingest), wenn das LLM eine neue Person, Organisation etc. im Quelltext erkennt, die noch nicht im Wiki existiert (Zwei-Phasen-Lookup schlägt fehl → CREATE).
+**When does an Entity come into existence?** During extraction (step 4 of ingest), when the LLM recognizes a new person, organization, etc. in the source text that does not yet exist in the wiki (two-phase lookup fails → CREATE).
 
-**Struktur einer Entity (Beispiel):**
+**Structure of an Entity (example):**
 
 ```markdown
 ---
@@ -66,9 +66,9 @@ Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
 <!-- llm-wiki:human:end -->
 ```
 
-**Besonderheiten:**
+**Special characteristics:**
 
-- Entities sammeln Claims, die eine Person/Organisation *betreffen* — nicht nur Aussagen *von* ihnen.
-- `## Verknüpfungen` listet gerichtete Beziehungen zu anderen Entities und Concepts (z.B. `definierte → [[concepts/praemeditatio-malorum]]`).
-- Eine Entity kann Claims aus verschiedenen Sources referenzieren — jeder Claim trägt seinen eigenen Beleg.
-- Alles außerhalb von `<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->` ist implizit LLM-verwaltet.
+- Entities collect claims that *concern* a person/organization — not only statements *by* them.
+- `## Verknüpfungen` lists directed relationships to other Entities and Concepts (e.g. `definierte → [[concepts/praemeditatio-malorum]]`).
+- An Entity can reference claims from different Sources — each claim carries its own reference.
+- Everything outside of `<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->` is implicitly LLM-managed.

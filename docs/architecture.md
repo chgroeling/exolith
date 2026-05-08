@@ -1,86 +1,86 @@
-# LLM Wiki — Architektur
+# LLM Wiki — Architecture
 
-## 1. Das Problem: Warum RAG nicht reicht
+## 1. The Problem: Why RAG Is Not Enough
 
-Retrieval-Augmented Generation (RAG) ist der Status Quo für "LLM trifft Dokumente": Chunks in eine Vektordatenbank, bei Query die ähnlichsten Chunks rausziehen, ins Prompt packen, Antwort generieren. Das funktioniert für einfache Faktenfragen — scheitert aber systematisch an drei Punkten:
+Retrieval-Augmented Generation (RAG) is the status quo for "LLM meets documents": chunks into a vector database, pull the most similar chunks on query, pack into prompt, generate answer. That works for simple factual questions — but systematically fails in three areas:
 
-1. **Kein Wissensaufbau.** Jede Query startet bei Null. Das LLM muss aus fragmentierten Chunks jedes Mal neu synthetisieren. Cross-References zwischen Dokumenten existieren nicht — sie werden zur Laufzeit durch Cosine-Similarity approximiert, was fehleranfällig und kontextblind ist.
+1. **No knowledge building.** Every query starts from scratch. The LLM must re-synthesize from fragmented chunks each time. Cross-references between documents don't exist — they are approximated at runtime via cosine similarity, which is error-prone and context-blind.
 
-2. **Keine Akkumulation.** Wenn du heute Paper A liest und morgen Paper B, das Paper A widerspricht, merkt das niemand. Der Widerspruch wird nur dann "entdeckt", wenn zufällig beide Chunks in derselben Query landen.
+2. **No accumulation.** If you read Paper A today and Paper B tomorrow, which contradicts Paper A, nobody notices. The contradiction is only "discovered" if both chunks coincidentally land in the same query.
 
-3. **Keine Kuratierung.** RAG liefert Roh-Chunks. Es gibt keine Abstraktionsebene — keine Synthese, keine Einordnung, keine Bewertung der Qualität oder Aktualität einer Information.
+3. **No curation.** RAG delivers raw chunks. There is no abstraction layer — no synthesis, no classification, no assessment of information quality or timeliness.
 
-**Karpathys Gegenentwurf:** Nicht bei jeder Query neu zusammensuchen, sondern **einmal kompilieren und dann aktuell halten**. Das Wiki ist ein persistentes, wachsendes Artefakt — eine kuratierte, verlinkte Wissensschicht zwischen dir und den Rohquellen. Karpathys prägnanteste Formulierung:
+**Karpathy's counter-proposal:** Not re-assembling with every query, but **compile once and then keep up to date**. The wiki is a persistent, growing artifact — a curated, linked knowledge layer between you and the raw sources. Karpathy's most concise formulation:
 
 > *"Obsidian is the IDE; the LLM is the programmer; the wiki is the codebase."*
 
 ---
 
-## 2. Grundlagen — Die zentralen Konzepte
+## 2. Foundations — The Core Concepts
 
 ### Raw Source
 
-Ein unbearbeitetes Quelldokument: Artikel, Paper, Transkript, Podcast-Notiz, Chat-Export, Buch-Highlight. Raw Sources sind **immutable** — das LLM liest sie nur beim ersten Ingest, überschreibt sie nie. Sie liegen in `raw-sources/`. Nach der Verarbeitung werden sie vom LLM nicht mehr verwendet; sie dienen nur noch dem Menschen als Originalreferenz.
+An unprocessed source document: article, paper, transcript, podcast note, chat export, book highlight. Raw Sources are **immutable** — the LLM only reads them on first ingest, never overwrites them. They live in `raw-sources/`. After processing they are no longer used by the LLM; they serve only the human as an original reference.
 
 ### Source
 
-Eine verarbeitete Wiki-Seite vom Typ `source` im Ordner `sources/`. Die Source entsteht aus einer Raw Source im Ingest-Schritt — vom LLM aufbereitet, vom Menschen geprüft und gegebenenfalls korrigiert. Die Source ist die **kuratierte Wissensgrundlage**: Key Takeaways sind priorisiert, Unklarheiten sind markiert, der Kontext ist eingeordnet. Alle weiteren Verarbeitungen (Extraktion, Claims, Updates) basieren ausschließlich auf Sources — nie direkt auf Raw Sources.
+A processed wiki page of type `source` in the `sources/` folder. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge base**: key takeaways are prioritized, ambiguities are flagged, context is classified. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
 
 ### Wiki Page
 
-Eine vom LLM generierte und gepflegte Markdown-Datei mit festem Typ: `source`, `entity`, `concept`, `synthesis` oder `report`. Jede Page hat ein YAML-Frontmatter mit Metadaten (ID, Status, Tags, Confidence) und strukturierte Kapitel mit Markdown-Überschriften.
+An LLM-generated and maintained Markdown file with a fixed type: `source`, `entity`, `concept`, `synthesis`, or `report`. Every page has YAML frontmatter with metadata (ID, status, tags, confidence) and structured chapters with Markdown headings.
 
 ### Entity
 
-Beschreibt eine **identifizierbare Sache**: Person, Organisation, Projekt, Tool, Ort oder Ereignis. Entities sind die „Substantive" des Wikis — sie sind das, *wortüber* gesprochen wird. Eine Entity sammelt Claims, hat Verknüpfungen zu anderen Seiten und kann auf mehrere Sources verweisen. Beispiel: `entity.seneca`, `entity.maria-schneider`.
+Describes an **identifiable thing**: person, organization, project, tool, location, or event. Entities are the "nouns" of the wiki — they are what is being talked *about*. An entity collects claims, has links to other pages, and can reference multiple sources. Example: `entity.seneca`, `entity.maria-schneider`.
 
 ### Concept
 
-Beschreibt eine **abstrakte Idee, Theorie, Pattern, Methode oder Framework**. Concepts sind die „Verben und Adjektive" des Wikis — sie beschreiben, *wie* Dinge zusammenhängen. Ein Concept sammelt Claims, hat Verknüpfungen und wächst mit jeder neuen Quelle (Evergreen Notes). Beispiel: `concept.praemeditatio-malorum`, `concept.stoizismus`.
+Describes an **abstract idea, theory, pattern, method, or framework**. Concepts are the "verbs and adjectives" of the wiki — they describe *how* things relate. A concept collects claims, has links, and grows with each new source (Evergreen Notes). Example: `concept.praemeditatio-malorum`, `concept.stoicism`.
 
 ### Synthesis
 
-Eine **Querschnittsanalyse**, die mehrere Entities oder Concepts zu einer höheren Analyse verknüpft. Anders als ein Concept, das ein einzelnes Pattern beschreibt, stellt eine Synthesis eine Querverbindung zwischen mehreren Page-Typen her. Entsteht aus Queries (≥3 Quellen verknüpft), Compile-Erkennung oder manuellem Anstoß. Beispiel: `synthesis.stoizismus-und-empirie`.
+A **cross-sectional analysis** that links multiple entities or concepts into a higher-level analysis. Unlike a concept, which describes a single pattern, a synthesis establishes a cross-connection between multiple page types. Created from queries (≥3 sources linked), compile detection, or manual triggers. Example: `synthesis.stoicism-and-empiricism`.
 
 ### Report
 
-Ein **automatisch generiertes Dashboard** — wird bei jedem Compile komplett neu generiert. Reports sind rein lesend für den Menschen; das LLM nutzt sie für Health-Monitoring. Beispiel: `reports/open-questions.md`, `reports/contradictions.md`.
+An **automatically generated dashboard** — completely regenerated on every compile. Reports are read-only for the human; the LLM uses them for health monitoring. Example: `reports/open-questions.md`, `reports/contradictions.md`.
 
 ### Claim
 
-Der **zentrale Wissensbaustein** des Wikis — eine einzelne, überprüfbare Behauptung mit eindeutiger ID, Confidence, Status und Beleg. Claims sind strukturierte Einträge im `## Claims`-Kapitel jeder Content-Page. Sie machen aus vagen Aussagen ein trackbares Belief-System: Jeder Claim trägt seinen eigenen Herkunftsnachweis direkt im `*Beleg:*`-Feld. Die detaillierte Claim-Spezifikation (Felder, Status-Werte, ID-Konventionen) steht in [data-schema/claim-spec.md](data-schema/claim-spec.md).
+The **central knowledge building block** of the wiki — a single, verifiable assertion with a unique ID, confidence, status, and evidence. Claims are structured entries in the `## Claims` chapter of every content page. They turn vague statements into a trackable belief system: every claim carries its own provenance directly in the `*Evidence:*` field. The detailed claim specification (fields, status values, ID conventions) is in [data-schema/claim-spec.md](data-schema/claim-spec.md).
 
 ### Evidence
 
-Der Beleg für einen Claim — immer ein Wikilink auf eine Source im `*Beleg:*`-Feld. Kein Claim ohne Evidence. Jeder Claim trägt seinen eigenen Herkunftsnachweis direkt bei sich, statt auf eine separate Quellenliste zu verweisen. Das macht die Rückverfolgbarkeit granularer und präziser.
+The proof for a claim — always a wikilink to a Source in the `*Evidence:*` field. No claim without evidence. Every claim carries its own provenance directly with it, rather than referencing a separate source list. This makes traceability more granular and precise.
 
 ### Human Block
 
-Der einzige markierte Abschnitt in einer Wiki-Seite — eingeschlossen von `<!-- llm-wiki:human:start -->` und `<!-- llm-wiki:human:end -->`. Enthält handschriftliche Notizen des Menschen und wird **niemals** vom LLM angetastet. Alles außerhalb dieser Marker ist implizit LLM-verwaltet und darf vom Agenten gelesen und geschrieben werden.
+The only marked section in a wiki page — enclosed by `<!-- llm-wiki:human:start -->` and `<!-- llm-wiki:human:end -->`. Contains the human's handwritten notes and is **never** touched by the LLM. Everything outside these markers is implicitly LLM-managed and may be read and written by the agent.
 
 ```markdown
-{ALLES außerhalb der Human-Marker ist LLM-verwaltet: Prosa, Claims, Verknüpfungen, Offene Fragen}
+{EVERYTHING outside the human markers is LLM-managed: prose, claims, links, open questions}
 
 <!-- llm-wiki:human:start -->
-[Handschriftliche Notizen — werden NIE vom LLM angetastet]
+[Handwritten notes — NEVER touched by the LLM]
 <!-- llm-wiki:human:end -->
 ```
 
-Es gibt **keinen** Managed-Block-Marker. Nur Human Blocks werden explizit markiert — alles andere ist implizit LLM-Managed. Dies sind die einzigen HTML-Kommentare im System.
+There is **no** managed-block marker. Only Human Blocks are explicitly marked — everything else is implicitly LLM-managed. These are the only HTML comments in the system.
 
 ### Confidence
 
-Vertrauenswürdigkeit eines Claims (0.0–1.0). Wird vom LLM initial geschätzt und vom Compile anhand von vier Faktoren kalibriert: Quellentyp (30%), Belegqualität (30%), Anzahl Belege (20%), Aktualität (20%). Die **Page-Level Confidence** ist das arithmetische Mittel aller Claim-Confidence-Werte auf der Seite.
+Trustworthiness of a claim (0.0–1.0). Initially estimated by the LLM and calibrated by compile based on four factors: source type (30%), evidence quality (30%), number of sources (20%), currency (20%). **Page-level confidence** is the arithmetic mean of all claim confidence values on the page.
 
 ---
 
-## 3. Die Architektur: Drei Schichten
+## 3. The Architecture: Three Layers
 
-Das Schema definiert die Spielregeln, die Raw Sources liefern den Input, die Wiki Pages sind das Ergebnis. Keine komplexe Zwischenschicht — eine klare Pipeline.
+The schema defines the rules of the game, the Raw Sources provide the input, the Wiki Pages are the result. No complex intermediate layer — a clear pipeline.
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Das Schema    (foundation & rules)         │
+│  The Schema    (foundation & rules)         │
 │  AGENTS.md  wiki-schema.md  templates/      │
 ├─────────────────────────────────────────────┤
 │  Raw Sources   (input, immutable)           │
@@ -92,243 +92,243 @@ Das Schema definiert die Spielregeln, die Raw Sources liefern den Input, die Wik
 └─────────────────────────────────────────────┘
 ```
 
-**Layer 1 — Das Schema (Grundlage):** Die Konfigurationsdateien, die aus einem generischen LLM einen disziplinierten Wiki-Maintainer machen. Definiert Ordnerstruktur, Page-Typen, Namenskonventionen (Slug-basierte IDs: `entity.john-doe`, `concept.stoizismus`), YAML-Frontmatter-Felder pro Page-Typ, Workflows für Ingest/Query/Lint und Formatierungsregeln. Wird von Mensch und LLM gemeinsam über die Zeit weiterentwickelt. Diese Schicht ist das Fundament — sie legt fest, *wie* aus Rohmaterial strukturiertes Wissen wird.
+**Layer 1 — The Schema (Foundation):** The configuration files that turn a generic LLM into a disciplined wiki maintainer. Defines folder structure, page types, naming conventions (slug-based IDs: `entity.john-doe`, `concept.stoicism`), YAML frontmatter fields per page type, workflows for ingest/query/lint, and formatting rules. Co-evolved by human and LLM over time. This layer is the foundation — it defines *how* raw material becomes structured knowledge.
 
-**Layer 2 — Raw Sources (Input):** Deine kuratierte Quellensammlung. Artikel, Papers, Podcast-Notizen, Chat-Exports, Buch-Highlights, Meeting-Transkripte. Diese Schicht ist *immutable* — das LLM liest nur, schreibt nie. Das ist dein Source of Truth. Neue Quellen landen in `inbox/`, verarbeitete in `raw-sources/`. Raw Sources werden nur einmalig für den Ingest eingelesen; danach arbeitet das LLM ausschließlich mit den daraus erstellten Sources (Layer 3).
+**Layer 2 — Raw Sources (Input):** Your curated source collection. Articles, papers, podcast notes, chat exports, book highlights, meeting transcripts. This layer is *immutable* — the LLM only reads, never writes. This is your source of truth. New sources land in `inbox/`, processed ones in `raw-sources/`. Raw Sources are only read once for ingest; thereafter the LLM works exclusively with the Sources created from them (Layer 3).
 
-**Layer 3 — Wiki Pages (Output):** Die resultierenden LLM-generierten und -gepflegten Markdown-Dateien. Sources (verarbeitete, menschlich geprüfte Wissensgrundlage), Entity Pages (Personen, Projekte, Tools, Orte), Concept Pages (Ideen, Theorien, Patterns), Syntheses (Querschnittsanalysen), Reports (Dashboards). Der Mensch liest; das LLM schreibt. Anders als im Original ist dieser Layer bewusst einfach gehalten — er ist das *Ergebnis* der Verarbeitung, nicht eine komplexe Zwischenschicht.
+**Layer 3 — Wiki Pages (Output):** The resulting LLM-generated and maintained Markdown files. Sources (processed, human-reviewed knowledge base), Entity Pages (people, projects, tools, locations), Concept Pages (ideas, theories, patterns), Syntheses (cross-sectional analyses), Reports (dashboards). The human reads; the LLM writes. Unlike the original, this layer is intentionally kept simple — it is the *result* of processing, not a complex intermediate layer.
 
-Layer 3 wird intern in zwei klar getrennte Kategorien aufgeteilt:
+Layer 3 is internally divided into two clearly separated categories:
 
-- **Content Pages** — sources, entities, concepts, syntheses, reports. Das sind die eigentlichen Wissensträger. Sie enthalten Claims, Belege, Querverweise. Der Mensch liest sie aktiv, sie sind der Purpose des Wikis.
-- **Meta Pages** — index.md, log.md. Sie sind Navigation und Audit-Trail. Sie existieren, damit das LLM effizient arbeiten kann (Lookup, Chronik, Herkunftsnachweis). Der Mensch blättert sie gelegentlich durch, aber sie sind nicht der Wissensspeicher selbst.
+- **Content Pages** — sources, entities, concepts, syntheses, reports. These are the actual knowledge carriers. They contain claims, evidence, cross-references. The human reads them actively, they are the purpose of the wiki.
+- **Meta Pages** — index.md, log.md. They are navigation and audit trail. They exist so the LLM can work efficiently (lookup, chronology, provenance). The human occasionally flips through them, but they are not the knowledge store themselves.
 
-Beide werden vom LLM geschrieben, beide leben im selben Vault. Der Unterschied ist die Funktion: Content Pages *speichern* Wissen, Meta Pages *organisieren* den Zugriff darauf. Eine formale Sub-Layer-Trennung würde mehr Overhead als Nutzen bringen — die Unterscheidung fließt aber konzeptionell in das Schema ein (z.B. dass `index.md` und `log.md` eigene Templates bekommen, die nie mit einer Content-Page verwechselt werden).
+Both are written by the LLM, both live in the same vault. The difference is the function: Content Pages *store* knowledge, Meta Pages *organize* access to it. A formal sub-layer separation would create more overhead than benefit — but the distinction conceptually feeds into the schema (e.g., that `index.md` and `log.md` get their own templates, never to be confused with a content page).
 
 ---
 
-## 4. Design-Prinzipien
+## 4. Design Principles
 
-### 4.1 Human Blocks — Mensch und Agent in derselben Datei
+### 4.1 Human Blocks — Human and Agent in the Same File
 
-Jede Wiki-Seite kann Human-Blöcke enthalten — die einzigen HTML-Kommentare im gesamten System. Alles außerhalb dieser Marker ist implizit LLM-verwaltet:
+Every wiki page can contain Human Blocks — the only HTML comments in the entire system. Everything outside these markers is implicitly LLM-managed:
 
 ```markdown
-[Implizit LLM-verwaltet: Prosa, Claims, Verknüpfungen, Offene Fragen —
- alles außerhalb der Human-Marker darf der Agent lesen und schreiben.]
+[Implicitly LLM-managed: prose, claims, links, open questions —
+ everything outside the human markers may be read and written by the agent.]
 
 <!-- llm-wiki:human:start -->
-[Meine handschriftlichen Notizen — werden NIE angetastet]
+[My handwritten notes — NEVER touched]
 <!-- llm-wiki:human:end -->
 ```
 
-Das schafft Vertrauen: Der Agent kann Seiten beliebig regenerieren, ohne menschliche Annotationen zu zerstören. Die Marker brauchen keinen Parser — reines Regex/String-Matching. Es gibt keine Managed-Block-Marker; nur Human Blocks werden explizit ausgezeichnet. Alles außerhalb ist implizit LLM-Managed.
+This builds trust: The agent can regenerate pages arbitrarily without destroying human annotations. The markers need no parser — pure regex/string matching. There are no managed-block markers; only Human Blocks are explicitly designated. Everything outside is implicitly LLM-managed.
 
-### 4.2 Structured Claims statt nur Prosa
+### 4.2 Structured Claims Instead of Just Prose
 
-Claims sind strukturierte Daten im `## Claims`-Kapitel, nicht nur Fließtext. Jeder Claim hat eine eindeutige ID:
+Claims are structured data in the `## Claims` chapter, not just flowing text. Every claim has a unique ID:
 
 ```markdown
 ## Claims
-- `id:claim-stoizismus-stress` `conf:0.7` `status:active`
-  Stoizismus reduziert nachweislich Stress
-  *Beleg:* [[sources/meta-analyse-2024]] (Zeilen 45-62, n=1.200)
-  *Beleg:* [[sources/persoenliche-erfahrung]] (Zeilen 12-18)
+- `id:claim-stoicism-stress` `conf:0.7` `status:active`
+  Stoicism demonstrably reduces stress
+  *Evidence:* [[sources/meta-analysis-2024]] (lines 45-62, n=1,200)
+  *Evidence:* [[sources/personal-experience]] (lines 12-18)
 ```
 
-Damit wird aus "ich glaube X" ein trackbares Belief-System: Claims können über ihre ID direkt referenziert, bewertet, gewichtet, hinterfragt und aktualisiert werden — ohne den umgebenden Prosatext zu zerstören. Die Confidence wird vom LLM initial geschätzt und vom Compile anhand der vier Kalibrierungsfaktoren (Quellentyp, Belegqualität, Anzahl Belege, Aktualität) nachjustiert.
+This turns "I believe X" into a trackable belief system: claims can be directly referenced, evaluated, weighted, questioned, and updated via their ID — without destroying the surrounding prose. Confidence is initially estimated by the LLM and adjusted by compile based on the four calibration factors (source type, evidence quality, number of sources, currency).
 
-### 4.3 Konflikt-Erkennung beim Ingest
+### 4.3 Conflict Detection on Ingest
 
-Bevor neue Claims gemerged werden, prüft das System:
+Before new claims are merged, the system checks:
 
-- Widerspricht der neue Claim einem bestehenden? → Beide als `contested` markieren, Widerspruchs-Cluster anlegen (Claims per ID referenzieren: `entity.seneca#claim-cortisol-senkung ↔ concept.praemeditatio-malorum#claim-cortisol-signifikant`)
-- Überschreibt der neue Claim einen älteren mit höherer Autorität? → Confidence-Gewichtung nach Quellentyp (peer-reviewed > Buch > Blogpost)
-- Ist der bestehende Claim veraltet? → `stale`-Flag mit neuem Claim als Update-Kandidat
+- Does the new claim contradict an existing one? → Mark both as `contested`, create contradiction cluster (reference claims by ID: `entity.seneca#claim-cortisol-reduction ↔ concept.praemeditatio-malorum#claim-cortisol-significant`)
+- Does the new claim supersede an older one with higher authority? → Confidence weighting by source type (peer-reviewed > book > blog post)
+- Is the existing claim obsolete? → `stale` flag with new claim as update candidate
 
-Die Konflikt-Erkennung arbeitet zweistufig: Erst Embedding-basierter Similarity-Vergleich, dann LLM-Validierung ("Sind die ähnlichen Claims wirklich widersprüchlich?").
+Conflict detection works in two stages: First embedding-based similarity comparison, then LLM validation ("Are the similar claims actually contradictory?").
 
-### 4.4 Quellen-Nachweis über Claims
+### 4.4 Source Attribution via Claims
 
-Kein Claim ohne Beleg. Das `*Beleg:*`-Feld jedes Claims enthält immer einen Wikilink auf eine Source — das ist der Pflicht-Herkunftsnachweis. Entities, Concepts und Syntheses verlinken ausschließlich auf Sources in `sources/`, nicht auf Raw Sources. Der Herkunftsnachweis ist damit in jedem Claim verankert: Jede Behauptung trägt ihren eigenen Beleg bei sich. Das zwingt zur Nachvollziehbarkeit — und verhindert Halluzination als „Wissen".
+No claim without evidence. The `*Evidence:*` field of every claim always contains a wikilink to a Source — this is the mandatory provenance record. Entities, Concepts, and Syntheses link exclusively to Sources in `sources/`, not to Raw Sources. Provenance is thus anchored in every claim: every assertion carries its own evidence. This enforces traceability — and prevents hallucination as "knowledge."
 
-### 4.5 Dashboards als Health-Monitoring
+### 4.5 Dashboards as Health Monitoring
 
-Statt nur Ad-Hoc-Lint generiert der Compile-Step automatisch Dashboard-Seiten unter `reports/`:
+Instead of just ad-hoc lint, the compile step automatically generates dashboard pages under `reports/`:
 
-- **Open Questions** — alle ungelösten Fragen aus allen Seiten
-- **Contradictions** — Page-Level und Claim-Level Widersprüche (Claims per `page-id#claim-id` referenziert)
-- **Low Confidence** — Seiten und Claims mit confidence < 0.5
-- **Claim Health** — Missing Evidence, Contested, Stale Claims (mit Claim-ID-Referenzen)
-- **Stale Pages** — Seiten ohne Update trotz neuer Quellen
-- **Person/Agent Directory** — Personen mit Routing-Metadaten
-- **Relationship Graph** — alle strukturierten Relationships
-- **Herkunftsabdeckung** — Evidence-Statistiken pro Source
-- **Privacy Review** — Seiten mit sensiblen Inhalten
+- **Open Questions** — all unresolved questions from all pages
+- **Contradictions** — page-level and claim-level contradictions (claims referenced by `page-id#claim-id`)
+- **Low Confidence** — pages and claims with confidence < 0.5
+- **Claim Health** — Missing Evidence, Contested, Stale Claims (with claim ID references)
+- **Stale Pages** — pages without updates despite new sources
+- **Person/Agent Directory** — people with routing metadata
+- **Relationship Graph** — all structured relationships
+- **Source Coverage** — evidence statistics per source
+- **Privacy Review** — pages with sensitive content
 
-Diese Dashboards sind selbst Wiki-Seiten — das LLM kann sie lesen, der Mensch kann sie in Obsidian browsen.
-
----
-
-## 5. Erweiterungen gegenüber dem Original-Pattern
-
-| Aspekt                        | Karpathy (Gist)          | Dieser Entwurf                                                                                            |
-| ----------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| **Source-Pages**              | Summaries als Provenance | Sources als kuratierte Wissensgrundlage — der einzige Ort, aus dem Extraktion und Updates gespeist werden |
-| **Claims**                    | Fließtext                | Strukturiert mit eigener ID, Evidence, Confidence, Status                                                 |
-| **Mensch/Agent-Koexistenz**   | Nicht adressiert         | Human Blocks (nur Human-Bereiche markiert, alles andere implizit LLM-verwaltet)                           |
-| **Health-Monitoring**         | Ad-Hoc Lint              | Automatische Dashboards bei jedem Compile                                                                 |
-| **Query-Filing**              | Erwähnt                  | Systematische Query-to-Page Pipeline                                                                      |
-| **Konflikt-Erkennung**        | Nicht adressiert         | Automatisch bei Ingest mit zweistufiger Validierung                                                       |
-| **Progressive Summarization** | Nicht adressiert         | L1-L4 Verdichtungsebenen                                                                                  |
-| **Index**                     | Einfacher Katalog        | Katalog mit Slug-Lookup + Semantic Summary-Match + Claim-ID-Registry + optionalem Embedding-Index         |
-| **Lint**                      | Checkliste               | Strukturierte Issues (severity, category, code) + Forschungsagenda                                        |
-| **Multi-Source-Konflikte**    | Nicht adressiert         | Claim-Contradiction-Clustering mit ID-basierter Referenzierung                                            |
-| **Machine-Readable Output**   | Nicht adressiert         | agent-digest.json, claims.jsonl (Claims mit vollständiger ID-Referenz)                                    |
-| **Obsidian-Integration**      | Erwähnt (Viewer)         | Optionaler Obsidian-Render-Mode mit CLI-Integration                                                       |
-| **Schema-Evolution**          | Erwähnt                  | Explizites Version-Tracking des Schemas                                                                   |
-| **Metadaten-Format**          | Nicht spezifiziert       | YAML-Frontmatter für maschinenlesbare Felder (Tags, ID, Status, Confidence)                               |
-| **Claims als Quellen-Nachweis** | Nicht spezifiziert     | Jeder Claim trägt seinen Beleg direkt im `*Beleg:*`-Feld            |
-| **Confidence-Kalibrierung**   | Nicht adressiert         | Vier-Faktoren-Modell (Quellentyp, Belegqualität, Anzahl Belege, Aktualität)                               |
-| **Page-Typ-Dokumentation**    | Nicht adressiert         | Jeder Page-Typ (source, entity, concept, synthesis, report) detailliert dokumentiert                      |
-| **Grundlagen-Kapitel**        | Nicht adressiert         | Kapitel 2 definiert alle zentralen Konzepte (Claim, Entity, Concept etc.) vor der Architektur             |
-| **Claim-Spezifikation**       | Nicht adressiert         | Kapitel 4.8 spezifiziert Claims vollständig (Felder, Status, ID-Konvention)                               |
+These dashboards are themselves wiki pages — the LLM can read them, the human can browse them in Obsidian.
 
 ---
 
-## 6. Risiken, Fehlerquellen und Gegenmaßnahmen
+## 5. Extensions Compared to the Original Pattern
 
-### Kalter Start (Bootstrap-Modus)
-
-**Problem:** Beim Start des Wikis hat der Semantic Match kaum Anhaltspunkte. Der Index ist dünn, Summaries sind wenige — das LLM kann Konzepte schlecht zuordnen.
-
-**Gegenmaßnahmen:**
-- Manuelle Führung: Das System fragt bei den ersten 20 Ingests häufiger nach — *"Ich habe 'Stoische Ethik' gefunden. Soll ich dafür ein neues Concept anlegen oder passt das zu 'Philosophie'?"*
-- Ein `is_bootstrapping: true` Flag im `agent-digest.json` unterdrückt automatische Synthesen und forciert menschliche Bestätigung für neue Entities/Concepts.
-- Erst ab ~50 Seiten wird der automatische Modus voll aktiviert.
-
-### Schema-Migration
-
-**Problem:** Du entscheidest dich, das Feld `confidence` in `reliability` umzubenennen — alle bestehenden Seiten haben noch das alte Feld.
-
-**Gegenmaßnahmen:**
-- Ein Migrations-Agent liest das `wiki-schema.md` (neu) vs. `_schema_version` der Seite (alt).
-- Migration als expliziter Befehl: `python llm-wiki.py migrate --target-version 2.0`.
-- Das Skript läuft über alle `.md`-Dateien und transformiert die YAML-Frontmatter-Felder auf das neue Schema.
-- Vor jeder Migration: Git-Commit als Rollback-Punkt.
-
-### Halluzination als "Wissen"
-
-**Problem:** Das LLM erfindet Fakten, schreibt sie als Claims ins Wiki, und die erfundenen Claims werden zur Grundlage späterer Queries — ein sich selbst verstärkender Fehler.
-
-**Gegenmaßnahmen:**
-- Jeder Claim **muss** mindestens einen `*Beleg:*` mit Wikilink auf eine Source haben. Claims ohne Evidence werden beim Lint als `claim-missing-evidence` gemeldet.
-- Confidence aus Evidence-Qualität (peer-reviewed > Buch > Blogpost > LLM-generiert). Low-Confidence-Claims (< 0.5) prominent markiert.
-- Ingest-Prompt fordert explizit Belegstellen. Keine Quelle → `status: uncertain`.
-- Human-in-the-Loop: Nach jedem Ingest den Diff reviewen (~2-3 Minuten bei 10-15 Seiten).
-- `review`-Status-Flag für Seiten, die noch kein Mensch abgenommen hat.
-- Validate-Schritt: Stichproben-Cross-Checking mit stärkerem Modell.
-
-### Wissen veraltet unbemerkt
-
-**Problem:** Claims bleiben `active`, obwohl neuere Quellen sie widerlegt haben oder die ursprüngliche Studie 10 Jahre alt ist.
-
-**Gegenmaßnahmen:**
-- `updated` im YAML-Frontmatter pro Seite. Lint markiert Claims älter als N Tage als `stale`.
-- Ingest prüft bei jeder neuen Quelle auf Widersprüche zu bestehenden Claims.
-- Stale-Pages-Dashboard zeigt ungewartete Seiten.
-- Proaktive Aktualisierung: Neue Quelle mit derselben Quellen-Referenz → Claim zur Überprüfung vorschlagen.
-
-### Strukturloses Wachstum
-
-**Problem:** Nach 50+ Sources und 200+ Seiten wird das Wiki unübersichtlich. Duplikate entstehen, weil ähnliche Konzepte unter verschiedenen Namen angelegt werden.
-
-**Gegenmaßnahmen:**
-- Feste Page-Typen mit Ordnern. Compile prüft Directory-Konsistenz.
-- Lint findet Duplicate-IDs (auch doppelte Claim-IDs innerhalb einer Seite), Orphan Pages, Broken Wikilinks.
-- Merge-Strategie: Vor neuer Seite per Semantic Similarity prüfen, ob ähnliche existiert.
-- Slug-basierte IDs erzwingen Eindeutigkeit.
-
-### Agent zerstört menschliche Notizen
-
-**Problem:** Das LLM überschreibt handschriftliche Annotationen beim Update einer Seite.
-
-**Gegenmaßnahmen:**
-- Human Blocks strikt als einzige markierte Bereiche geschützt. Alles außerhalb ist implizit LLM-verwaltet.
-- Human-Blöcke (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) werden nie angetastet.
-- Git als Sicherheitsnetz: Vor Compile `git commit`, bei Fehler `git revert`.
-
-### Scope Creep — das Wiki als Selbstzweck
-
-**Problem:** Wiki-Pflege verschlingt mehr Zeit als sie spart. Jede Query → fünf neue Seiten. Der Vault wuchert.
-
-**Gegenmaßnahmen:**
-- YAGNI: Nicht jede Antwort braucht eine Synthesis-Page. Nur bei ≥3 Quellen oder neuem Zusammenhang.
-- Query-to-Page ist Vorschlag, nicht Automatismus. Mensch bestätigt.
-- Schema definiert Mindestanforderungen: "Concept braucht ≥3 verlinkte Sources."
-- Archivierung: `status: archived` blendet aus aktivem Index aus.
-
-### Nuancenverlust
-
-**Problem:** Paper sagt "X gilt unter A, B, C". LLM extrahiert "X gilt". Claim wird irreführend — die Einschränkungen gehen verloren.
-
-**Gegenmaßnahmen:**
-- Ingest-Prompt: "Extrahiere Bedingungen, Einschränkungen, Unsicherheiten."
-- Claims mit Qualifier-Feldern: `*Einschränkung:*` dokumentiert explizit die Bedingungen.
-- Bei Widersprüchen nicht automatisch neueren bevorzugen → beide `contested`.
-
-### Prompt Drift über Sessions
-
-**Problem:** Session 1 vs. Session 10 — inkonsistenter Stil, ungleiche Qualität. Das Wiki wird ein Flickenteppich.
-
-**Gegenmaßnahmen:**
-- Schema definiert Templates und goldene Beispiel-Seiten pro Typ.
-- Compile normalisiert Formatierung.
-- Lint prüft Schema-Konformität.
-- AGENTS.md als Single Source of Truth für alle Agenten.
-
-### Vertrauensverlust durch fehlerhafte Queries
-
-**Problem:** Query liefert Falschantwort, zitiert aber überzeugend Wiki-Seiten. Der Mensch verliert Vertrauen in das gesamte System.
-
-**Gegenmaßnahmen:**
-- Antworten listen referenzierte Claims mit Confidence: "Behauptung X aus Source Y (Confidence: 0.7)".
-- Explizite Markierung: "Wiki-basiert" vs. "speculative" (LLM-Synthese ohne Beleg).
-- Bei Low Confidence: proaktive Frage "Soll ich neue Quelle recherchieren?"
-
-### Kostenexplosion bei großen Vaults
-
-**Problem:** Jeder Compile liest alle Seiten. Bei 500+ Seiten werden LLM-Calls teuer.
-
-**Gegenmaßnahmen:**
-- Inkrementeller Compile: Nur seit letztem Compile geänderte Seiten (ab ~500 Seiten).
-- Index-First Query: Erst `index.md`, dann 3-5 Seiten — nicht der ganze Vault.
-- Progressive Summarization: L1-Scan spart Full-Page-Reads.
-- Embedding-Index erst ab >500 Seiten.
-- Ollama (lokal) für Bulk-Operationen, Cloud-Modelle nur für komplexe Synthesen.
-
-### Multi-Agent-Inkonsistenz
-
-**Problem:** Verschiedene Modelle/Sessions → Flickenteppich-Stil. Claude schreibt anders als GPT-4o.
-
-**Gegenmaßnahmen:**
-- Schema mit Style Guide und verbindlichen Beispielen.
-- Compile: optionaler Normalize-Pass für Überschriften, YAML-Frontmatter, Links.
-- Bridge-Mode: Nur strukturierte Daten importieren, Prosa immer neu generieren.
+| Aspect                            | Karpathy (Gist)           | This Design                                                                                                |
+| --------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Source Pages**                  | Summaries as provenance   | Sources as curated knowledge base — the sole place from which extraction and updates are fed               |
+| **Claims**                        | Flowing text              | Structured with own ID, evidence, confidence, status                                                       |
+| **Human/Agent Coexistence**       | Not addressed             | Human Blocks (only human areas marked, everything else implicitly LLM-managed)                             |
+| **Health Monitoring**             | Ad-hoc lint               | Automatic dashboards on every compile                                                                      |
+| **Query Filing**                  | Mentioned                 | Systematic query-to-page pipeline                                                                          |
+| **Conflict Detection**            | Not addressed             | Automatic on ingest with two-stage validation                                                              |
+| **Progressive Summarization**     | Not addressed             | L1-L4 compression levels                                                                                   |
+| **Index**                         | Simple catalog            | Catalog with slug lookup + semantic summary match + claim ID registry + optional embedding index           |
+| **Lint**                          | Checklist                 | Structured issues (severity, category, code) + research agenda                                             |
+| **Multi-Source Conflicts**        | Not addressed             | Claim contradiction clustering with ID-based referencing                                                   |
+| **Machine-Readable Output**       | Not addressed             | agent-digest.json, claims.jsonl (claims with full ID reference)                                            |
+| **Obsidian Integration**          | Mentioned (viewer)        | Optional Obsidian render mode with CLI integration                                                         |
+| **Schema Evolution**              | Mentioned                 | Explicit version tracking of the schema                                                                     |
+| **Metadata Format**               | Not specified             | YAML frontmatter for machine-readable fields (tags, ID, status, confidence)                                |
+| **Claims as Source Attribution**  | Not specified             | Every claim carries its evidence directly in the `*Evidence:*` field                                       |
+| **Confidence Calibration**        | Not addressed             | Four-factor model (source type, evidence quality, number of sources, currency)                             |
+| **Page Type Documentation**       | Not addressed             | Every page type (source, entity, concept, synthesis, report) documented in detail                          |
+| **Foundations Chapter**           | Not addressed             | Chapter 2 defines all core concepts (claim, entity, concept, etc.) before the architecture                  |
+| **Claim Specification**           | Not addressed             | Section 4.2 specifies claims fully (fields, status, ID convention)                                         |
 
 ---
 
-## 7. Zusammenfassung
+## 6. Risks, Error Sources, and Countermeasures
 
-Das Pattern ist verblüffend einfach:
+### Cold Start (Bootstrap Mode)
 
-1. **Raw Sources sammeln** (immutable in `raw-sources/`)
-2. **Sources erstellen** (verarbeitete, menschlich geprüfte Wissensgrundlage in `sources/`)
-3. **LLM baut und pflegt ein Wiki daraus** (interlinked Markdown, structured claims mit IDs, basierend auf Sources)
-4. **Schema definiert die Spielregeln** (AGENTS.md, wiki-schema.md)
-5. **Ingest → Compile → Lint** als Maintenance-Loop
-6. **Query** greift auf kompiliertes Wissen zu, nicht auf Roh-Chunks
+**Problem:** When the wiki starts, semantic matching has few reference points. The index is thin, summaries are few — the LLM has difficulty mapping concepts.
 
-Der entscheidende Shift: Wissen wird **einmal kompiliert** und dann aktuell gehalten — nicht bei jeder Frage neu zusammengesucht. Und der kritische zweite Shift: Sources sind nicht nur Herkunftsnachweise, sondern die **kuratierte Wissensgrundlage**, durch die alles Rohwissen fließt und auf der alle weiteren Verarbeitungen aufbauen. Das Wiki ist ein wachsendes, compounding Artefact. Das LLM macht die Buchhaltung, die kein Mensch machen will. Der Mensch denkt, kuratiert Quellen, stellt die richtigen Fragen.
+**Countermeasures:**
+- Manual guidance: The system asks more frequently for the first 20 ingests — *"I found 'Stoic Ethics'. Should I create a new concept for this or does it fit under 'Philosophy'?"*
+- An `is_bootstrapping: true` flag in `agent-digest.json` suppresses automatic syntheses and forces human confirmation for new entities/concepts.
+- Only from ~50 pages onward is automatic mode fully activated.
 
-Die technische Umsetzung ist bewusst schlank gehalten: Plain-Text Markdown mit YAML-Frontmatter, keine Datenbank, kein Server, keine Cloud-Abhängigkeit. Das Wiki ist in jedem Texteditor lesbar, mit Git versionierbar und über Obsidian optional visuell navigierbar. Die Intelligenz steckt in den Prompts und der Pipeline-Architektur, nicht in der Infrastruktur.
+### Schema Migration
+
+**Problem:** You decide to rename the `confidence` field to `reliability` — all existing pages still have the old field.
+
+**Countermeasures:**
+- A migration agent reads `wiki-schema.md` (new) vs. the page's `_schema_version` (old).
+- Migration as explicit command: `python llm-wiki.py migrate --target-version 2.0`.
+- The script runs over all `.md` files and transforms the YAML frontmatter fields to the new schema.
+- Before each migration: git commit as a rollback point.
+
+### Hallucination as "Knowledge"
+
+**Problem:** The LLM invents facts, writes them as claims into the wiki, and the fabricated claims become the basis for later queries — a self-reinforcing error.
+
+**Countermeasures:**
+- Every claim **must** have at least one `*Evidence:*` with a wikilink to a Source. Claims without evidence are reported by lint as `claim-missing-evidence`.
+- Confidence from evidence quality (peer-reviewed > book > blog post > LLM-generated). Low-confidence claims (< 0.5) prominently marked.
+- Ingest prompt explicitly requests source citations. No source → `status: uncertain`.
+- Human-in-the-loop: Review the diff after each ingest (~2-3 minutes for 10-15 pages).
+- `review` status flag for pages not yet approved by a human.
+- Validate step: spot-check cross-checking with a stronger model.
+
+### Knowledge Goes Stale Unnoticed
+
+**Problem:** Claims remain `active` even though newer sources have refuted them or the original study is 10 years old.
+
+**Countermeasures:**
+- `updated` in the YAML frontmatter per page. Lint marks claims older than N days as `stale`.
+- Ingest checks for contradictions with existing claims on each new source.
+- Stale Pages dashboard shows untended pages.
+- Proactive update: New source with the same source reference → suggest claim for review.
+
+### Unstructured Growth
+
+**Problem:** After 50+ sources and 200+ pages the wiki becomes unwieldy. Duplicates arise because similar concepts are created under different names.
+
+**Countermeasures:**
+- Fixed page types with folders. Compile checks directory consistency.
+- Lint finds duplicate IDs (also duplicate claim IDs within a page), orphan pages, broken wikilinks.
+- Merge strategy: Before creating a new page, check via semantic similarity whether a similar one exists.
+- Slug-based IDs enforce uniqueness.
+
+### Agent Destroys Human Notes
+
+**Problem:** The LLM overwrites handwritten annotations when updating a page.
+
+**Countermeasures:**
+- Human Blocks strictly protected as the only marked areas. Everything outside is implicitly LLM-managed.
+- Human Blocks (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) are never touched.
+- Git as safety net: before compile `git commit`, on error `git revert`.
+
+### Scope Creep — the Wiki as an End in Itself
+
+**Problem:** Wiki maintenance consumes more time than it saves. Every query → five new pages. The vault proliferates.
+
+**Countermeasures:**
+- YAGNI: Not every answer needs a synthesis page. Only with ≥3 sources or a new connection.
+- Query-to-page is a suggestion, not an automatic action. Human confirms.
+- Schema defines minimum requirements: "Concept needs ≥3 linked sources."
+- Archiving: `status: archived` hides from active index.
+
+### Loss of Nuance
+
+**Problem:** Paper says "X holds under A, B, C". LLM extracts "X holds". Claim becomes misleading — the constraints are lost.
+
+**Countermeasures:**
+- Ingest prompt: "Extract conditions, limitations, uncertainties."
+- Claims with qualifier fields: `*Limitation:*` explicitly documents the conditions.
+- On contradictions, don't automatically prefer newer → both `contested`.
+
+### Prompt Drift Across Sessions
+
+**Problem:** Session 1 vs. Session 10 — inconsistent style, uneven quality. The wiki becomes a patchwork.
+
+**Countermeasures:**
+- Schema defines templates and golden example pages per type.
+- Compile normalizes formatting.
+- Lint checks schema conformance.
+- AGENTS.md as single source of truth for all agents.
+
+### Loss of Trust Due to Faulty Queries
+
+**Problem:** Query returns wrong answer but convincingly cites wiki pages. The human loses trust in the entire system.
+
+**Countermeasures:**
+- Answers list referenced claims with confidence: "Claim X from Source Y (Confidence: 0.7)".
+- Explicit marking: "wiki-based" vs. "speculative" (LLM synthesis without evidence).
+- On low confidence: proactive question "Should I research a new source?"
+
+### Cost Explosion with Large Vaults
+
+**Problem:** Every compile reads all pages. At 500+ pages LLM calls become expensive.
+
+**Countermeasures:**
+- Incremental compile: Only pages changed since last compile (from ~500 pages).
+- Index-first query: First `index.md`, then 3–5 pages — not the whole vault.
+- Progressive Summarization: L1 scan saves full-page reads.
+- Embedding index only from >500 pages.
+- Ollama (local) for bulk operations, cloud models only for complex syntheses.
+
+### Multi-Agent Inconsistency
+
+**Problem:** Different models/sessions → patchwork style. Claude writes differently than GPT-4o.
+
+**Countermeasures:**
+- Schema with style guide and binding examples.
+- Compile: optional normalize pass for headings, YAML frontmatter, links.
+- Bridge mode: Only import structured data, always regenerate prose.
+
+---
+
+## 7. Summary
+
+The pattern is astonishingly simple:
+
+1. **Collect Raw Sources** (immutable in `raw-sources/`)
+2. **Create Sources** (processed, human-reviewed knowledge base in `sources/`)
+3. **LLM builds and maintains a wiki from it** (interlinked Markdown, structured claims with IDs, based on Sources)
+4. **Schema defines the rules** (AGENTS.md, wiki-schema.md)
+5. **Ingest → Compile → Lint** as the maintenance loop
+6. **Query** accesses compiled knowledge, not raw chunks
+
+The decisive shift: knowledge is **compiled once** and then kept current — not re-assembled for each question. And the critical second shift: Sources are not just provenance records, but the **curated knowledge base** through which all raw knowledge flows and on which all further processing builds. The wiki is a growing, compounding artifact. The LLM does the bookkeeping no human wants to do. The human thinks, curates sources, asks the right questions.
+
+The technical implementation is deliberately kept lean: Plain-text Markdown with YAML frontmatter, no database, no server, no cloud dependency. The wiki is readable in any text editor, versionable with Git, and optionally visually navigable via Obsidian. The intelligence resides in the prompts and the pipeline architecture, not in the infrastructure.

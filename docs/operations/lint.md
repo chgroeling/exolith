@@ -1,80 +1,80 @@
 # Lint
 
-Periodischer Health-Check des Wikis — als First-Class-Operation. Lint läuft nach jedem Compile (automatisch) und kann vom Menschen jederzeit manuell angestoßen werden (`lint`). Der Output ist nicht nur eine Fehlerliste, sondern generiert eine **Forschungsagenda** — Lint sagt nicht nur *was* falsch ist, sondern *was als nächstes zu tun ist*.
+Periodic health check of the wiki — as a first-class operation. Lint runs after every compile (automatically) and can be triggered manually by the human at any time (`lint`). The output is not just a list of errors, but generates a **research agenda** — lint tells you not only *what* is wrong, but *what to do next*.
 
-## Die vier Check-Kategorien mit Severity
+## The Four Check Categories with Severity
 
-| Kategorie    | Severity  | Checks                                                                                                                                                                       |
+| Category     | Severity  | Checks                                                                                                                                                                       |
 | ------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Struktur** | `error`   | Doppelte Page-IDs, fehlendes YAML-Frontmatter, Page-Type-Directory-Mismatch, Broken Wikilinks, Orphan Pages (keine Backlinks), doppelte Claim-IDs innerhalb einer Seite      |
-| **Herkunft** | `error`   | Claims ohne Evidence (`*Beleg:*`-Feld fehlt), Evidence ohne gültigen Wikilink                                                                                                |
-| **Qualität** | `warning` | Low-Confidence Claims (< 0.5), Stale Pages (>90 Tage ohne Update), Offene Questions ohne Fortschritt seit >30 Tagen, Widersprüche zwischen Claims (contested seit >14 Tagen) |
-| **Wachstum** | `info`    | Konzepte ohne eigene Seite (in >2 Sources erwähnt), unterrepräsentierte Themenbereiche (<3 Seiten), veraltete Index-Einträge, ungenutzte Tags                                |
+| **Struktur** | `error`   | Duplicate page IDs, missing YAML frontmatter, page-type-directory mismatch, broken wikilinks, orphan pages (no backlinks), duplicate claim IDs within a page                 |
+| **Herkunft** | `error`   | Claims without evidence (`*Beleg:*` field missing), evidence without a valid wikilink                                                                                        |
+| **Qualität** | `warning` | Low-confidence claims (< 0.5), stale pages (>90 days without update), open questions without progress for >30 days, contradictions between claims (contested for >14 days)   |
+| **Wachstum** | `info`    | Concepts without their own page (mentioned in >2 sources), underrepresented topic areas (<3 pages), outdated index entries, unused tags                                      |
 
-## Beispiel: Ein Lint-Lauf
+## Example: A Lint Run
 
-**Eingabe:** `lint` (nach einem Ingest, der 3 neue Claims und 1 neue Entity erzeugt hat)
+**Input:** `lint` (after an ingest that produced 3 new claims and 1 new entity)
 
-**Ausgabe:**
+**Output:**
 
 ```
 🔍 Wiki Lint — 2026-05-06T10:45:00Z
-   Vault: 15 Seiten, 4 Sources, 9 Claims
+   Vault: 15 pages, 4 Sources, 9 Claims
 
 ━━━ Struktur (errors) ━━━
 ❌ ERROR [E001] Duplicate page-id
    entities/seneca.md ↔ entities/seneca-briefe.md
-   Beide haben id: entity.seneca
-   → Fix: id in einer der beiden Seiten ändern
+   Both have id: entity.seneca
+   → Fix: change id in one of the two pages
 
 ❌ ERROR [E003] Broken wikilink
    concepts/praemeditatio-malorum.md → [[entities/maria-schneider]]
-   Ziel existiert nicht (Tippfehler? `maria-schneider` vs `maria-schneiderr`)
-   → Fix: Link korrigieren oder Zielseite anlegen
+   Target does not exist (typo? `maria-schneider` vs `maria-schneiderr`)
+   → Fix: correct link or create target page
 
 ━━━ Herkunft (errors) ━━━
-❌ ERROR [E010] Claim ohne Evidence
+❌ ERROR [E010] Claim without evidence
    entities/neurologie.md → claim-dopamin-ausschuettung
-   Kein *Beleg:* Feld vorhanden
-   → Fix: Beleg aus Source ergänzen oder Claim löschen
+   No *Beleg:* field present
+   → Fix: add evidence from source or delete claim
 
 ━━━ Qualität (warnings) ━━━
 ⚠️  WARNING [W020] Low confidence claim (< 0.5)
    entity.seneca → claim-seneca-angst-these (conf: 0.3)
-   Status: uncertain | Alter: 5 Tage
-   → Aktion: Neue empirische Quelle zu diesem Claim ingestieren?
+   Status: uncertain | Age: 5 days
+   → Action: ingest a new empirical source for this claim?
 
-⚠️  WARNING [W022] Contested claims ungelöst (> 14 Tage)
+⚠️  WARNING [W022] Contested claims unresolved (> 14 days)
    entity.seneca#claim-cortisol-senkung ↔ concept.kvt#claim-cortisol-kein-effekt
-   Widerspruch seit 16 Tagen ungelöst
-   → Aktion: Neue Quelle zur Auflösung recherchieren oder menschliche
-     Entscheidung anfordern
+   Contradiction unresolved for 16 days
+   → Action: research a new source for resolution or request human
+     decision
 
 ━━━ Wachstum (info) ━━━
-ℹ️  INFO [I030] Konzept ohne eigene Seite
-   "Dichotomie der Kontrolle" — erwähnt in 3 Sources, keine Concept-Seite
-   → Aktion: Ingest einer Quelle zu diesem Konzept oder manuelles CREATE
+ℹ️  INFO [I030] Concept without its own page
+   "Dichotomy of Control" — mentioned in 3 sources, no concept page
+   → Action: ingest a source on this concept or manual CREATE
 
-ℹ️  INFO [I032] Themen-Bias
-   #philosophie: 12 Seiten | #embedded: 2 Seiten | #python: 1 Seite
-   → Hinweis: Embedded- und Python-Bereich sind unterrepräsentiert
+ℹ️  INFO [I032] Topic bias
+   #philosophie: 12 pages | #embedded: 2 pages | #python: 1 page
+   → Note: Embedded and Python areas are underrepresented
 
-━━━ Zusammenfassung ━━━
-   3 errors (müssen behoben werden)
-   2 warnings (sollten zeitnah adressiert werden)
-   2 info (Forschungsagenda, keine Eile)
+━━━ Summary ━━━
+   3 errors (must be fixed)
+   2 warnings (should be addressed promptly)
+   2 info (research agenda, no urgency)
 
-   Nächster Schritt: errors beheben, dann compile erneut ausführen.
-   Forschungsagenda: 4 neue Aktionen identifiziert.
+   Next step: fix errors, then run compile again.
+   Research agenda: 4 new actions identified.
 ```
 
-## Forschungsagenda — was Lint über Fehler hinaus liefert
+## Research Agenda — What Lint Delivers Beyond Errors
 
-Lint ist nicht nur ein Validator, sondern ein Ideengenerator. Aus den `info`- und `warning`-Meldungen entsteht eine priorisierte To-Do-Liste:
+Lint is not just a validator, but an idea generator. The `info` and `warning` messages produce a prioritized to-do list:
 
-1. 🔴 **Konzept "Dichotomie der Kontrolle"** wird in 3 Quellen erwähnt, hat aber keine eigene Seite — Ingest einer Primärquelle empfohlen
-2. 🟡 **Contested Claims** (Cortisol-Senkung vs. kein Effekt) seit 16 Tagen ungelöst — Auflösung durch neue Quelle oder menschliche Entscheidung nötig
-3. 🟡 **Themen-Bias** — Embedded- und Python-Bereich haben zusammen nur 3 Seiten vs. 12 für Philosophie. Bewusste Entscheidung oder Quellen-Lücke?
-4. 🟢 **Low-Confidence-Claim** zu Senecas Angst-These — Gelegenheit, bei nächstem Stoa-Ingest eine empirische Quelle mitzulesen
+1. 🔴 **Concept "Dichotomy of Control"** is mentioned in 3 sources but has no own page — ingest of a primary source recommended
+2. 🟡 **Contested Claims** (cortisol reduction vs. no effect) unresolved for 16 days — resolution by new source or human decision needed
+3. 🟡 **Topic bias** — Embedded and Python areas together have only 3 pages vs. 12 for philosophy. Conscious decision or source gap?
+4. 🟢 **Low-confidence claim** on Seneca's anxiety thesis — opportunity to read an empirical source alongside the next Stoicism ingest
 
-Der Mensch kann einzelne Agenda-Punkte akzeptieren (→ Task wird getrackt), ablehnen (→ wird beim nächsten Lint nicht erneut vorgeschlagen) oder aufschieben.
+The human can accept individual agenda items (→ task is tracked), reject them (→ not suggested again on next lint run), or defer them.

@@ -1,30 +1,30 @@
 # Report — Dashboards
 
-Der Page-Typ `report` ist ein **automatisch generiertes Dashboard**. Anders als alle anderen Page-Typen wird ein Report bei jedem Compile komplett neu generiert. Reports sind rein lesend für den Menschen; das LLM nutzt sie für Health-Monitoring.
+The page type `report` is an **automatically generated dashboard**. Unlike all other page types, a report is completely regenerated on every compile. Reports are read-only for humans; the LLM uses them for health monitoring.
 
-**Wann entsteht ein Report?** Ausschließlich beim Compile (Phase 4: Dashboards). Nie durch Ingest oder Query.
+**When is a report created?** Only during compile (Phase 4: Dashboards). Never via ingest or query.
 
-**Liste der Standard-Reports:**
+**List of Standard Reports:**
 
-| Report                          | Beschreibung                              |
+| Report                          | Description                              |
 | ------------------------------- | ----------------------------------------- |
-| `reports/open-questions.md`     | Alle ungelösten Fragen aus allen Seiten   |
-| `reports/contradictions.md`     | Page-Level und Claim-Level Widersprüche   |
-| `reports/low-confidence.md`     | Seiten & Claims mit confidence < 0.5      |
+| `reports/open-questions.md`     | All unresolved questions from all pages   |
+| `reports/contradictions.md`     | Page-level and claim-level contradictions |
+| `reports/low-confidence.md`     | Pages & Claims with confidence < 0.5      |
 | `reports/claim-health.md`       | Missing Evidence, Contested, Stale Claims |
-| `reports/stale-pages.md`        | Seiten ohne Update trotz neuer Quellen    |
-| `reports/person-directory.md`   | Alle Entities vom Typ "person"            |
-| `reports/relationship-graph.md` | Alle strukturierten Relationships         |
-| `reports/herkunftsabdeckung.md` | Evidence-Statistiken pro Source           |
-| `reports/privacy-review.md`     | Seiten mit sensiblen Inhalten             |
+| `reports/stale-pages.md`        | Pages without updates despite new sources |
+| `reports/person-directory.md`   | All Entities of type "person"             |
+| `reports/relationship-graph.md` | All structured Relationships              |
+| `reports/herkunftsabdeckung.md` | Evidence statistics per Source            |
+| `reports/privacy-review.md`     | Pages with sensitive content              |
 
-**Struktur eines Report (Beispiel `reports/open-questions.md`):**
+**Structure of a Report (example `reports/open-questions.md`):**
 
 ```markdown
 ---
 id: report.open-questions
 page: report
-title: Offene Fragen
+title: Open Questions
 status: active
 tags:
   - dashboard
@@ -32,27 +32,27 @@ created: 2026-05-02
 updated: 2026-05-02
 ---
 
-# Offene Fragen
+# Open Questions
 
-> Auto-generated at 2026-05-02T10:35:00Z | 3 pages mit 5 Fragen
+> Auto-generated at 2026-05-02T10:35:00Z | 3 pages with 5 questions
 
 ## [[entities/seneca]]
-- Hält die Cortisol-Senkung nach Absetzen der Übungen an?
-  *Kontext:* Studie misst nur akute Effekte
+- Does the cortisol reduction persist after stopping the exercises?
+  *Context:* Study measures only acute effects
 
 ## [[concepts/praemeditatio-malorum]]
-- Hält die Cortisol-Senkung nach Absetzen der Übungen an?
-  *Kontext:* Studie misst nur akute Effekte
-- Warum wirkt praemeditatio nicht bei unter 25-Jährigen?
-  *Kontext:* Mögliche Erklärung: präfrontaler Cortex noch nicht voll entwickelt
+- Does the cortisol reduction persist after stopping the exercises?
+  *Context:* Study measures only acute effects
+- Why doesn't praemeditatio work for people under 25?
+  *Context:* Possible explanation: prefrontal cortex not yet fully developed
 
 ## [[syntheses/stoizismus-und-empirie]]
-- Gibt es stoische Techniken, die empirisch *widerlegt* wurden?
-- Wie verhalten sich stoische und buddhistische Meditation im direkten Vergleich?
+- Are there Stoic techniques that have been empirically *disproven*?
+- How do Stoic and Buddhist meditation compare in a direct comparison?
 ```
 
-**Besonderheiten:**
+**Special Characteristics:**
 
-- Reports haben **keinen** Human Block — sie werden komplett neu generiert und enthalten keine persönlichen Notizen.
-- Claims werden in Dashboards über ihre `page-id#claim-id`-Referenz identifiziert.
-- Reports sind optional — der Compile generiert nur die, für die es auch Daten gibt.
+- Reports have **no** Human Block — they are completely regenerated and contain no personal notes.
+- Claims are identified in dashboards via their `page-id#claim-id` reference.
+- Reports are optional — the compile only generates those for which data exists.

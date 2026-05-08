@@ -1,30 +1,30 @@
-# index.md — Der Content-Katalog
+# index.md — The content catalog
 
-Der Index ist die zentrale Navigationsstruktur des Wikis. Er wird bei jedem Compile automatisch neu generiert und listet **jede Wiki-Seite** mit den Feldern, die das LLM für Lookup und Query-Scoping braucht — nicht den Seiteninhalt selbst.
+The index is the central navigation structure of the wiki. It is automatically regenerated on every compile and lists **every wiki page** with the fields the LLM needs for lookup and query scoping — not the page content itself.
 
-## Felder pro Index-Eintrag
+## Fields per index entry
 
-(extrahiert aus YAML-Frontmatter und Body):
+(extracted from YAML frontmatter and body):
 
-| Feld               | Quelle                        | Typ          | Beschreibung                                                     |
-| ------------------ | ----------------------------- | ------------ | ---------------------------------------------------------------- |
-| `id`               | `id` im Frontmatter           | string       | Eindeutiger Identifier, z.B. `entity.seneca`                     |
-| `slug`             | Aus `id` abgeleitet           | string       | Dateiname ohne `.md`, z.B. `seneca`                              |
-| `title`            | `title` im Frontmatter        | string       | Anzeigename, z.B. `Seneca`                                       |
-| `pageType`         | `page` im Frontmatter         | enum         | `source`, `entity`, `concept`, `synthesis`, `report`             |
-| `summary`          | Erster Satz nach `# Titel`    | string       | L1-One-Liner (max. 1 Satz)                                       |
-| `path`             | Dateipfad                     | string       | Relativer Pfad, z.B. `entities/seneca.md`                        |
-| `claimCount`       | `## Claims`                   | number       | Anzahl strukturierter Claims                                     |
-| `claimIds`         | `id:claim-xxx` im `## Claims` | string[]     | Liste aller Claim-IDs auf der Seite (für direkte Referenzierung) |
-| `hasOpenQuestions` | `## Offene Fragen`            | boolean      | Für Dashboard-Query: Welche Seiten haben offene Fragen?          |
-| `confidence`       | `confidence` im Frontmatter   | number\|null | Page-Level Confidence (Durchschnitt aller Claims)                |
-| `status`           | `status` im Frontmatter       | string       | `active`, `review`, `archived`                                   |
-| `tags`             | `tags` im Frontmatter         | string[]     | Tags für thematische Filterung                                   |
-| `updatedAt`        | `updated` im Frontmatter      | ISO-Datum    | Letzte Änderung                                                  |
+| Field              | Source                        | Type         | Description                                                         |
+| ------------------ | ----------------------------- | ------------ | ------------------------------------------------------------------- |
+| `id`               | `id` in frontmatter           | string       | Unique identifier, e.g. `entity.seneca`                             |
+| `slug`             | Derived from `id`             | string       | Filename without `.md`, e.g. `seneca`                               |
+| `title`            | `title` in frontmatter        | string       | Display name, e.g. `Seneca`                                         |
+| `pageType`         | `page` in frontmatter         | enum         | `source`, `entity`, `concept`, `synthesis`, `report`                |
+| `summary`          | First sentence after `# Title` | string      | L1 one-liner (max. 1 sentence)                                      |
+| `path`             | File path                     | string       | Relative path, e.g. `entities/seneca.md`                            |
+| `claimCount`       | `## Claims`                   | number       | Number of structured claims                                         |
+| `claimIds`         | `id:claim-xxx` in `## Claims` | string[]     | List of all claim IDs on the page (for direct referencing)          |
+| `hasOpenQuestions` | `## Offene Fragen`            | boolean      | For dashboard query: which pages have open questions?               |
+| `confidence`       | `confidence` in frontmatter   | number\|null | Page-level confidence (average of all claims)                       |
+| `status`           | `status` in frontmatter       | string       | `active`, `review`, `archived`                                      |
+| `tags`             | `tags` in frontmatter         | string[]     | Tags for thematic filtering                                         |
+| `updatedAt`        | `updated` in frontmatter      | ISO date     | Last modification                                                   |
 
-Selbst bei 200 Seiten ist der Index nur ~10-15 KB groß. Das LLM kann ihn in einem einzigen Read erfassen und dann gezielt die 3-5 relevanten Seiten nachladen.
+Even at 200 pages, the index is only ~10-15 KB. The LLM can read it in a single read and then selectively load the 3-5 relevant pages.
 
-## Konkretes Beispiel
+## Concrete example
 
 ```markdown
 # Wiki Index
@@ -62,44 +62,44 @@ Selbst bei 200 Seiten ist der Index nur ~10-15 KB groß. Das LLM kann ihn in ein
   — Philosophische Schule der Stoa, Fokus auf das Kontrollierbare
 ```
 
-## Wie die Index-Felder genutzt werden
+## How the index fields are used
 
-- **`page:xxx`** → Page-Typ. Das LLM nutzt es zum Scoping (beim Update nur Entities durchsuchen, nicht alle Kategorien). Der Mensch erkennt auf einen Blick, ob ein Eintrag Person, Idee oder Analyse ist.
-- **`X claims`** → Umfang. Hohe Claim-Zahlen signalisieren dem LLM: diese Seite ist dicht, beim Ingest lohnt ein Reload. Der Mensch sieht, welche Seiten viel Substanz haben.
-- **`❓`** → `hasOpenQuestions`. Fehlt das Flag, gibt es keine offenen Punkte. Das Dashboard `report.open-questions` wird per Grep über den Index gebaut — kein LLM-Aufruf nötig.
-- **`conf:0.X`** → Durchschnitts-Confidence aller Claims der Seite (aus dem YAML-Frontmatter). Das LLM nutzt es zur Gewichtung bei Syntheses (niedrige Confidence → vorsichtig zitieren, Disclaimer setzen). Der Mensch sieht sofort: „diese Seite hat harte Belege" oder „hier ist viel Spekulation".
-- **`active` / `review` / `archived`** → Lebenszyklus. Archivierte Seiten werden bei neuen Ingests ignoriert, Review-Seiten erhalten einen Lint-nudge.
-- **`#tag1 #tag2`** → Tags aus dem YAML-Frontmatter, für thematische Filterung.
-- Datumsstempel (`2026-05-01`) → `updatedAt`, kompakt notiert. Das LLM prüft daran: ist diese Seite aktuell? Bei Quellen älter als 6 Monate löst der Lint einen Refresh-Vorschlag aus.
+- **`page:xxx`** → Page type. The LLM uses it for scoping (when updating, only search Entities, not all categories). The human recognizes at a glance whether an entry is a person, idea, or analysis.
+- **`X claims`** → Size. High claim counts signal to the LLM: this page is dense, during ingest a reload is worthwhile. The human sees which pages have substantial content.
+- **`❓`** → `hasOpenQuestions`. If the flag is missing, there are no open points. The dashboard `report.open-questions` is built by grep over the index — no LLM call needed.
+- **`conf:0.X`** → Average confidence of all claims on the page (from the YAML frontmatter). The LLM uses it for weighting during synthesis (low confidence → cite cautiously, set disclaimer). The human immediately sees: "this page has hard evidence" or "there is a lot of speculation here."
+- **`active` / `review` / `archived`** → Lifecycle. Archived pages are ignored during new ingests, review pages receive a lint nudge.
+- **`#tag1 #tag2`** → Tags from the YAML frontmatter, for thematic filtering.
+- Date stamp (`2026-05-01`) → `updatedAt`, noted compactly. The LLM checks against it: is this page current? For sources older than 6 months, the lint triggers a refresh suggestion.
 
-## Zwei-Phasen-Lookup
+## Two-phase lookup
 
-Das LLM nutzt den Index für eine Lookup-Strategie in **zwei Phasen**, die immer beide durchlaufen werden:
+The LLM uses the index for a lookup strategy in **two phases**, both of which are always executed:
 
-1. **Phase 1 — Exakter Slug-Match** (Python-Script, String-Vergleich): Der extrahierte Name wird gegen alle Slugs im Index geprüft. Liefert einen Kandidaten oder „keiner".
+1. **Phase 1 — Exact slug match** (Python script, string comparison): The extracted name is checked against all slugs in the index. Returns a candidate or "none".
 
-2. **Phase 2 — Semantischer Summary-Match** (LLM-basiert): Parallel dazu bekommt das LLM alle Summaries der passenden Kategorie und sucht die semantisch ähnlichste Seite. Liefert ebenfalls einen Kandidaten oder „keiner".
+2. **Phase 2 — Semantic summary match** (LLM-based): In parallel, the LLM receives all summaries of the matching category and searches for the semantically most similar page. Also returns a candidate or "none".
 
-**Ergebnis-Reconciliation:**
+**Result reconciliation:**
 
-- **Beide liefern denselben Treffer** → sicherer Match, Seite laden
-- **Nur Phase 1 trifft** → Slug-Match gewinnt
-- **Nur Phase 2 trifft** → Semantic-Match gewinnt
-- **Keine trifft** → neue Seite anlegen
+- **Both return the same match** → confident match, load page
+- **Only phase 1 matches** → slug match wins
+- **Only phase 2 matches** → semantic match wins
+- **Neither matches** → create new page
 
-### Wie eine neue Seite angelegt wird
+### How a new page is created
 
-1. **Slug generieren:** Aus dem extrahierten Namen wird ein Slug gebildet (`slugify("Dr. Maria Schneider")` → `maria-schneider`).
-2. **Template laden:** Pro Page-Typ existiert ein Template in `wiki-schema.md`.
-3. **Seite schreiben:** Das LLM füllt das Template. Die neue Seite erhält `status: review`.
-4. **Index-Nachtrag:** Die neue Seite wird sofort in den Index eingetragen.
+1. **Generate slug:** A slug is formed from the extracted name (`slugify("Dr. Maria Schneider")` → `maria-schneider`).
+2. **Load template:** A template exists per page type in `wiki-schema.md`.
+3. **Write page:** The LLM fills the template. The new page receives `status: review`.
+4. **Index entry:** The new page is immediately added to the index.
 
-## Warum der Index so effizient ist
+## Why the index is so efficient
 
-- **Eine Datei, ein Read.** Kein Directory-Scan, kein Glob-Pattern.
-- **Summaries als Mini-Embeddings.** Die One-Liner erlauben dem LLM einen semantischen Vergleich, ohne echte Embeddings berechnen zu müssen.
-- **Metadaten-Flags vermeiden unnötige Page-Loads.** Das `❓`-Flag zeigt sofort: offene Fragen — relevant fürs Dashboard, aber kein Grund, die Seite beim Ingest zu laden.
-- **Claim-IDs ermöglichen präzise Referenzierung.** Dashboards und Cross-References können direkt auf einzelne Claims verweisen (`entity.seneca#claim-cortisol-senkung`).
-- **Linear skalierend.** 500 Seiten = ~25 KB Index — passt locker in ein einzelnes LLM-Read.
+- **One file, one read.** No directory scan, no glob pattern.
+- **Summaries as mini-embeddings.** The one-liners allow the LLM to do a semantic comparison without having to compute actual embeddings.
+- **Metadata flags avoid unnecessary page loads.** The `❓` flag immediately shows: open questions — relevant for the dashboard, but no reason to load the page during ingest.
+- **Claim IDs enable precise referencing.** Dashboards and cross-references can point directly to individual claims (`entity.seneca#claim-cortisol-senkung`).
+- **Linearly scaling.** 500 pages = ~25 KB index — easily fits in a single LLM read.
 
-Optional kann für Vaults >500 Seiten ein Embedding-Index (via `sentence-transformers` oder `ollama`) dazugeschaltet werden. Der kuratierte Index bleibt aber der primäre Navigationsmechanismus.
+Optionally, for vaults >500 pages, an embedding index (via `sentence-transformers` or `ollama`) can be added. The curated index remains the primary navigation mechanism, however.

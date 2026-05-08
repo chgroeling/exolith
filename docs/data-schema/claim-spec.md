@@ -1,55 +1,55 @@
-# Der Claim im Detail
+# The Claim in Detail
 
-Claims sind die atomaren Wissensbausteine des Wikis — eine einzelne, überprüfbare Behauptung mit eindeutiger ID, Confidence, Status und Beleg. Sie machen aus vagen Aussagen ein trackbares Belief-System. Jeder Claim trägt seinen eigenen Herkunftsnachweis direkt im `*Beleg:*`-Feld.
+Claims are the atomic knowledge building blocks of the wiki — a single, verifiable assertion with a unique ID, confidence, status, and evidence. They turn vague statements into a trackable belief system. Every claim carries its own provenance directly in the `*Evidence:*` field.
 
-## Claim-Felder
+## Claim Fields
 
-Jeder Claim im `## Claims`-Kapitel hat:
+Every claim in the `## Claims` chapter has:
 
-| Feld               | Typ      | Pflicht | Beschreibung                                                                        |
-| ------------------ | -------- | ------- | ----------------------------------------------------------------------------------- |
-| `id:claim-xxx`     | string   | ✅       | Eindeutige Claim-ID, Slug-Pattern, page-scoped (z.B. `id:claim-cortisol-senkung`)   |
-| `conf:0.X`         | float    | ✅       | Confidence (0.0–1.0), vom LLM gesetzt, vom Compile kalibriert                       |
-| `status:...`       | enum     | ✅       | `active`, `contested`, `superseded`, `deprecated`, `uncertain`                      |
-| `*Beleg:*`         | wikilink | ✅       | Wikilink auf Source + optionale Stellenangabe                                       |
-| `*Einschränkung:*` | text     | ❌       | Methodische oder inhaltliche Limitationen                                           |
-| `*aktualisiert:*`  | datum    | ❌       | Wann der Claim zuletzt überprüft wurde                                              |
-| `*Kontext:*`       | text     | ❌       | Zusätzlicher Hintergrund                                                            |
+| Field               | Type     | Required | Description                                                                             |
+| ------------------- | -------- | -------- | --------------------------------------------------------------------------------------- |
+| `id:claim-xxx`      | string   | ✅        | Unique claim ID, slug pattern, page-scoped (e.g. `id:claim-cortisol-reduction`)          |
+| `conf:0.X`          | float    | ✅        | Confidence (0.0–1.0), set by LLM, calibrated by compile                                 |
+| `status:...`        | enum     | ✅        | `active`, `contested`, `superseded`, `deprecated`, `uncertain`                          |
+| `*Evidence:*`       | wikilink | ✅        | Wikilink to Source + optional location reference                                        |
+| `*Limitation:*`     | text     | ❌        | Methodological or content limitations                                                   |
+| `*updated:*`        | date     | ❌        | When the claim was last reviewed                                                        |
+| `*Context:*`        | text     | ❌        | Additional background                                                                   |
 
-## Claim-Status im Detail
+## Claim Statuses in Detail
 
-| Status       | Bedeutung                                                | Auslöser                                       |
-| ------------ | -------------------------------------------------------- | ---------------------------------------------- |
-| `active`     | Claim ist gültig und aktuell                             | Default bei Neuanlage                          |
-| `contested`  | Zwei Claims widersprechen sich                           | Konflikt-Erkennung beim Ingest                 |
-| `superseded` | Neuerer Claim mit höherer Confidence hat diesen abgelöst | Update-Schritt: SUPERSEDE                      |
-| `deprecated` | Claim ist nicht mehr relevant                            | Manuell oder durch Lint                        |
-| `uncertain`  | Claim ist spekulativ, keine harte Evidenz                | Extraktion: philosophische Behauptung, Meinung |
+| Status       | Meaning                                             | Trigger                                      |
+| ------------ | --------------------------------------------------- | -------------------------------------------- |
+| `active`     | Claim is valid and current                          | Default on creation                          |
+| `contested`  | Two claims contradict each other                    | Conflict detection on ingest                 |
+| `superseded` | A newer claim with higher confidence has replaced it | Update step: SUPERSEDE                       |
+| `deprecated` | Claim is no longer relevant                         | Manual or via lint                           |
+| `uncertain`  | Claim is speculative, no hard evidence               | Extraction: philosophical assertion, opinion |
 
-## Claim-ID-Konvention
+## Claim ID Convention
 
-- Pattern: `claim-<kurzbeschreibung>` — slugifiziert, kleingeschrieben, Bindestriche
-- Scope: eindeutig innerhalb einer Seite (nicht Vault-weit)
-- Vollständige Referenz: `page-id#claim-id`, z.B. `entity.seneca#claim-cortisol-senkung`
-- Die ID wird vom LLM beim Anlegen vergeben und ändert sich nie
-- Dashboards und der Index referenzieren Claims über diese vollständige Referenz
+- Pattern: `claim-<short-description>` — slugified, lowercase, hyphens
+- Scope: unique within a page (not vault-wide)
+- Full reference: `page-id#claim-id`, e.g. `entity.seneca#claim-cortisol-reduction`
+- The ID is assigned by the LLM on creation and never changes
+- Dashboards and the index reference claims via this full reference
 
-## Format und Beispiele
+## Format and Examples
 
-Claims im `## Claims`-Kapitel haben eine eindeutige ID. Der Beleg ist immer ein Wikilink auf eine Source:
+Claims in the `## Claims` chapter have a unique ID. Evidence is always a wikilink to a Source:
 
 ```markdown
 ## Claims
 
-- `id:claim-cortisol-senkung` `conf:0.85` `status:active`
-  Praemeditatio malorum senkt Cortisol um durchschnittlich 18%
-  *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 3, n=1.200)
-  *Einschränkung:* Keine Wirkung bei Teilnehmern unter 25 Jahren
+- `id:claim-cortisol-reduction` `conf:0.85` `status:active`
+  Praemeditatio malorum reduces cortisol by an average of 18%
+  *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 3, n=1,200)
+  *Limitation:* No effect in participants under 25 years
 
-- `id:claim-seneca-angst-these` `conf:0.3` `status:uncertain`
-  Senecas These: „Die meisten Ängste entstehen aus antizipiertem Leiden,
-  nicht aus realem"
-  *Beleg:* [[sources/briefe-an-lucilius]] (13. Brief)
-  *Einschränkung:* Philosophische Behauptung, 2.000 Jahre alt, kein empirischer Beleg
-  *aktualisiert:* 2026-05-02
+- `id:claim-seneca-anxiety-thesis` `conf:0.3` `status:uncertain`
+  Seneca's thesis: "Most anxieties arise from anticipated suffering,
+  not from real suffering"
+  *Evidence:* [[sources/letters-to-lucilius]] (13th Letter)
+  *Limitation:* Philosophical assertion, 2,000 years old, no empirical evidence
+  *updated:* 2026-05-02
 ```

@@ -1,35 +1,35 @@
-# log.md — Die Chronik
+# log.md — The Chronicle
 
-## Aufbau eines Log-Eintrags
+## Structure of a Log Entry
 
-- **Überschrift:** `## YYYY-MM-DD • aktion | Kurztitel` — maschinenlesbar und grep-freundlich. Kein `[ ]` ums Datum (das wäre ein Wikilink).
-- **Quelle:** Nur bei `ingest`, als Wikilink: `[[pfad/zur/quelle]]`
-- **Aktion:** Was wurde erstellt, geändert, gelöscht. Zahlen zu Entities/Concepts/Claims/Relationships
-- **Kontext:** Bei `lint` oder `compile`: Warum wurde der Schritt ausgelöst, was war das Ergebnis
+- **Heading:** `## YYYY-MM-DD • action | short title` — machine-readable and grep-friendly. No `[ ]` around the date (that would be a wikilink).
+- **Source:** Only for `ingest`, as a wikilink: `[[path/to/source]]`
+- **Action:** What was created, modified, deleted. Counts for Entities/Concepts/Claims/Relationships
+- **Context:** For `lint` or `compile`: Why the step was triggered, what the result was
 
-## Struktur und Beispiel
+## Structure and Example
 
 ```markdown
 # Wiki Log
 
-## 2026-05-02 • ingest | Praktische Stoizismus-Anwendung
-Quelle: [[inbox/stoizismus-engineering]]
-Aktion: 1 neue Source, 2 Entities angelegt (maria-schneider, uni-tuebingen),
+## 2026-05-02 • ingest | Practical Application of Stoicism
+Source: [[inbox/stoizismus-engineering]]
+Action: 1 new Source, 2 Entities created (maria-schneider, uni-tuebingen),
   3 Concepts (praemeditatio-malorum, cortison-senkung, antizipiertes-leiden),
-  6 Claims, 4 Relationships. 5 bestehende Seiten aktualisiert.
+  6 Claims, 4 Relationships. 5 existing pages updated.
 
-## 2026-05-01 • ingest | Briefe an Lucilius (Brief 13)
-Quelle: [[inbox/briefe-an-lucilius-13]]
-Aktion: 1 neue Source, Entity seneca erweitert, Concept praemeditatio-malorum
-  angelegt. 2 Claims, 1 Relationship.
+## 2026-05-01 • ingest | Letters to Lucilius (Letter 13)
+Source: [[inbox/briefe-an-lucilius-13]]
+Action: 1 new Source, Entity seneca expanded, Concept praemeditatio-malorum
+  created. 2 Claims, 1 Relationship.
 
-## 2026-04-30 • lint | Confidence-Review
-3 Claims mit confidence < 0.5 gefunden → alle in [[concepts/dichotomie-der-kontrolle]].
-  Mensch hat review-Flag gesetzt, LLM soll bei nächster passender Quelle neu bewerten.
+## 2026-04-30 • lint | Confidence Review
+3 Claims with confidence < 0.5 found → all in [[concepts/dichotomie-der-kontrolle]].
+  Human set review flag, LLM should re-evaluate at the next matching source.
 
-## 2026-04-28 • compile | Auto-Compile nach 3 Ingests
-Index regeneriert (12 → 15 Seiten). Backlinks aktualisiert.
-  Dashboard [[reports/contradictions]]: 0 Widersprüche.
+## 2026-04-28 • compile | Auto-Compile after 3 Ingests
+Index regenerated (12 → 15 pages). Backlinks updated.
+  Dashboard [[reports/contradictions]]: 0 contradictions.
 ```
 
-Das Log wird append-only geführt — neue Einträge kommen oben drauf (reverse-chronologisch). Beim Start einer Session liest das LLM die ersten 15-20 Zeilen des Logs und weiß sofort, was seit dem letzten Mal passiert ist. Kein Dateisystem-Timestamp-Vergleich nötig.
+The log is kept append-only — new entries go on top (reverse-chronological). At the start of a session, the LLM reads the first 15-20 lines of the log and immediately knows what has happened since last time. No filesystem timestamp comparison needed.

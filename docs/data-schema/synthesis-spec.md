@@ -1,24 +1,24 @@
-# Synthesis — Querschnittsanalysen
+# Synthesis — Cross-Section Analyses
 
-Der Page-Typ `synthesis` fasst mehrere Entities oder Concepts zu einer **höheren Analyse** zusammen. Anders als ein Concept, das ein einzelnes Pattern beschreibt, stellt eine Synthesis eine **Querverbindung** zwischen mehreren Page-Typen her.
+The page type `synthesis` combines multiple Entities or Concepts into a **higher-level analysis**. Unlike a concept, which describes a single pattern, a synthesis establishes a **cross-connection** between multiple page types.
 
-**Wann entsteht eine Synthesis?**
-- Aus einer Query, die mehrere Seiten verknüpft (≥3 Quellen oder neuer Zusammenhang entdeckt)
-- Wenn der Compile erkennt, dass mehrere Seiten dasselbe Thema aus verschiedenen Perspektiven beleuchten
-- Manuell durch den Menschen angestoßen ("Vergleiche mal X mit Y")
+**When is a synthesis created?**
+- From a query that links multiple pages (≥3 sources or a new connection discovered)
+- When the compile detects that multiple pages examine the same topic from different perspectives
+- Triggered manually by the human ("Compare X with Y")
 
-**Beispiele für Syntheses:**
-- `synthesis.stoizismus-und-empirie` — Wie stoische Konzepte durch moderne Forschung bestätigt oder widerlegt werden
-- `synthesis.c-plus-plus-embedded-vs-python` — Design-Philosophie-Unterschiede zwischen beiden Sprachwelten
-- `synthesis.depression-bewältigungsstrategien` — Abgleich verschiedener Methoden (Stoa, KVT, Meditation) mit Wirksamkeitsbelegen
+**Examples of Syntheses:**
+- `synthesis.stoizismus-und-empirie` — How Stoic concepts are confirmed or refuted by modern research
+- `synthesis.c-plus-plus-embedded-vs-python` — Design philosophy differences between the two language worlds
+- `synthesis.depression-bewältigungsstrategien` — Comparison of different methods (Stoicism, CBT, meditation) with effectiveness evidence
 
-**Struktur einer Synthesis (Beispiel):**
+**Structure of a Synthesis (Example):**
 
 ```markdown
 ---
 id: synthesis.stoizismus-und-empirie
 page: synthesis
-title: Stoizismus und Empirie — Was die Forschung sagt
+title: Stoicism and Empiricism — What the Research Says
 confidence: 0.75
 status: active
 tags:
@@ -30,50 +30,50 @@ created: 2026-05-02
 updated: 2026-05-02
 ---
 
-# Stoizismus und Empirie
+# Stoicism and Empiricism
 
-Die moderne Psychologie hat mehrere stoische Praktiken empirisch
-untersucht. Die Ergebnisse sind gemischt: Einige Konzepte (praemeditatio
-malorum, Dichotomie der Kontrolle) zeigen messbare Effekte, andere
-(stoische Affektlehre) sind bisher nicht operationalisiert worden.
+Modern psychology has empirically investigated several Stoic
+practices. The results are mixed: Some concepts (praemeditatio
+malorum, dichotomy of control) show measurable effects, others
+(Stoic theory of emotions) have not yet been operationalized.
 
 ## Claims
 
 - `id:claim-praemeditatio-best-belegt` `conf:0.85` `status:active`
-  Praemeditatio malorum ist die am besten empirisch belegte stoische Technik
-  *Beleg:* [[sources/schneider-metastudie-2024]]
-  *Einschränkung:* Andere Techniken (Dichotomie der Kontrolle) nicht in kontrollierten
-  Studien untersucht
+  Praemeditatio malorum is the most empirically substantiated Stoic technique
+  *Evidence:* [[sources/schneider-metastudie-2024]]
+  *Limitation:* Other techniques (dichotomy of control) not examined in
+  controlled studies
 
 - `id:claim-stoa-kvt-vergleichbar` `conf:0.5` `status:uncertain`
-  Stoische Praktiken sind der KVT in der Wirkstärke vergleichbar
-  *Beleg:* [[sources/kvt-leitlinien-2023]] (indirekter Vergleich)
-  *Einschränkung:* Kein direkter Head-to-Head-Vergleich; Confidence niedrig
+  Stoic practices are comparable to CBT in effectiveness
+  *Evidence:* [[sources/kvt-leitlinien-2023]] (indirect comparison)
+  *Limitation:* No direct head-to-head comparison; confidence low
 
-## Verknüpfungen
+## Connections
 
-- `vergleicht` → [[concepts/praemeditatio-malorum]]
-- `vergleicht` → [[concepts/stoizismus]]
-- `stellt_gegenüber` → [[concepts/kognitive-verhaltenstherapie]]
+- `compares` → [[concepts/praemeditatio-malorum]]
+- `compares` → [[concepts/stoizismus]]
+- `contrasts` → [[concepts/kognitive-verhaltenstherapie]]
 
-## Offene Fragen
+## Open Questions
 
-- Gibt es stoische Techniken, die empirisch *widerlegt* wurden?
-- Wie verhalten sich stoische und buddhistische Meditation im direkten Vergleich?
+- Are there Stoic techniques that have been empirically *disproven*?
+- How do Stoic and Buddhist meditation compare in a direct comparison?
 
 <!-- llm-wiki:human:start -->
-## Meine Einschätzung
+## My Assessment
 
-Die empirische Bestätigung ist nett, aber für mich nicht der
-entscheidende Punkt. Stoizismus funktioniert für mich subjektiv —
-das reicht. Trotzdem spannend zu sehen, dass die Forschung das
-teilweise stützt.
+The empirical confirmation is nice, but for me it's not the
+decisive point. Stoicism works for me subjectively —
+that's enough. Still, it's exciting to see that the research
+partially supports it.
 <!-- llm-wiki:human:end -->
 ```
 
-**Besonderheiten:**
+**Special Characteristics:**
 
-- Auch Syntheses sammeln Claims — sie aggregieren und vergleichen Claims aus mehreren Quellen, formulieren aber auch eigene, synthetisierende Behauptungen.
-- Eine Synthesis entsteht **nicht automatisch** bei jedem Ingest — sie ist ein bewusster Schritt (Query-Filing oder manueller Anstoß).
-- Bootstrap-Modus: Bei <50 Seiten im Vault werden keine Syntheses automatisch vorgeschlagen.
-- Die Confidence einer Synthesis ist der gewichtete Durchschnitt aller referenzierten Claims.
+- Syntheses also collect Claims — they aggregate and compare claims from multiple sources, but also formulate their own synthesizing assertions.
+- A synthesis is **not created automatically** with every ingest — it is a deliberate step (query filing or manual trigger).
+- Bootstrap mode: With <50 pages in the vault, no syntheses are automatically suggested.
+- The confidence of a synthesis is the weighted average of all referenced claims.

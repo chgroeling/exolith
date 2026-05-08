@@ -1,18 +1,18 @@
-# Source — die Wissensgrundlage
+# Source — the Knowledge Foundation
 
-Der Page-Typ `source` (liegt in `sources/`) ist die **Wissensgrundlage** des Wikis. Jede Source entsteht aus einer Raw Source (`raw-sources/`) im Ingest-Schritt 3 — verarbeitet und angereichert durch das LLM, geprüft und gegebenenfalls korrigiert durch menschliches Feedback aus der Key-Takeaways-Diskussion (Schritt 2). Die Source ist der Dreh- und Angelpunkt: Alle weiteren Verarbeitungen (Extraktion von Entities, Concepts, Claims in Schritt 4; Updates in Schritt 5) basieren ausschließlich auf der Source, nicht mehr auf der Raw Source.
+The page type `source` (stored in `sources/`) is the **knowledge foundation** of the wiki. Each source is created from a Raw Source (`raw-sources/`) in Ingest Step 3 — processed and enriched by the LLM, verified and corrected as needed by human feedback from the Key Takeaways discussion (Step 2). The source is the linchpin: All further processing (extraction of Entities, Concepts, Claims in Step 4; updates in Step 5) is based exclusively on the source, no longer on the Raw Source.
 
-Die Source verlinkt auf die Raw Source, damit der Mensch jederzeit das Original einsehen kann. Für das LLM ist die Source jedoch der alleinige Arbeitsgegenstand — die Raw Source wird nach dem Ingest nicht mehr gelesen.
+The source links to the Raw Source so that the human can consult the original at any time. For the LLM, however, the source is the sole working object — the Raw Source is not read again after the ingest.
 
-**Wann entsteht eine Source?** Bei jedem Ingest — Schritt 3 der Pipeline. Eine Source wird genau einmal geschrieben und danach nicht mehr vom LLM verändert. Die Liste der verlinkten Wiki-Seiten (automatisch vom Compile gepflegt) ist die einzige Ausnahme.
+**When is a source created?** During every ingest — Step 3 of the pipeline. A source is written exactly once and never modified by the LLM thereafter. The list of linked wiki pages (automatically maintained by the compile) is the only exception.
 
-**Struktur einer Source:**
+**Structure of a Source:**
 
 ```markdown
 ---
 id: source.briefe-an-lucilius
 page: source
-title: Briefe an Lucilius (13. Brief)
+title: Letters to Lucilius (13th Letter)
 status: active
 tags:
   - philosophie
@@ -22,16 +22,16 @@ created: 2026-05-01
 updated: 2026-05-01
 ---
 
-# Briefe an Lucilius (13. Brief)
+# Letters to Lucilius (13th Letter)
 
-*Typ:* transcript
-*Autor(en):* Lucius Annaeus Seneca
-*Datum:* ca. 62–64 n. Chr.
-*URL/Referenz:* —
-*Originaldatei:* [[raw-sources/briefe-an-lucilius-13.md]]
+*Type:* transcript
+*Author(s):* Lucius Annaeus Seneca
+*Date:* ca. 62–64 CE
+*URL/Reference:* —
+*Original File:* [[raw-sources/briefe-an-lucilius-13.md]]
 
-## Zusammenfassung
-{1-2 Absätze, was die Quelle aussagt — neutral, kein Werturteil}
+## Summary
+{1-2 paragraphs summarizing what the source says — neutral, no value judgment}
 
 ## Main Points
 - Main Point 1
@@ -41,12 +41,12 @@ updated: 2026-05-01
 - Takeaway 1
 - Takeaway 2
 
-## Verlinkte Wiki-Seiten
+## Linked Wiki Pages
 - [[entities/seneca]] (2 Claims)
 - [[concepts/praemeditatio-malorum]] (1 Claim)
 ```
 
-**Template für Source-Seiten:**
+**Template for Source Pages:**
 
 ```markdown
 ---
@@ -63,14 +63,14 @@ updated: {YYYY-MM-DD}
 
 # {title}
 
-*Typ:* {article|paper|transcript|note|book}
-*Autor(en):* {authors}
-*Datum:* {date}
-*URL/Referenz:* {url_or_ref}
-*Originaldatei:* [[raw-sources/{raw_filename}]]
+*Type:* {article|paper|transcript|note|book}
+*Author(s):* {authors}
+*Date:* {date}
+*URL/Reference:* {url_or_ref}
+*Original File:* [[raw-sources/{raw_filename}]]
 
-## Zusammenfassung
-{1-2 Absätze, was die Quelle aussagt — neutral, kein Werturteil}
+## Summary
+{1-2 paragraphs summarizing what the source says — neutral, no value judgment}
 
 ## Main Points
 - Main Point 1
@@ -82,24 +82,24 @@ updated: {YYYY-MM-DD}
 - Takeaway 2
 - ...
 
-## Verlinkte Wiki-Seiten
+## Linked Wiki Pages
 - [[entities/seneca]] (2 Claims)
 - [[concepts/praemeditatio-malorum]] (1 Claim)
 ```
 
 **Main Points vs. Key Takeaways:**
 
-- **Main Points** sind die zentralen Aussagen *des Autors* — neutral, deskriptiv, objektiv. Sie beantworten: „Was sagt die Quelle?" Beispiel: *„Seneca beschreibt die praemeditatio malorum als Übung gegen Angst."*
+- **Main Points** are the central statements *of the author* — neutral, descriptive, objective. They answer the question: "What does the source say?" Example: *"Seneca describes praemeditatio malorum as an exercise against fear."*
 
-- **Key Takeaways** sind die Aussagen, die *für das Wiki relevant* sind. Sie werden aus der Raw Source extrahiert — das LLM identifiziert, was daran für den Menschen von Interesse sein könnte. Der Mensch gibt in der Diskussion (Schritt 2) Feedback und bestimmt, welche Aspekte betont, umgewichtet oder verworfen werden.
+- **Key Takeaways** are the statements that are *relevant to the wiki*. They are extracted from the Raw Source — the LLM identifies what might be of interest to the human. The human provides feedback in the discussion (Step 2) and decides which aspects to emphasize, re-weight, or discard.
 
-**Besonderheiten:**
+**Special Characteristics:**
 
-- Die `## Verlinkte Wiki-Seiten`-Liste wird **ausschließlich vom Compile** gepflegt, nicht vom LLM beim Ingest.
-- Die Source ist der *einzige* Page-Typ, der direkt auf eine Raw Source (`[[raw-sources/...]]`) verlinkt — und das ausschließlich für den Menschen.
-- Alle anderen Page-Typen (entity, concept, synthesis) verlinken ausschließlich auf Sources.
-- Die Source ist die verarbeitete Grundlage: Was hier nicht steht, existiert für das LLM nicht. Sie ist der Flaschenhals, durch den alles Rohwissen fließt und geprüft wird.
-- Die Source selbst hat keinen Human Block — sie ist komplett LLM-verwaltet.
-- Weder Main Points noch Key Takeaways ändern sich nach der Source-Erstellung. Beide sind aus der Raw Source extrahiert und ausschließlich daraus entnommen. Sie sind Teil der Source-Page, die — mit Ausnahme der `## Verlinkte Wiki-Seiten`-Liste — nach Schritt 3 stabil bleibt und nie vom LLM überschrieben wird.
+- The `## Linked Wiki Pages` list is maintained **exclusively by the compile**, not by the LLM during ingest.
+- The source is the *only* page type that links directly to a Raw Source (`[[raw-sources/...]]`) — and this is exclusively for the human.
+- All other page types (entity, concept, synthesis) link exclusively to sources.
+- The source is the processed foundation: What is not stated here does not exist for the LLM. It is the bottleneck through which all raw knowledge flows and is verified.
+- The source itself has no Human Block — it is entirely LLM-managed.
+- Neither Main Points nor Key Takeaways change after the source is created. Both are extracted from the Raw Source and taken exclusively from it. They are part of the source page, which — with the exception of the `## Linked Wiki Pages` list — remains stable after Step 3 and is never overwritten by the LLM.
 
-Die Source-Page wird nach dem ersten Ingest nie wieder vom LLM verändert — mit einer Ausnahme: Die Liste der verlinkten Wiki-Seiten wird beim Compile automatisch aktualisiert. Sie enthält alle Entities, Concepts und Syntheses, die mindestens einen Claim aus dieser Source referenzieren. Die Zahl in Klammern zeigt, wie stark die Source in der jeweiligen Seite verankert ist.
+The source page is never modified by the LLM after the first ingest — with one exception: The list of linked wiki pages is automatically updated during the compile. It contains all Entities, Concepts, and Syntheses that reference at least one claim from this source. The number in parentheses indicates how deeply the source is anchored in the respective page.

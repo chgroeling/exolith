@@ -1,101 +1,101 @@
 # Compile
 
-Nach jedem Ingest läuft der Compile-Step. Er liest den gesamten Vault und aktualisiert die Querschnittsstrukturen. Im Gegensatz zum Ingest (der gezielt einzelne Seiten modifiziert) arbeitet Compile auf dem ganzen Vault — er ist der Schritt, der aus vielen Einzelseiten ein kohärentes Wiki macht.
+After every ingest, the compile step runs. It reads the entire vault and updates the cross-sectional structures. In contrast to ingest (which modifies individual pages in a targeted way), compile operates on the whole vault — it's the step that turns many individual pages into a coherent wiki.
 
-## Die fünf Compile-Phasen
+## The Five Compile Phases
 
 ```
-1. ALLE SEITEN PARSEN
-   Jede .md-Datei in sources/, entities/, concepts/, syntheses/
-   einlesen → YAML-Frontmatter + Markdown-Kapitel parsen → WikiPage-Modell befüllen
+1. PARSE ALL PAGES
+   Read every .md file in sources/, entities/, concepts/, syntheses/
+   → parse YAML frontmatter + markdown chapters → populate WikiPage model
    ↓
-2. INDEX GENERIEREN
-   Aus allen WikiPage-Instanzen einen kategorisierten Katalog bauen
+2. GENERATE INDEX
+   Build a categorized catalog from all WikiPage instances
    ↓
-3. BACKLINKS SCHREIBEN
-   Für jede Seite: ## Related Block mit Sources, Inbound-Links,
-   Shared-Source-Nachbarn generieren → in die Seite einfügen
+3. WRITE BACKLINKS
+   For each page: generate ## Related block with sources, inbound links,
+   shared-source neighbors → insert into the page
    ↓
-4. DASHBOARDS GENERIEREN
-   Querschnittsanalysen über alle Seiten: Open Questions,
+4. GENERATE DASHBOARDS
+   Cross-sectional analyses across all pages: Open Questions,
    Contradictions, Low Confidence, Claim Health, Stale Pages,
-   Person Directory, Relationship Graph, Herkunftsabdeckung
+   Person Directory, Relationship Graph, provenance coverage
    ↓
-5. DIGESTS SCHREIBEN
-   agent-digest.json + claims.jsonl für Maschinenkonsum
+5. WRITE DIGESTS
+   agent-digest.json + claims.jsonl for machine consumption
 ```
 
-## Index-Generierung im Detail
+## Index Generation in Detail
 
-Die Index-Generierung ist Phase 2 des Compile — und das Herzstück der strukturellen Integrität.
+Index generation is Phase 2 of compile — and the heart of structural integrity.
 
-**Ablauf — Schritt für Schritt:**
+**Process — step by step:**
 
-1. **Seiten einlesen und gruppieren:**
-   - Alle Wiki-Seiten aus dem Vault laden (jede `.md`-Datei in `sources/`, `entities/`, `concepts/`, `syntheses/`, `reports/`)
-   - Nach Page-Typ gruppieren: Sources, Entities, Concepts, Syntheses, Reports
+1. **Read and group pages:**
+   - Load all wiki pages from the vault (every `.md` file in `sources/`, `entities/`, `concepts/`, `syntheses/`, `reports/`)
+   - Group by page type: Sources, Entities, Concepts, Syntheses, Reports
 
-2. **Statistiken aggregieren:**
-   - Gesamtzahl Seiten, Anzahl Sources, Anzahl Claims summieren
-   - Pro Seite: Claim-Count, Open-Questions-Flag, Confidence aus YAML-Frontmatter extrahieren
+2. **Aggregate statistics:**
+   - Sum total pages, number of sources, number of claims
+   - Per page: extract claim count, open-questions flag, confidence from YAML frontmatter
 
-3. **Pro Seite eine Index-Zeile generieren:**
-   - Format: `- [[pfad/zur/seite]]` als Wikilink
-   - Metadaten in Backticks: `page:typ` `X claims` `❓` `conf:0.X` `status` `#tags`
-   - Summary als L1-One-Liner (erster Satz nach `# Titel`)
+3. **Generate one index line per page:**
+   - Format: `- [[path/to/page]]` as wikilink
+   - Metadata in backticks: `page:type` `X claims` `❓` `conf:0.X` `status` `#tags`
+   - Summary as L1 one-liner (first sentence after `# Title`)
 
-4. **Claim-IDs registrieren:**
-   - Alle `id:claim-xxx` aus dem `## Claims`-Kapitel jeder Seite extrahieren
-   - Für direkte Referenzierung aus Dashboards und Cross-References speichern
+4. **Register claim IDs:**
+   - Extract all `id:claim-xxx` from the `## Claims` chapter of each page
+   - Store for direct referencing from dashboards and cross-references
 
-5. **Nach Kategorie gruppiert ausgeben:**
-   - Abschnitte in dieser Reihenfolge: `## Sources` → `## Entities` → `## Concepts` → `## Syntheses` → `## Reports`
-   - Leere Kategorien werden nicht ausgegeben
-   - Innerhalb jeder Kategorie alphabetisch nach `title` sortieren
+5. **Output grouped by category:**
+   - Sections in this order: `## Sources` → `## Entities` → `## Concepts` → `## Syntheses` → `## Reports`
+   - Empty categories are not output
+   - Sort alphabetically by `title` within each category
 
-**Skizze des Datenflusses:**
+**Data flow sketch:**
 
 ```
-Eingabe: Alle Wiki-Seiten (.md-Dateien)
+Input: All wiki pages (.md files)
          │
-         ├── YAML-Frontmatter parsen → id, title, page, tags, confidence, status, updated
-         ├── Kapitel parsen
-         │   ├── Erster Satz nach # Titel → summary (L1-One-Liner)
+         ├── Parse YAML frontmatter → id, title, page, tags, confidence, status, updated
+         ├── Parse chapters
+         │   ├── First sentence after # Title → summary (L1 one-liner)
          │   ├── ## Claims → claimCount, claimIds
          │   └── ## Offene Fragen → hasOpenQuestions
          │
-         ├── Seiten gruppieren nach pageType
-         ├── Pro Seite Index-Zeile formatieren
-         └── Als kategorisierte index.md ausgeben
+         ├── Group pages by pageType
+         ├── Format index line per page
+         └── Output as categorized index.md
 ```
 
-**Woher die Index-Felder kommen:**
+**Where the index fields come from:**
 
-| Index-Feld         | Quelle                                    | Wie extrahiert             |
+| Index field        | Source                                    | How extracted              |
 | ------------------ | ----------------------------------------- | -------------------------- |
-| `id`               | YAML-Frontmatter: `id`                    | YAML-Parse                 |
-| `slug`             | `id` minus Prefix                         | `entity.seneca` → `seneca` |
-| `title`            | YAML-Frontmatter: `title`                 | YAML-Parse                 |
-| `pageType`         | YAML-Frontmatter: `page` + Ordner-Prüfung | Mismatch → Lint-Warnung    |
-| `summary`          | Erster Satz nach `# Titel`                | L1-One-Liner, max. 1 Satz  |
-| `path`             | Dateipfad relativ zum Vault-Root          | Aus Dateisystem            |
-| `claimCount`       | Claims im `## Claims`-Kapitel             | Gezählt                    |
-| `claimIds`         | `id:claim-xxx` im `## Claims`-Kapitel     | Geparst                    |
+| `id`               | YAML frontmatter: `id`                    | YAML parse                 |
+| `slug`             | `id` minus prefix                         | `entity.seneca` → `seneca` |
+| `title`            | YAML frontmatter: `title`                 | YAML parse                 |
+| `pageType`         | YAML frontmatter: `page` + directory check | Mismatch → lint warning    |
+| `summary`          | First sentence after `# Title`            | L1 one-liner, max. 1 sentence |
+| `path`             | File path relative to vault root          | From filesystem            |
+| `claimCount`       | Claims in `## Claims` chapter             | Counted                    |
+| `claimIds`         | `id:claim-xxx` in `## Claims` chapter     | Parsed                     |
 | `hasOpenQuestions` | `len(questions) > 0`                      | Boolean                    |
-| `confidence`       | YAML-Frontmatter: `confidence`            | YAML-Parse                 |
-| `status`           | YAML-Frontmatter: `status`                | Default: `active`          |
-| `tags`             | YAML-Frontmatter: `tags`                  | YAML-Parse als Liste       |
-| `updatedAt`        | YAML-Frontmatter: `updated`               | Fallback: Dateisystem      |
+| `confidence`       | YAML frontmatter: `confidence`            | YAML parse                 |
+| `status`           | YAML frontmatter: `status`                | Default: `active`          |
+| `tags`             | YAML frontmatter: `tags`                  | YAML parse as list         |
+| `updatedAt`        | YAML frontmatter: `updated`               | Fallback: filesystem       |
 
-## Inkrementeller vs. vollständiger Index
+## Incremental vs. Full Index
 
-Der Compile regeneriert den Index **immer vollständig** — nicht inkrementell. Das ist ein bewusster Trade-off: Ein vollständiger Index-Neubau ist bei <500 Seiten in Millisekunden erledigt (reiner Dateisystem-Scan + YAML/Regex-Parse) und garantiert Konsistenz. Ein inkrementeller Update wäre fehleranfällig (vergessene Löschungen, verschobene Seiten, geänderte Sources). Erst bei >1.000 Seiten würde man auf inkrementellen Index-Bau umschalten.
+Compile always regenerates the index **fully** — not incrementally. This is a deliberate trade-off: a full index rebuild for <500 pages completes in milliseconds (pure filesystem scan + YAML/regex parse) and guarantees consistency. An incremental update would be error-prone (forgotten deletions, moved pages, changed sources). Only at >1,000 pages would you switch to incremental index building.
 
-## Weitere Compile-Phasen
+## Further Compile Phases
 
-- **Backlink-Blöcke** (`## Related`) in jede Seite einfügen — listet Sources, Backlinks und Shared-Source-Nachbarn
-- **Dashboard-Reports** unter `reports/` aktualisieren: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, Relationship Graph, Herkunftsabdeckung, Privacy Review. Claims werden in Dashboards über ihre `page-id#claim-id`-Referenz identifiziert.
-- **Machine-Readable Digests** schreiben: `agent-digest.json` (kompakte Zusammenfassung aller Seiten inkl. Claim-IDs) und `claims.jsonl` (alle Claims mit vollständiger Referenz als JSON-Lines)
-- Optional: Embedding-Index aktualisieren
+- **Backlink blocks** (`## Related`) inserted into every page — lists sources, backlinks, and shared-source neighbors
+- **Dashboard reports** under `reports/` updated: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, Relationship Graph, provenance coverage, Privacy Review. Claims are identified in dashboards via their `page-id#claim-id` reference.
+- **Machine-readable digests** written: `agent-digest.json` (compact summary of all pages incl. claim IDs) and `claims.jsonl` (all claims with full reference as JSON-Lines)
+- Optional: update embedding index
 
-Compile trennt "Daten schreiben" (Ingest) von "Struktur aktualisieren" — sauberer als beides in einem Schritt.
+Compile separates "writing data" (ingest) from "updating structure" — cleaner than doing both in one step.

@@ -1,79 +1,79 @@
 # Ingest
 
-Der Kern-Workflow. Eine Quelle wird nicht nur indiziert, sondern **aktiv ins Wiki integriert**. Das ist der entscheidende Unterschied zu RAG: Nicht Chunks ablegen und später suchen, sondern das Wissen sofort in die bestehende Struktur einweben.
+The core workflow. A source is not just indexed, but **actively integrated into the wiki**. This is the decisive difference from RAG: not storing chunks and searching later, but weaving the knowledge into the existing structure immediately.
 
-## Die sieben Schritte des Ingest
+## The Seven Steps of Ingest
 
-1. LLM liest die Raw Source vollständig (nicht chunk-weise)
-2. Diskutiert Key Takeaways mit dem Menschen (optional, aber empfohlen)
-3. Schreibt eine Source-Page in `sources/` — die verarbeitete Wissensgrundlage
-4. **Extrahiert** Entities, Concepts, Claims, Relationships **ausschließlich aus der Source**
-5. **Updated alle betroffenen Wiki-Seiten** — eine einzige Quelle kann 10-15 Seiten berühren
-6. Löst den **Compile**-Schritt aus: index.md, Backlinks, Dashboards
-7. Schreibt einen Eintrag in `log.md`
+1. LLM reads the raw source completely (not chunk-by-chunk)
+2. Discusses key takeaways with the human (optional, but recommended)
+3. Writes a source page in `sources/` — the processed knowledge base
+4. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
+5. **Updates all affected wiki pages** — a single source can touch 10-15 pages
+6. Triggers the **compile** step: index.md, backlinks, dashboards
+7. Writes an entry in `log.md`
 
 ---
 
-## Schritt 1 — Raw Source vollständig lesen
+## Step 1 — Read Raw Source Completely
 
-Der erste Schritt ist der einfachste, aber entscheidend: Das LLM bekommt den gesamten Quelltext auf einmal, nicht chunk-weise. Das ist der fundamentale Unterschied zu RAG — das LLM versteht den vollen Kontext, erkennt implizite Zusammenhänge und kann Querbezüge innerhalb der Quelle herstellen, die chunk-basierte Systeme übersehen.
+The first step is the simplest but most critical: the LLM receives the entire source text at once, not chunk-by-chunk. This is the fundamental difference from RAG — the LLM understands the full context, recognizes implicit connections, and can establish cross-references within the source that chunk-based systems miss.
 
-Neue Quellen landen in `inbox/`. Nach der Verarbeitung (Schritt 3) wird die Raw Source nach `raw-sources/` verschoben — das ist das Archiv. `raw-sources/` wird vom LLM nicht weiter verarbeitet; es dient ausschließlich als Referenz für den Menschen. Die Sources in `sources/` verweisen per Wikilink (`*Originaldatei:*`) auf die zugehörige Raw Source in `raw-sources/`.
+New sources land in `inbox/`. After processing (step 3), the raw source is moved to `raw-sources/` — that is the archive. `raw-sources/` is not processed further by the LLM; it serves exclusively as a reference for the human. The sources in `sources/` link to the corresponding raw source in `raw-sources/` via wikilink (`*Originaldatei:*`).
 
-**Prompt für Schritt 1:**
+**Prompt for Step 1:**
 
 ```markdown
-Lies den folgenden Quelltext vollständig. Mache dir Notizen zu:
-- Hauptaussagen und Argumentationskette
-- Genannten Personen, Organisationen, Methoden, Theorien
-- Auffälligen Behauptungen mit oder ohne Beleg
-- Widersprüchen zu dem, was du bereits über das Thema weißt
+Read the following source text completely. Take notes on:
+- Main statements and line of argument
+- Named people, organizations, methods, theories
+- Notable claims with or without evidence
+- Contradictions to what you already know about the topic
 
-Quelle: {title} ({source_type})
+Source: {title} ({source_type})
 
 {source_content}
 
-Nach dem Lesen fassen wir die Key Takeaways zusammen, bevor die
-strukturierte Extraktion beginnt.
+After reading, we will summarize the key takeaways before
+structured extraction begins.
 ```
 
-Das LLM liest hier nur und bildet ein mentales Modell. Es schreibt noch nichts. Der Context ist danach „warm" — alle folgenden Schritte (Diskussion, Source-Erstellung, Extraktion, Update) profitieren davon, dass die Quelle komplett im Kurzzeitgedächtnis des LLMs liegt.
+Here the LLM only reads and builds a mental model. It does not write anything yet. The context is then "warm" — all subsequent steps (discussion, source creation, extraction, update) benefit from the source being fully in the LLM's short-term memory.
 
 ---
 
-## Schritt 2 — Key Takeaways & Main Points diskutieren (optional)
+## Step 2 — Discuss Key Takeaways & Main Points (optional)
 
-Bevor das LLM die Source erstellt und Wissen extrahiert, kann der Mensch eine kurze Diskussion anstoßen. Das LLM formuliert aus dem gelesenen Quelltext (Schritt 1) sowohl die **Main Points** (die zentralen Aussagen des Autors — neutral, deskriptiv) als auch die **Key Takeaways** (was *dich* daran interessiert — welche Aussagen relevant für dein Wiki sind, welche bestätigen oder widersprechen bestehendem Wissen, was ist neu). Der Mensch gibt Feedback zu beidem: „Dieser Main Point ist der Kern", „diesen Takeaway würde ich anders gewichten", „hier widerspricht die Quelle meiner Erfahrung".
+Before the LLM creates the source and extracts knowledge, the human can initiate a brief discussion. From the read source text (step 1), the LLM formulates both the **Main Points** (the author's central statements — neutral, descriptive) and the **Key Takeaways** (what *you* find interesting — which statements are relevant to your wiki, which confirm or contradict existing knowledge, what is new). The human gives feedback on both: "This main point is the core," "I would weight this takeaway differently," "here the source contradicts my experience."
 
-Dieser Schritt ist optional, aber wertvoll bei:
-- **Neuen, komplexen Quellen** (>5 Seiten), wo das LLM nicht den vollen Überblick hat
-- **Widersprüchlichen Inhalten**, wo der Mensch die epistemische Autorität einschätzen muss („Das ist ein Blogpost, kein Paper — niedrig gewichten")
-- **Persönlichen Notizen**, wo der Mensch ergänzenden Kontext hat, der nicht im Text steht
+This step is optional but valuable for:
+- **New, complex sources** (>5 pages), where the LLM doesn't have the full overview
+- **Contradictory content**, where the human must assess epistemic authority ("This is a blog post, not a paper — weight it low")
+- **Personal notes**, where the human has supplementary context not in the text
 
-Das menschliche Feedback aus diesem Schritt fließt direkt in die Source-Erstellung (Schritt 3) ein — die Source ist damit nicht nur eine LLM-Zusammenfassung, sondern ein menschlich geprüftes und gegebenenfalls korrigiertes Dokument.
+The human feedback from this step flows directly into source creation (step 3) — the source is thus not just an LLM summary, but a human-reviewed and potentially corrected document.
 
-**Der Diskussions-Prompt (Template):**
+**The Discussion Prompt (Template):**
 
 ```markdown
-Du hast soeben folgende Quelle gelesen: {title} ({source_type})
+You have just read the following source: {title} ({source_type})
 
-Formuliere:
-1. Die 3-5 zentralen Main Points des Texts (was der Autor sagt — deskriptiv)
-2. Deine 3-5 Key Takeaways (was daran für das Wiki relevant ist — evaluativ)
-3. Welche dieser Aussagen bestehendes Wiki-Wissen bestätigen, erweitern oder
-   widersprechen (sieh dazu kurz in index.md nach)
-4. Welche Teile interpretationsbedürftig sind
+Formulate:
+1. The 3-5 central Main Points of the text (what the author says — descriptive)
+2. Your 3-5 Key Takeaways (what is relevant to the wiki — evaluative)
+3. Which of these statements confirm, extend, or contradict
+   existing wiki knowledge (briefly check index.md for this)
+4. Which parts require interpretation
 
-Dein menschlicher Partner wird darauf antworten, bevor die Extraktion beginnt.
+Your human partner will respond before extraction begins.
 ```
 
 ---
 
-## Schritt 3 — Source-Page schreiben
+## Step 3 — Write Source Page
 
-Die Source-Page in `sources/` ist die **verarbeitete Wissensgrundlage** des Wikis. Sie entsteht aus der Raw Source (gelesen in Schritt 1), angereichert durch das menschliche Feedback aus der Diskussion (Schritt 2).
+The source page in `sources/` is the **processed knowledge base** of the wiki. It is created from the raw source (read in step 1), enriched by the human feedback from the discussion (step 2).
 
-**Template für Source-Seiten:**
+**Template for Source Pages:**
 
 ```markdown
 ---
@@ -97,7 +97,7 @@ updated: {YYYY-MM-DD}
 *Originaldatei:* [[raw-sources/{raw_filename}]]
 
 ## Zusammenfassung
-{1-2 Absätze, was die Quelle aussagt — neutral, kein Werturteil}
+{1-2 paragraphs, what the source states — neutral, no value judgment}
 
 ## Main Points
 - Main Point 1
@@ -114,203 +114,202 @@ updated: {YYYY-MM-DD}
 - [[concepts/praemeditatio-malorum]] (1 Claim)
 ```
 
-Die Source verlinkt auf die Raw Source in `raw-sources/` — aber ausschließlich für den Menschen. Für das LLM ist die Source ab diesem Punkt der alleinige Arbeitsgegenstand. Die Raw Source wird nach Schritt 3 nicht mehr gelesen. Alle weiteren Verarbeitungen (Extraktion in Schritt 4, Updates in Schritt 5) basieren ausschließlich auf der Source.
+The source links to the raw source in `raw-sources/` — but exclusively for the human. For the LLM, the source is the sole working object from this point on. The raw source is not read again after step 3. All further processing (extraction in step 4, updates in step 5) is based exclusively on the source.
 
 ---
 
-## Schritt 4 — Extraktion
+## Step 4 — Extraction
 
-Schritt 4 ist das Herzstück des Ingest — hier wird aus der kuratierten Source maschinenlesbares Wissen.
+Step 4 is the heart of ingest — here the curated source becomes machine-readable knowledge.
 
-**Wichtiger Kontextwechsel:** Ab diesem Schritt arbeitet das LLM **ausschließlich mit der Source** aus Schritt 3. Der Rohtext aus Schritt 1 wird nicht mehr verwendet — der LLM-Kontext wird bereinigt. Nur was in der Source steht, existiert für die Extraktion.
+**Important context switch:** From this step on, the LLM works **exclusively with the source** from step 3. The raw text from step 1 is no longer used — the LLM context is cleaned. Only what is in the source exists for extraction.
 
-**Der Extraktions-Prompt (Template):**
+**The Extraction Prompt (Template):**
 
 ```markdown
-Du bist ein Wissensextraktor. Deine Aufgabe ist es, aus der folgenden
-Source strukturiertes Wissen zu extrahieren. Extrahiere NUR, was
-explizit in der Source steht — erfinde nichts dazu.
+You are a knowledge extractor. Your task is to extract structured
+knowledge from the following source. Extract ONLY what is explicitly
+stated in the source — do not invent anything.
 
 ## Source
-Titel: {title}
-Typ: {source_type}
+Title: {title}
+Type: {source_type}
 ID: {source_id}
 
 {source_content}
 
-## Extraktionsanweisung
+## Extraction Instructions
 
-1. **Entities** — identifizierbare Dinge (Personen, Organisationen,
-   Projekte, Tools, Orte, Ereignisse).
+1. **Entities** — identifiable things (people, organizations,
+   projects, tools, places, events).
    Format: `name | typ | beschreibung (1 satz) | schlüsselzitat`
 
-2. **Concepts** — abstrakte Ideen, Theorien, Methoden, Patterns,
-   Frameworks.
+2. **Concepts** — abstract ideas, theories, methods, patterns,
+   frameworks.
    Format: `name | domäne | definition (1-2 sätze) | schlüsselzitat`
 
-3. **Claims** — überprüfbare Behauptungen, die die Source enthält.
-   Jeder Claim braucht eine eindeutige Claim-ID (Slug-Pattern),
-   eine Bewertung, wie stark die Source ihn stützt.
-   Format: `claim-id | text | confidence (0-1) | belegstelle (absatz/zeile) | einschränkungen`
+3. **Claims** — verifiable assertions contained in the source.
+   Each claim needs a unique claim ID (slug pattern),
+   and an assessment of how strongly the source supports it.
+   Format: `claim-id | text | confidence (0-1) | evidence location (paragraph/line) | einschränkungen`
 
-4. **Relationships** — explizite Verbindungen zwischen Entities
-   und/oder Concepts.
+4. **Relationships** — explicit connections between entities
+   and/or concepts.
    Format: `von | beziehung | nach | begründung (1 satz)`
 
-5. **Open Questions** — Fragen, die die Source aufwirft aber nicht
-   beantwortet.
+5. **Open Questions** — questions the source raises but does not
+   answer.
    Format: `frage | kontext (warum ist sie relevant)`
 
-## Ausgabe
-Liefere NUR die strukturierte Extraktion im angegebenen Format.
-Keine Einleitung, kein Kommentar.
+## Output
+Deliver ONLY the structured extraction in the specified format.
+No introduction, no commentary.
 ```
 
-**Konkretes Beispiel — Ausgabe (Extraktion):**
+**Concrete Example — Output (Extraction):**
 
 ```
 ## Entities
-Dr. Maria Schneider | person | Forscherin Uni Tübingen, Autorin der 2024er Metastudie | "…in einer Metastudie (n=1.200)…"
-Seneca | person | römischer Philosoph, Stoiker | "Seneca beschreibt im 13. Brief…"
+Dr. Maria Schneider | person | Researcher at University of Tübingen, author of the 2024 meta-study | "…in a meta-study (n=1,200)…"
+Seneca | person | Roman philosopher, Stoic | "Seneca describes in the 13th letter…"
 
 ## Concepts
-praemeditatio malorum | philosophie/psychologie | stoische Übung: bewusste Vorstellung des Schlimmsten | "die bewusste Vorstellung des Schlimmsten als Übung gegen Angst"
-Cortisol-Senkung durch Meditation | neurobiologie | messbare Wirkung mentaler Übungen auf Stresshormone | "Cortisol-Spiegel um 18% senken"
+praemeditatio malorum | philosophy/psychology | Stoic exercise: deliberate visualization of the worst case | "the deliberate visualization of the worst case as an exercise against fear"
+Cortisol reduction through meditation | neurobiology | measurable effect of mental exercises on stress hormones | "reduce cortisol levels by 18%"
 
 ## Claims
-claim-cortisol-senkung | praemeditatio malorum senkt Cortisol um 18% | 0.85 | Absatz 2 | Meta-Studie, n=1.200, Nature Human Behaviour; Einschränkung: keine Wirkung <25 J.
-claim-seneca-angst-these | Ängste entstehen aus Antizipation, nicht aus realen Ereignissen | 0.3 | Absatz 1 | philosophische Behauptung Senecas, kein empirischer Beleg
+claim-cortisol-senkung | praemeditatio malorum reduces cortisol by 18% | 0.85 | Paragraph 2 | Meta-study, n=1,200, Nature Human Behaviour; limitation: no effect <25 yrs
+claim-seneca-angst-these | Anxieties arise from anticipation, not from real events | 0.3 | Paragraph 1 | Seneca's philosophical assertion, no empirical evidence
 
 ## Relationships
-Seneca | definierte | praemeditatio malorum | 13. Brief an Lucilius
-Dr. Maria Schneider | lieferte_empirischen_beleg_für | praemeditatio malorum | Meta-Studie (Cortisol -18%)
+Seneca | defined | praemeditatio malorum | 13th letter to Lucilius
+Dr. Maria Schneider | provided_empirical_evidence_for | praemeditatio malorum | Meta-study (cortisol -18%)
 
 ## Open Questions
-Hält die Cortisol-Senkung nach Absetzen der Übungen an? | nur akute Effekte gemessen
+Does the cortisol reduction persist after discontinuing the exercises? | only acute effects measured
 ```
 
 ---
 
-## Schritt 5 — Update
+## Step 5 — Update
 
-Schritt 5 ist die eigentliche Wiki-Arbeit — hier entscheidet das LLM für jedes extrahierte Wissenselement, *wo* es hineingehört und *wie* es integriert wird.
+Step 5 is the actual wiki work — here the LLM decides for each extracted knowledge element *where* it belongs and *how* it is integrated.
 
-### Ablauf — Index-First mit Zwei-Phasen-Lookup
+### Process — Index-First with Two-Phase Lookup
 
-Der Update-Schritt beginnt nicht mit einem Dateisystem-Scan, sondern mit einem **Index-Lookup in zwei Phasen**: Erst exakter Slug-Match (String-Vergleich), dann Semantic-Summary-Match (LLM-basiert).
+The update step does not begin with a filesystem scan, but with a **two-phase index lookup**: first exact slug match (string comparison), then semantic summary match (LLM-based).
 
 ```
-1. index.md LESEN (eine Datei, ~12 KB)
+1. READ index.md (one file, ~12 KB)
    ↓
-2. Für jedes extrahierte Element:
-   ┌─ PHASE 1: Exakter Slug-Match (String-Vergleich, kein LLM)
-   │  entity.seneca ↔ slug "seneca" → TREFFER ✓
+2. For each extracted element:
+   ┌─ PHASE 1: Exact Slug Match (string comparison, no LLM)
+   │  entity.seneca ↔ slug "seneca" → HIT ✓
    │  concept.praemeditatio-malorum ↔ slug
-   │    "praemeditatio-malorum" → TREFFER ✓
+   │    "praemeditatio-malorum" → HIT ✓
    │  "Dr. Maria Schneider" ↔ slug "maria-schneider"
-   │    → KEIN Slug-Treffer → weiter zu Phase 2
-   │  "Cortisol-Senkung" ↔ Slugs → KEIN Treffer → weiter zu Phase 2
+   │    → NO slug hit → continue to Phase 2
+   │  "Cortisol reduction" ↔ slugs → NO hit → continue to Phase 2
    │
-   └─ PHASE 2: Semantic Summary-Match (LLM-basiert)
+   └─ PHASE 2: Semantic Summary Match (LLM-based)
 
-      Nur für Elemente ohne Phase-1-Treffer:
-      LLM bekommt alle Summaries der passenden Kategorie
-      und prüft semantische Ähnlichkeit.
-      "Dr. Maria Schneider" → alle Entity-Summaries → "keiner"
-      "Cortisol-Senkung" → alle Concept-Summaries →
-        "cortisol-senkung-durch-meditation" → TREFFER ✓
+      Only for elements without a Phase 1 hit:
+      LLM receives all summaries of the matching category
+      and checks semantic similarity.
+      "Dr. Maria Schneider" → all entity summaries → "none"
+      "Cortisol reduction" → all concept summaries →
+        "cortisol-senkung-durch-meditation" → HIT ✓
    ↓
-3. Nur bei TREFFERN: die entsprechende Seite laden und updaten
-   Bei KEINEM TREFFER: neue Seite aus Template generieren
-   → Ergebnis: 3-4 Seiten geladen (nicht alle 27)
+3. Only on HITS: load the corresponding page and update
+   On NO HIT: generate a new page from template
+   → Result: 3-4 pages loaded (not all 27)
 ```
 
-### Die Entscheidungslogik
+### The Decision Logic
 
 ```
-Für jede extrahierte Entity:
-  ├─ Phase 1: Exakter Slug-Match?
-  │   ├─ JA → SEITE LADEN → UPDATE
-  │   └─ NEIN → Phase 2: Semantic Summary-Match (LLM)?
-  │       ├─ JA → SEITE LADEN → UPDATE (evtl. Merge zweier ähnlicher Seiten)
-  │       └─ NEIN → CREATE: Neue Seite aus Entity-Template
+For each extracted entity:
+  ├─ Phase 1: Exact slug match?
+  │   ├─ YES → LOAD PAGE → UPDATE
+  │   └─ NO → Phase 2: Semantic summary match (LLM)?
+  │       ├─ YES → LOAD PAGE → UPDATE (possibly merge two similar pages)
+  │       └─ NO → CREATE: New page from entity template
 
-Für jedes extrahierte Concept:
-  ├─ Phase 1: Exakter Slug-Match?
-  │   ├─ JA → SEITE LADEN → UPDATE
-  │   └─ NEIN → Phase 2: Semantic Summary-Match (LLM)?
-  │       ├─ JA → SEITE LADEN → prüfen ob Merge oder separates Concept
-  │       └─ NEIN → CREATE: Neue Seite aus Concept-Template
+For each extracted concept:
+  ├─ Phase 1: Exact slug match?
+  │   ├─ YES → LOAD PAGE → UPDATE
+  │   └─ NO → Phase 2: Semantic summary match (LLM)?
+  │       ├─ YES → LOAD PAGE → check whether merge or separate concept
+  │       └─ NO → CREATE: New page from concept template
 
-Für jeden extrahierten Claim (nach dem Laden der Zielseite):
-  ├─ Gibt es einen inhaltlich ähnlichen Claim auf der Seite?
-  │   ├─ JA und neuer Claim hat HÖHERE Confidence
-  │   │   └─ SUPERSEDE: Alten Claim superseden, neuen aktivieren
-  │   ├─ JA und neuer Claim hat NIEDRIGERE/GLEICHE Confidence
-  │   │   └─ APPEND: Als zusätzliche Perspektive anfügen
-  │   ├─ JA und Claims WIDERSPRECHEN sich
-  │   │   └─ CONFLICT: Beide als contested markieren, Widerspruchs-Cluster anlegen
-  │   └─ NEIN → CREATE: Neuen Claim mit Evidence und neuer Claim-ID anlegen
+For each extracted claim (after loading the target page):
+  ├─ Is there a substantively similar claim on the page?
+  │   ├─ YES and new claim has HIGHER confidence
+  │   │   └─ SUPERSEDE: Supersede old claim, activate new one
+  │   ├─ YES and new claim has LOWER/EQUAL confidence
+  │   │   └─ APPEND: Add as additional perspective
+  │   ├─ YES and claims CONTRADICT each other
+  │   │   └─ CONFLICT: Mark both as contested, create contradiction cluster
+  │   └─ NO → CREATE: Create new claim with evidence and new claim ID
 
-Für jede extrahierte Relationship:
-  ├─ Existiert diese Connection bereits in der geladenen Seite?
-  │   ├─ JA → SKIP (Duplikat)
-  │   └─ NEIN → CREATE: In BEIDE betroffenen Seiten eintragen (Gegenseite auch updaten)
+For each extracted relationship:
+  ├─ Does this connection already exist on the loaded page?
+  │   ├─ YES → SKIP (duplicate)
+  │   └─ NO → CREATE: Enter on BOTH affected pages (also update the other side)
 
-Für jede Open Question:
-  └─ In die geladenen betroffenen Seiten als ## Offene Fragen eintragen
+For each open question:
+  └─ Enter on the loaded affected pages as ## Offene Fragen
 ```
 
-### Der Update-Prompt
+### The Update Prompt
 
-Dieser Prompt wird **pro betroffener Seite einzeln** ausgeführt.
+This prompt is executed **individually per affected page**.
 
 ```markdown
-Du bist ein Wiki-Maintainer. Deine Aufgabe ist es, EINE bestehende
-Wiki-Seite mit neuem Wissen aus einer soeben ingestierten Quelle
-zu aktualisieren. Dieser Prompt betrifft AUSSCHLIESSLICH die unten
-angegebene Seite — andere Seiten erhalten eigene Prompts.
+You are a wiki maintainer. Your task is to update ONE existing
+wiki page with new knowledge from a just-ingested source.
+This prompt concerns EXCLUSIVELY the page specified below —
+other pages receive their own prompts.
 
-## Bestehende Seite
+## Existing Page
 {current_page_content}
 
-## Neues Wissen aus Source "{source_title}" (ID: [[sources/{source_slug}]])
+## New Knowledge from Source "{source_title}" (ID: [[sources/{source_slug}]])
 - Entities: {extracted_entities_for_this_page}
 - Claims: {extracted_claims_for_this_page}
 - Relationships: {extracted_relationships_for_this_page}
 - Open Questions: {extracted_questions_for_this_page}
 
-## Update-Regeln
+## Update Rules
 
-1. **Human Block** — Deine Änderungen gehen NUR in den implizit LLM-verwalteten
-   Bereich. Human-Blöcke (`<!-- llm-wiki:human -->`) sind TABU.
+1. **Human Block** — Your changes go ONLY into the implicitly LLM-managed
+   area. Human blocks (`<!-- llm-wiki:human -->`) are OFF-LIMITS.
 
-2. **Prosa aktualisieren** — Integriere die neuen Informationen fließend
-   in den bestehenden Text. Kein "Update: ..."-Prefix, sondern echter Merge.
+2. **Update prose** — Integrate the new information seamlessly
+   into the existing text. No "Update: ..." prefix, but genuine merge.
 
-3. **Claims anfügen** — Neue Claims im `## Claims`-Kapitel ergänzen,
-   mit eindeutiger Claim-ID (`id:claim-xxx`) und Inline-Metadaten
-   (`conf:0.X` `status:...`). Keine bestehenden Claims löschen
-   (es sei denn superseded → `status:superseded`).
-   Jeder Claim erhält eine neue, stabile ID, die sich nie ändert.
+3. **Append claims** — Add new claims in the `## Claims` chapter,
+   with unique claim ID (`id:claim-xxx`) and inline metadata
+   (`conf:0.X` `status:...`). Do not delete existing claims
+   (unless superseded → `status:superseded`).
+   Each claim receives a new, stable ID that never changes.
 
-4. **Relationships pflegen** — Neue Verknüpfungen im `## Verknüpfungen`-
-   Kapitel ergänzen. GEGENSEITIG: Wenn A → B neu ist, wird auch B → A ergänzt.
+4. **Maintain relationships** — Add new connections in the `## Verknüpfungen`
+   chapter. RECIPROCAL: If A → B is new, also add B → A.
 
-5. **Widersprüche markieren** — Wenn ein neuer Claim einem bestehenden
-   widerspricht: NICHT eigenständig lösen. Beide mit `status:contested`
-   markieren.
+5. **Mark contradictions** — If a new claim contradicts an existing one:
+   do NOT resolve independently. Mark both with `status:contested`.
 
-6. **Open Questions** — Neue Fragen ins `## Offene Fragen`-Kapitel aufnehmen.
+6. **Open Questions** — Add new questions to the `## Offene Fragen` chapter.
 
-## Ausgabe
-Liefere die VOLLSTÄNDIGE aktualisierte Seite.
-Kein Diff, kein Kommentar — die ganze Seite.
+## Output
+Deliver the COMPLETE updated page.
+No diff, no commentary — the whole page.
 ```
 
-### Vorher/Nachher — Beispiel an der `entity.seneca`-Seite
+### Before/After — Example on the `entity.seneca` Page
 
-**Vor dem Ingest:**
+**Before Ingest:**
 
 ```markdown
 ---
@@ -329,22 +328,22 @@ updated: 2026-04-15
 
 # Seneca
 
-Lucius Annaeus Seneca (ca. 4 v. Chr. — 65 n. Chr.) war ein römischer
-Philosoph, Dramatiker und Staatsmann. Seine "Briefe an Lucilius" sind
-eine Sammlung von 124 moralischen Briefen.
+Lucius Annaeus Seneca (ca. 4 BC — 65 AD) was a Roman
+philosopher, dramatist, and statesman. His "Letters to Lucilius" are
+a collection of 124 moral letters.
 
-Seneca betonte die praktische Anwendung der Philosophie im Alltag.
-Zentral ist die Unterscheidung zwischen dem, was wir kontrollieren
-können und dem, was wir nicht kontrollieren können.
+Seneca emphasized the practical application of philosophy in everyday life.
+Central is the distinction between what we can control
+and what we cannot control.
 
 <!-- llm-wiki:human:start -->
 ## Persönliche Notizen
-Ich finde Senecas Briefe zugänglicher als Marc Aurels
-Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
+I find Seneca's letters more accessible than Marcus Aurelius's
+Meditations — less cryptic, more directly applicable.
 <!-- llm-wiki:human:end -->
 ```
 
-**Nach dem Ingest:**
+**After Ingest:**
 
 ```markdown
 ---
@@ -363,60 +362,60 @@ updated: 2026-05-02
 
 # Seneca
 
-Lucius Annaeus Seneca (ca. 4 v. Chr. — 65 n. Chr.) war ein römischer
-Philosoph, Dramatiker und Staatsmann. Seine "Briefe an Lucilius" sind
-eine Sammlung von 124 moralischen Briefen.
+Lucius Annaeus Seneca (ca. 4 BC — 65 AD) was a Roman
+philosopher, dramatist, and statesman. His "Letters to Lucilius" are
+a collection of 124 moral letters.
 
-Seneca betonte die praktische Anwendung der Philosophie im Alltag.
-Zentral ist die Unterscheidung zwischen dem, was wir kontrollieren
-können und dem, was wir nicht kontrollieren können.
+Seneca emphasized the practical application of philosophy in everyday life.
+Central is the distinction between what we can control
+and what we cannot control.
 
-Eine seiner wirkmächtigsten Techniken ist die **praemeditatio malorum**
-— die bewusste Vorstellung des Schlimmsten als Übung gegen Angst. Diese
-Technik wurde 2024 von Dr. Maria Schneider in einer Metastudie empirisch
-bestätigt: tägliche Übungen senken den Cortisol-Spiegel um 18%.
+One of his most powerful techniques is **praemeditatio malorum**
+— the deliberate visualization of the worst case as an exercise against fear. This
+technique was empirically confirmed in 2024 by Dr. Maria Schneider in a meta-study:
+daily exercises reduce cortisol levels by 18%.
 
-Sein Einfluss reicht bis in die moderne Psychologie (Kognitive
-Verhaltenstherapie greift zentrale stoische Konzepte auf).
+His influence extends to modern psychology (Cognitive
+Behavioral Therapy draws on central Stoic concepts).
 
 ## Claims
 
 - `id:claim-seneca-angst-these` `conf:0.3` `status:uncertain`
-  Senecas These: „Die meisten Ängste entstehen aus antizipiertem Leiden,
-  nicht aus realem"
-  *Beleg:* [[sources/briefe-an-lucilius]] (13. Brief)
-  *Einschränkung:* Philosophische Behauptung, 2.000 Jahre alt, kein empirischer Beleg
+  Seneca's thesis: "Most anxieties arise from anticipated suffering,
+  not from real suffering"
+  *Beleg:* [[sources/briefe-an-lucilius]] (13th Letter)
+  *Einschränkung:* Philosophical assertion, 2,000 years old, no empirical evidence
 
 - `id:claim-cortisol-senkung` `conf:0.85` `status:active`
-  Praemeditatio malorum senkt Cortisol um durchschnittlich 18%
-  *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 3, n=1.200)
-  *Einschränkung:* Keine Wirkung bei Teilnehmern unter 25 Jahren
+  Praemeditatio malorum reduces cortisol by an average of 18%
+  *Beleg:* [[sources/schneider-metastudie-2024]] (Paragraph 3, n=1,200)
+  *Einschränkung:* No effect in participants under 25 years
 
 ## Verknüpfungen
 
 - `praktizierte` → [[concepts/stoizismus]]
 - `definierte` → [[concepts/praemeditatio-malorum]]
 - `wurde_empirisch_bestätigt_durch` → [[entities/maria-schneider]]
-  *Notiz:* Schneiders Metastudie (2024) belegt die Cortisol-Senkung
+  *Notiz:* Schneider's meta-study (2024) confirms the cortisol reduction
 
 <!-- llm-wiki:human:start -->
 ## Persönliche Notizen
-Ich finde Senecas Briefe zugänglicher als Marc Aurels
-Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
+I find Seneca's letters more accessible than Marcus Aurelius's
+Meditations — less cryptic, more directly applicable.
 <!-- llm-wiki:human:end -->
 ```
 
-**Zerlegung — was genau passiert ist:**
+**Breakdown — what exactly happened:**
 
-1. **Prosa-Merge:** Der Abschnitt "Lehre" wurde um zwei neue Absätze ergänzt — praemeditatio-Definition, empirischer Beleg, Einschränkung.
-2. **Strukturierter Claim:** Senecas Angst-These mit `id:claim-seneca-angst-these`, `confidence: 0.3` und `status: uncertain` — explizit als philosophische Behauptung markiert.
-3. **Neue Relationships:** Gegenseitige Aktualisierung auf beiden betroffenen Seiten.
-4. **Human Block unangetastet:** Die persönliche Notiz blieb exakt erhalten.
+1. **Prose merge:** The "Teachings" section was expanded with two new paragraphs — praemeditatio definition, empirical evidence, limitation.
+2. **Structured claim:** Seneca's anxiety thesis with `id:claim-seneca-angst-these`, `confidence: 0.3` and `status: uncertain` — explicitly marked as a philosophical assertion.
+3. **New relationships:** Reciprocal update on both affected pages.
+4. **Human block untouched:** The personal note remained exactly preserved.
 
-**Weitere betroffene Seiten (analog):**
-- `entity.maria-schneider` — neu angelegt mit Forschungsprofil
-- `concept.praemeditatio-malorum` — ergänzt um empirische Evidenz
-- `concept.cortisol-senkung-durch-meditation` — neu angelegt
-- `entity.uni-tuebingen` — neu angelegt oder ergänzt
+**Other affected pages (analogous):**
+- `entity.maria-schneider` — newly created with research profile
+- `concept.praemeditatio-malorum` — expanded with empirical evidence
+- `concept.cortisol-senkung-durch-meditation` — newly created
+- `entity.uni-tuebingen` — newly created or expanded
 
-Insgesamt wurden aus einer Quelle **8-10 Seiten** berührt — genau Karpathys "a single source might touch 10-15 wiki pages".
+In total, a single source touched **8-10 pages** — exactly Karpathy's "a single source might touch 10-15 wiki pages."

@@ -1,57 +1,57 @@
-# Format-Konventionen
+# Format conventions
 
-Das gesamte Wiki verwendet Obsidian-Wikilinks (`[[pfad/zur/seite]]`) statt Markdown-Links. Metadaten, die maschinell geparst werden müssen, stehen im **YAML-Frontmatter** — Tags, ID, Page-Typ, Status, Confidence, Zeitstempel. Alles andere (Claims, Verknüpfungen) steht als normales Markdown im Body.
+The entire wiki uses Obsidian wikilinks (`[[path/to/page]]`) instead of Markdown links. Metadata that must be machine-parsed lives in the **YAML frontmatter** — tags, ID, page type, status, confidence, timestamps. Everything else (Claims, Verknüpfungen) lives as normal Markdown in the body.
 
-**Human Blocks** (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) sind die einzigen HTML-Kommentare im System und schützen handschriftliche Notizen vor Überschreiben. Alles außerhalb dieser Marker ist implizit LLM-verwaltet — es gibt keine Managed-Block-Marker. Zur Kapitelstrukturierung werden ausschließlich normale Markdown-Überschriften (`##`, `###`) verwendet.
+**Human Blocks** (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) are the only HTML comments in the system and protect handwritten notes from being overwritten. Everything outside these markers is implicitly LLM-managed — there are no managed-block markers. Only normal Markdown headings (`##`, `###`) are used for chapter structuring.
 
-## YAML-Frontmatter: Felder im Detail
+## YAML frontmatter: Fields in detail
 
-Jede Wiki-Seite beginnt mit einem YAML-Frontmatter-Block. Die folgenden Felder sind definiert:
+Every wiki page begins with a YAML frontmatter block. The following fields are defined:
 
-| Feld         | Pflicht | Typ    | Beschreibung                                                                               |
-| ------------ | ------- | ------ | ------------------------------------------------------------------------------------------ |
-| `id`         | ✅       | string | Eindeutiger Identifier, z.B. `entity.seneca`. Präfix = Page-Typ, Suffix = Slug.            |
-| `page`       | ✅       | enum   | `source`, `entity`, `concept`, `synthesis`, `report`                                       |
-| `title`      | ✅       | string | Anzeigename der Seite                                                                      |
-| `status`     | ✅       | string | `active`, `review`, `archived`                                                             |
-| `tags`       | ✅       | list   | Thematische Tags für Filterung (z.B. `[philosophie, stoizismus]`)                          |
-| `confidence` | ❌       | float  | Page-Level Confidence (0.0–1.0). Durchschnitt aller Claims. `null` bei Seiten ohne Claims. |
-| `created`    | ✅       | date   | Erstellungsdatum (ISO 8601)                                                                |
-| `updated`    | ✅       | date   | Letzte Änderung (ISO 8601)                                                                 |
+| Field        | Required | Type   | Description                                                                                 |
+| ------------ | -------- | ------ | ------------------------------------------------------------------------------------------- |
+| `id`         | ✅        | string | Unique identifier, e.g. `entity.seneca`. Prefix = page type, suffix = slug.                 |
+| `page`       | ✅        | enum   | `source`, `entity`, `concept`, `synthesis`, `report`                                        |
+| `title`      | ✅        | string | Display name of the page                                                                    |
+| `status`     | ✅        | string | `active`, `review`, `archived`                                                              |
+| `tags`       | ✅        | list   | Thematic tags for filtering (e.g. `[philosophie, stoizismus]`)                              |
+| `confidence` | ❌        | float  | Page-level confidence (0.0–1.0). Average of all claims. `null` for pages without claims.    |
+| `created`    | ✅        | date   | Creation date (ISO 8601)                                                                    |
+| `updated`    | ✅        | date   | Last modification (ISO 8601)                                                                |
 
-**Regeln:**
-- `id` ist eindeutig über den gesamten Vault. Keine zwei Seiten dürfen dieselbe ID haben.
-- `page` muss mit dem Ordner übereinstimmen (`entities/seneca.md` → `page: entity`). Mismatch → Lint-Error.
-- `tags` sind eine YAML-Liste, keine Inline-Flags. Tags werden kleingeschrieben und ohne `#`-Präfix gespeichert.
-- `confidence` ist `null`, wenn die Seite keine Claims hat (z.B. frisch angelegt, noch keine Extraktion).
-- `status: review` bedeutet: Seite ist neu und wurde noch nicht vom Menschen abgenommen.
+**Rules:**
+- `id` is unique across the entire vault. No two pages may have the same ID.
+- `page` must match the folder (`entities/seneca.md` → `page: entity`). Mismatch → lint error.
+- `tags` are a YAML list, not inline flags. Tags are stored lowercase and without the `#` prefix.
+- `confidence` is `null` when the page has no claims (e.g. newly created, no extraction yet).
+- `status: review` means: page is new and has not yet been approved by a human.
 
-## Confidence — wie sie sich ergibt
+## Confidence — how it is derived
 
-Die **Page-Level Confidence** (`confidence` im YAML-Frontmatter) ist das **arithmetische Mittel** aller Claim-Confidence-Werte auf der Seite:
+The **page-level confidence** (`confidence` in the YAML frontmatter) is the **arithmetic mean** of all claim confidence values on the page:
 
 ```
 page.confidence = sum(claim.confidence for claim in claims) / len(claims)
 ```
 
-Die **Claim-Confidence** (`conf:0.X` im `## Claims`-Kapitel) wird bei der Extraktion vom LLM gesetzt und später durch den Compile kalibriert. Die Kalibrierung gewichtet vier Faktoren:
+The **claim confidence** (`conf:0.X` in the `## Claims` section) is set by the LLM during extraction and later calibrated by the compiler. Calibration weights four factors:
 
-| Faktor            | Gewicht | Beschreibung                                                                                                    |
-| ----------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| **Quellentyp**    | 30%     | peer-reviewed (1.0) > Buch (0.8) > Konferenz (0.7) > Blogpost (0.5) > Social Media (0.2) > LLM-generiert (0.1)  |
-| **Belegqualität** | 30%     | Direktzitat mit Seitenangabe (1.0) > Paraphrase mit Absatz (0.7) > Allgemeine Referenz (0.4) > Kein Beleg (0.0) |
-| **Anzahl Belege** | 20%     | 1 Beleg = 0.5, 2 Belege = 0.7, 3+ Belege = 1.0 (logarithmische Skala)                                           |
-| **Aktualität**    | 20%     | < 1 Jahr (1.0) > < 3 Jahre (0.8) > < 5 Jahre (0.6) > < 10 Jahre (0.4) > älter (0.2)                             |
+| Factor             | Weight | Description                                                                                                     |
+| ------------------ | ------ | --------------------------------------------------------------------------------------------------------------- |
+| **Source type**    | 30%    | peer-reviewed (1.0) > book (0.8) > conference (0.7) > blog post (0.5) > social media (0.2) > LLM-generated (0.1) |
+| **Evidence quality** | 30%  | Direct quote with page number (1.0) > paraphrase with paragraph (0.7) > general reference (0.4) > no reference (0.0) |
+| **Number of sources** | 20% | 1 source = 0.5, 2 sources = 0.7, 3+ sources = 1.0 (logarithmic scale)                                           |
+| **Recency**        | 20%    | < 1 year (1.0) > < 3 years (0.8) > < 5 years (0.6) > < 10 years (0.4) > older (0.2)                              |
 
-**Beispielrechnung für einen Claim:**
+**Example calculation for a claim:**
 ```
 Claim: "praemeditatio senkt Cortisol um 18%"
-- Quellentyp: peer-reviewed (Nature Human Behaviour) → 1.0 × 0.30 = 0.30
-- Belegqualität: Direktzitat mit Absatzangabe → 1.0 × 0.30 = 0.30
-- Anzahl Belege: 1 Beleg → 0.5 × 0.20 = 0.10
-- Aktualität: 2024, < 1 Jahr → 1.0 × 0.20 = 0.20
+- Source type: peer-reviewed (Nature Human Behaviour) → 1.0 × 0.30 = 0.30
+- Evidence quality: Direct quote with paragraph reference → 1.0 × 0.30 = 0.30
+- Number of sources: 1 source → 0.5 × 0.20 = 0.10
+- Recency: 2024, < 1 year → 1.0 × 0.20 = 0.20
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Calibrated Confidence = 0.90 → gerundet auf 0.9
+Calibrated Confidence = 0.90 → rounded to 0.9
 ```
 
-Das LLM setzt initial eine geschätzte Confidence. Der Compile kalibriert sie anhand der vier Faktoren nach. Die kalibrierte Confidence wird im Claim und als Page-Level-Durchschnitt ins Frontmatter zurückgeschrieben.
+The LLM initially sets an estimated confidence. The compiler calibrates it using the four factors. The calibrated confidence is written back into the claim and as the page-level average into the frontmatter.

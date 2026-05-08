@@ -1,10 +1,10 @@
-# Concept — abstrakte Ideen
+# Concept — Abstract Ideas
 
-Der Page-Typ `concept` beschreibt eine **abstrakte Idee, Theorie, Pattern, Methode oder ein Framework**. Concepts sind die "Verben und Adjektive" des Wikis — sie beschreiben, *wie* Dinge zusammenhängen und *welche* Eigenschaften sie haben.
+The page type `concept` describes an **abstract idea, theory, pattern, method, or framework**. Concepts are the "verbs and adjectives" of the wiki — they describe *how* things relate and *which* properties they have.
 
-**Wann entsteht ein Concept?** Bei der Extraktion, wenn das LLM ein neues Pattern, eine Methode oder Theorie erkennt. Concepts entstehen auch aus Queries ("Was verbindet X und Y?") und werden dann als Synthesis-Kandidaten vorgeschlagen.
+**When is a Concept created?** During extraction, when the LLM recognizes a new pattern, method, or theory. Concepts also arise from queries ("What connects X and Y?") and are then proposed as synthesis candidates.
 
-**Struktur eines Concept (Beispiel):**
+**Structure of a Concept (example):**
 
 ```markdown
 ---
@@ -14,61 +14,60 @@ title: Praemeditatio Malorum
 confidence: 0.7
 status: active
 tags:
-  - stoizismus
-  - psychologie
-  - angstbewältigung
+  - stoicism
+  - psychology
+  - anxiety-management
 created: 2026-05-02
 updated: 2026-05-02
 ---
 
 # Praemeditatio Malorum
 
-Die praemeditatio malorum (lat. „Vorausdenken des Schlechten") ist eine
-stoische Übung: die bewusste, detaillierte Vorstellung des Schlimmsten,
-was eintreten könnte. Sie dient der Angstbewältigung — nicht durch
-Verdrängung, sondern durch Konfrontation. Seneca beschrieb sie im
-13. Brief an Lucilius. 2024 wurde sie von Dr. Maria Schneider empirisch
-bestätigt (Cortisol-Senkung um 18%, n=1.200, Nature Human Behaviour).
+Praemeditatio malorum (Latin: "premeditation of evils") is a Stoic
+exercise: the deliberate, detailed imagination of the worst that could
+happen. It serves as anxiety management — not through suppression,
+but through confrontation. Seneca described it in the 13th Letter to
+Lucilius. In 2024 it was empirically confirmed by Dr. Maria Schneider
+(cortisol reduction of 18%, n=1,200, Nature Human Behaviour).
 
 ## Claims
 
-- `id:claim-cortisol-signifikant` `conf:0.85` `status:active`
-  Tägliche praemeditatio senkt Cortisol signifikant (p < 0.001)
-  *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 3, n=1.200)
-  *Einschränkung:* Keine Wirkung bei Teilnehmern unter 25 Jahren
+- `id:claim-cortisol-significant` `conf:0.85` `status:active`
+  Daily praemeditatio significantly reduces cortisol (p < 0.001)
+  *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 3, n=1,200)
+  *Limitation:* No effect in participants under 25 years
 
-- `id:claim-altersgrenze` `conf:0.8` `status:active`
-  Die Wirkung tritt nur bei Teilnehmern über 25 Jahren ein
-  *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 4)
-  *Einschränkung:* Altersgrenze nicht granular untersucht (nur </≥25)
+- `id:claim-age-threshold` `conf:0.8` `status:active`
+  The effect only occurs in participants over 25 years
+  *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 4)
+  *Limitation:* Age threshold not granularly examined (only </≥25)
 
-## Verknüpfungen
+## Links
 
-- `definiert_von` → [[entities/seneca]]
-- `empirisch_bestätigt_von` → [[entities/maria-schneider]]
-- `gehört_zu` → [[concepts/stoizismus]]
-- `verwandt_mit` → [[concepts/dichotomie-der-kontrolle]]
+- `defined_by` → [[entities/seneca]]
+- `empirically_confirmed_by` → [[entities/maria-schneider]]
+- `belongs_to` → [[concepts/stoicism]]
+- `related_to` → [[concepts/dichotomy-of-control]]
 
-## Offene Fragen
+## Open Questions
 
-- Hält die Cortisol-Senkung nach Absetzen der Übungen an?
-  *Kontext:* Studie misst nur akute Effekte
-- Warum wirkt praemeditatio nicht bei unter 25-Jährigen?
-  *Kontext:* Mögliche Erklärung: präfrontaler Cortex noch nicht voll entwickelt
+- Does the cortisol reduction persist after discontinuing the exercises?
+  *Context:* Study only measures acute effects
+- Why does praemeditatio not work for people under 25?
+  *Context:* Possible explanation: prefrontal cortex not yet fully developed
 
 <!-- llm-wiki:human:start -->
-## Persönliche Notizen
+## Personal Notes
 
-Praktiziere das seit Januar — subjektiv spürbarer Effekt vor
-Präsentationen. Die empirische Bestätigung macht es für mich
-glaubwürdiger.
+Been practicing this since January — subjectively noticeable effect before
+presentations. The empirical confirmation makes it more credible for me.
 <!-- llm-wiki:human:end -->
 ```
 
-**Besonderheiten:**
+**Special Characteristics:**
 
-- Concepts sammeln ebenso Claims wie Entities — jedes Pattern, jede Methode kann durch empirische oder theoretische Claims gestützt sein.
-- Concepts sind das Herzstück der Wissensvernetzung — sie verknüpfen Entities und andere Concepts.
-- Ein Concept ohne empirischen Beleg ist valide, bekommt aber niedrigere Confidence.
-- Concepts wachsen mit jeder neuen Quelle — sie sind Evergreen Notes im klassischen Sinn.
-- Alles außerhalb der Human-Block-Marker ist implizit LLM-verwaltet.
+- Concepts collect claims just like entities — every pattern, every method can be supported by empirical or theoretical claims.
+- Concepts are the core of knowledge interconnection — they link entities and other concepts.
+- A concept without empirical evidence is valid but receives lower confidence.
+- Concepts grow with each new source — they are Evergreen Notes in the classic sense.
+- Everything outside the human block markers is implicitly LLM-managed.

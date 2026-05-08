@@ -1,13 +1,13 @@
-# Validate — Herkunftsprüfung
+# Validate — Provenance Check
 
-Während der **Lint** die Struktur prüft (Syntax), stellt der **Validate**-Schritt die inhaltliche Integrität sicher. Er bekämpft Halluzinationen, indem er stichprobenartig Claims gegen ihre Sources prüft.
+While **lint** checks the structure (syntax), the **validate** step ensures content integrity. It combats hallucinations by spot-checking claims against their sources.
 
-## Die Lösung: Cross-Checking
+## The Solution: Cross-Checking
 
-Ein zweiter LLM-Lauf (idealerweise mit einem stärkeren Modell wie GPT-4o oder Claude 3.5 Sonnet) erhält nur den extrahierten Claim und den zugehörigen Source-Abschnitt.
+A second LLM run (ideally with a stronger model such as GPT-4o or Claude 3.5 Sonnet) receives only the extracted claim and the corresponding source excerpt.
 
-## Beispiel-Workflow
+## Example Workflow
 
-1. System wählt zufällig 5% aller neuen Claims aus.
-2. Prompt: *"Prüfe, ob der Claim 'Cortisol-Senkung um 18%' (ID: claim-cortisol-senkung) durch die folgende Source gedeckt ist: [Source-Snippet]. Antworte mit VALID, PARTIAL oder FAIL."*
-3. Bei FAIL: Markierung der Seite mit einem `⚠️ halluzinations-verdacht` Flag im YAML-Frontmatter (als zusätzlicher Tag: `_halluzination-verdacht`) und Blockieren des automatischen Commits.
+1. System randomly selects 5% of all new claims.
+2. Prompt: *"Check whether the claim 'Cortisol reduction of 18%' (ID: claim-cortisol-senkung) is supported by the following source: [source-snippet]. Answer with VALID, PARTIAL, or FAIL."*
+3. On FAIL: Mark the page with a `⚠️ halluzinations-verdacht` flag in the YAML frontmatter (as an additional tag: `_halluzination-verdacht`) and block the automatic commit.
