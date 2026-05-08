@@ -2,8 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { agenticLoop, greet, hasMarkdownHeading } from '../src/index.js';
 
 vi.mock('ai', () => ({
-  generateText: vi.fn(),
+  streamText: vi.fn(),
 }));
+
+function textStreamFrom(...chunks: string[]): AsyncIterable<string> {
+  return (async function* () {
+    for (const chunk of chunks) {
+      yield chunk;
+    }
+  })();
+}
 
 describe('greet', () => {
   it('returns default greeting when no name provided', () => {
@@ -47,37 +55,46 @@ describe('hasMarkdownHeading', () => {
 
 describe('agenticLoop', () => {
   it('returns result on first attempt when heading is present', async () => {
-    const { generateText } = await import('ai');
-    const mockGenerate = vi.mocked(generateText);
-    mockGenerate.mockResolvedValueOnce({
-      text: '# Calculation Result\n10 * 5 = 50',
+    const { streamText } = await import('ai');
+    const mockStreamText = vi.mocked(streamText);
+    mockStreamText.mockReturnValueOnce({
+      textStream: textStreamFrom('# Calculation Result\n', '10 * 5 = 50'),
     } as never);
 
     const result = await agenticLoop('What is 10 * 5?');
     expect(result.attempts).toBe(1);
-    expect(result.answer).toContain('# Calculation Result');
+    expect(result.answer).toBe('# Calculation Result\n10 * 5 = 50');
   });
 
   it('retries when response lacks a heading', async () => {
-    const { generateText } = await import('ai');
-    const mockGenerate = vi.mocked(generateText);
-    mockGenerate
-      .mockResolvedValueOnce({ text: '10 * 5 = 50 (no heading)' } as never)
-      .mockResolvedValueOnce({ text: '## Calculation\n10 * 5 = 50' } as never);
+    const { streamText } = await import('ai');
+    const mockStreamText = vi.mocked(streamText);
+    mockStreamText
+      .mockReturnValueOnce({
+        textStream: textStreamFrom('10 * 5 = 50 (no heading)'),
+      } as never)
+      .mockReturnValueOnce({
+        textStream: textStreamFrom('## Calculation\n', '10 * 5 = 50'),
+      } as never);
 
     const result = await agenticLoop('What is 10 * 5?', 3);
     expect(result.attempts).toBe(2);
-    expect(result.answer).toContain('## Calculation');
+    expect(result.answer).toBe('## Calculation\n10 * 5 = 50');
   });
 
   it('returns last response after max retries', async () => {
-    const { generateText } = await import('ai');
-    const mockGenerate = vi.mocked(generateText);
-    mockGenerate
-      .mockResolvedValueOnce({ text: 'no heading' } as never)
-      .mockResolvedValueOnce({ text: '# Final\nWith heading' } as never);
+    const { streamText } = await import('ai');
+    const mockStreamText = vi.mocked(streamText);
+    mockStreamText
+      .mockReturnValueOnce({
+        textStream: textStreamFrom('no heading'),
+      } as never)
+      .mockReturnValueOnce({
+        textStream: textStreamFrom('# Final\n', 'With heading'),
+      } as never);
 
     const result = await agenticLoop('prompt', 2);
     expect(result.attempts).toBe(2);
+    expect(result.answer).toBe('# Final\nWith heading');
   });
 });

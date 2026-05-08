@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { program } from 'commander';
 import pino from 'pino';
 import remarkParse from 'remark-parse';
@@ -19,16 +19,6 @@ export function greet(name = 'world'): string {
   return `Hello, ${name}!`;
 }
 
-export async function askQuestion(): Promise<string> {
-  logger.info('Calling OpenRouter API');
-  const { text } = await generateText({
-    model: openrouter('deepseek/deepseek-v4-pro'),
-    prompt: 'What is 1+1',
-  });
-  logger.info({ text }, 'OpenRouter response');
-  return text;
-}
-
 export function hasMarkdownHeading(text: string): boolean {
   const tree = unified().use(remarkParse).parse(text);
   let found = false;
@@ -44,16 +34,31 @@ export interface AgenticLoopResult {
   attempts: number;
 }
 
-export async function agenticLoop(prompt: string, maxRetries = 3): Promise<AgenticLoopResult> {
+async function streamAndCollect(
+  model: ReturnType<typeof openrouter>,
+  prompt: string,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
+  const result = streamText({ model, prompt });
+  let text = '';
+  for await (const chunk of result.textStream) {
+    onChunk?.(chunk);
+    text += chunk;
+  }
+  return text;
+}
+
+export async function agenticLoop(
+  prompt: string,
+  maxRetries = 3,
+  onChunk?: (chunk: string) => void,
+): Promise<AgenticLoopResult> {
   const model = openrouter('deepseek/deepseek-v4-pro');
   let currentPrompt = prompt;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     logger.info({ attempt, prompt: currentPrompt }, 'Agentic loop attempt');
-    const { text } = await generateText({
-      model,
-      prompt: currentPrompt,
-    });
+    const text = await streamAndCollect(model, currentPrompt, onChunk);
     logger.info({ text, attempt }, 'Agent response');
 
     if (hasMarkdownHeading(text)) {
@@ -64,10 +69,7 @@ export async function agenticLoop(prompt: string, maxRetries = 3): Promise<Agent
     currentPrompt = `Your previous response did not include a markdown headline (e.g. # Title or ## Subtitle) above the calculation. Please redo your response and make sure to include a markdown heading before the calculation.\n\nOriginal prompt: ${prompt}`;
   }
 
-  const { text } = await generateText({
-    model,
-    prompt: currentPrompt,
-  });
+  const text = await streamAndCollect(model, currentPrompt, onChunk);
 
   return { answer: text, attempts: maxRetries };
 }
@@ -87,13 +89,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       logger.info('CLI started');
       console.log(greet());
 
+      const write = (chunk: string) => process.stdout.write(chunk);
+
       if (options.agentic) {
-        const result = await agenticLoop(options.agentic, Number.parseInt(options.maxRetries));
-        console.log(`\n--- Agentic Loop Result (${result.attempts} attempt(s)) ---`);
-        console.log(result.answer);
-      } else {
-        const answer = await askQuestion();
-        console.log(answer);
+        await agenticLoop(options.agentic, Number.parseInt(options.maxRetries), write);
+        process.stdout.write('\n');
       }
 
       logger.info('CLI finished');
