@@ -54,7 +54,7 @@ An LLM-generated and maintained Markdown file with a fixed type: `source`, `enti
 
 The universal naming convention of the wiki. Every page ID follows the pattern `{type}.{slug}` — a concatenation of the page type prefix and a human-readable, URL-safe slug derived from the title, e.g. `entity.seneca`. Page IDs are unique vault-wide. Claims are referenced via `{page-id}#{claim-slug}`, e.g. `entity.seneca#claim-cortisol-senkung`. Slugs are lowercase, hyphenated, and stay stable once created.
 
-> Specifications: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md) (slug rules), [concepts/page-id.md](concepts/page-id.md) (page IDs), [concepts/claim-id.md](concepts/claim-id.md) (claim IDs)
+> Specifications: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md) (slug rules), [cross-cutting/identifier-spec.md](cross-cutting/identifier-spec.md) (identifier patterns and uniqueness)
 
 ### Entity
 

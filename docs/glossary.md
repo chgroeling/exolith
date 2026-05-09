@@ -17,8 +17,7 @@
 | **Compile**         | Reads the entire vault and regenerates index.md, backlinks, dashboards, and machine-readable digests.                                                                                                                                                                                           |
 | **Lint**            | Health check: structural errors, missing evidence, broken links, contradictions, stale claims, open questions, duplicate claim IDs.                                                                                                                                                             |
 | **Confidence**      | Trustworthiness of a claim (0.0–1.0). Initially estimated by the LLM, calibrated by compile via four-factor model. Page-level confidence = arithmetic mean of all claims.                                                                                                                       |
-| **Page ID**          | Unique identifier of a wiki page following the pattern `{type}.{slug}`. Permanent, vault-wide unique. See [Page ID](concepts/page-id.md).                                                                                                                                                    |
-| **Claim ID**         | Unique identifier of a claim following the pattern `{page-id}#claim-{slug}`. Page-scoped but vault-wide via the full reference. See [Claim ID](concepts/claim-id.md).                                                                                                                        |
+| **Identifier**      | Slug-based, stable, human-readable name for a page, claim, or other wiki entity. Page identifiers follow `{type}.{slug}`, claim identifiers `{page-id}#claim-{slug}`. See [identifier-spec.md](cross-cutting/identifier-spec.md).                                                              |
 | **index.md**        | Content catalog — every page with link, one-liner summary, type, metadata, and claim ID registry. First point of entry for queries and update lookups.                                                                                                                                          |
 | **log.md**          | Append-only chronicle of all operations. Parseable with Unix tools.                                                                                                                                                                                                                             |
 | **Schema**          | AGENTS.md / wiki-schema.md — defines structure, conventions, and workflows for the LLM.                                                                                                                                                                                                         |
@@ -28,8 +27,7 @@
 ## See Also
 
 * [architecture.md](architecture.md) — full architectural overview
-* [concepts/page-id.md](concepts/page-id.md) — page ID structure and uniqueness
-* [concepts/claim-id.md](concepts/claim-id.md) — claim ID structure and scope
+* [cross-cutting/identifier-spec.md](cross-cutting/identifier-spec.md) — identifier structure and patterns
 * [cross-cutting/vault-layout.md](cross-cutting/vault-layout.md) — vault layout and page types
 * [cross-cutting/confidence-spec.md](cross-cutting/confidence-spec.md) — confidence calibration model
 * [cross-cutting/format-spec.md](cross-cutting/format-spec.md) — format conventions

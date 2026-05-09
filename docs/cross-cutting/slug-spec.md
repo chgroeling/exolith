@@ -2,7 +2,7 @@
 
 The universal naming convention of the wiki. Every identifier — whether for a page or a claim — follows a stable, human-readable pattern that is machine-indexable without a database.
 
-For the structure and uniqueness rules of page IDs, see [Page ID](../concepts/page-id.md). For claim ID structure, scope, and format, see [Claim ID](../concepts/claim-id.md).
+For identifier structure, patterns, and uniqueness, see [identifier-spec.md](identifier-spec.md).
 
 ## Slug Rules
 
@@ -30,7 +30,6 @@ For the structure and uniqueness rules of page IDs, see [Page ID](../concepts/pa
 
 ## See Also
 
-* [../concepts/page-id.md](../concepts/page-id.md) — page ID structure and uniqueness
-* [../concepts/claim-id.md](../concepts/claim-id.md) — claim ID structure and scope
-* [claim-spec.md](claim-spec.md) — claim structure including the claim ID convention in context
+* [identifier-spec.md](identifier-spec.md) — identifier structure and patterns
+* [claim-spec.md](claim-spec.md) — claim structure including the identifier convention in context
 * [format-spec.md](format-spec.md) — YAML frontmatter where the page `id` field lives

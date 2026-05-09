@@ -68,7 +68,7 @@ All page types share common [format conventions](format-spec.md) including YAML 
 
 ## ID Naming Convention
 
-Every page has a unique `id` in its YAML frontmatter: `<type>.<slug>`. See [Page ID](../concepts/page-id.md) for the full specification. Examples:
+Every page has a unique `id` in its YAML frontmatter: `<type>.<slug>`. See [identifier-spec.md](identifier-spec.md) for the full specification. Examples:
 
 * `source.letters-to-lucilius`
 * `entity.maria-schneider`
