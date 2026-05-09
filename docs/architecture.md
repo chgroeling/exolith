@@ -44,7 +44,7 @@ An unprocessed source document: article, paper, transcript, podcast note, chat e
 
 A processed wiki page of type `source`. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge foundation**: key takeaways are prioritized, ambiguities are flagged, context is framed. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
 
-> Full specification: [data-schema/source-spec.md](data-schema/source-spec.md)
+> Full specification: [pages/source-spec.md](pages/source-spec.md)
 
 ### Wiki Page
 
@@ -54,37 +54,37 @@ An LLM-generated and maintained Markdown file with a fixed type: `source`, `enti
 
 The universal naming convention of the wiki. Every page ID follows the pattern `{type}.{slug}` — a concatenation of the page type prefix and a human-readable, URL-safe slug derived from the title, e.g. `entity.seneca`. Page IDs are unique vault-wide. Claims are referenced via `{page-id}#{claim-slug}`, e.g. `entity.seneca#claim-cortisol-senkung`. Slugs are lowercase, hyphenated, and stay stable once created.
 
-> Full specification: [data-schema/slug-spec.md](data-schema/slug-spec.md)
+> Full specification: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md)
 
 ### Entity
 
 Describes an **identifiable thing**: person, organization, project, tool, location, or event. Entities are the "nouns" of the wiki — they are what is being talked *about*. An entity collects claims, has links to other pages, and can reference multiple sources. Example: `entity.seneca`, `entity.maria-schneider`.
 
-> Full specification: [data-schema/entity-spec.md](data-schema/entity-spec.md)
+> Full specification: [pages/entity-spec.md](pages/entity-spec.md)
 
 ### Concept
 
 Describes an **abstract idea, theory, pattern, method, or framework**. Concepts are the "verbs and adjectives" of the wiki — they describe *how* things relate. A concept collects claims, has connections, and grows with each new source (Evergreen Notes). Example: `concept.praemeditatio-malorum`, `concept.stoicism`.
 
-> Full specification: [data-schema/concept-spec.md](data-schema/concept-spec.md)
+> Full specification: [pages/concept-spec.md](pages/concept-spec.md)
 
 ### Synthesis
 
 A **cross-cutting analysis** that links multiple entities or concepts into a higher-level analysis. Unlike a concept, which describes a single pattern, a synthesis establishes a cross-connection between multiple page types. Created from queries (≥3 sources linked), compile detection, or manual triggers. Example: `synthesis.stoicism-and-empiricism`.
 
-> Full specification: [data-schema/synthesis-spec.md](data-schema/synthesis-spec.md)
+> Full specification: [pages/synthesis-spec.md](pages/synthesis-spec.md)
 
 ### Report
 
 An **automatically generated dashboard** — completely regenerated on every compile. Reports are read-only for the human; the LLM uses them for health monitoring. Examples: open questions report, contradictions report.
 
-> Full specification: [data-schema/report-spec.md](data-schema/report-spec.md)
+> Full specification: [pages/report-spec.md](pages/report-spec.md)
 
 ### Claim
 
 The **central knowledge building block** of the wiki — a single, verifiable assertion with a unique ID, confidence, status, and evidence. Claims are structured entries in the `## Claims` chapter of every content page. They turn vague statements into a trackable belief system: every claim carries its own provenance directly in the `*Evidence:*` field.
 
-> Full specification: [data-schema/claim-spec.md](data-schema/claim-spec.md)
+> Full specification: [cross-cutting/claim-spec.md](cross-cutting/claim-spec.md)
 
 ### Evidence
 
@@ -108,7 +108,7 @@ There is **no** managed-block marker. Only Human Blocks are explicitly marked �
 
 Trustworthiness of a claim (0.0–1.0). Initially estimated by the LLM and calibrated by compile based on four factors: source type (30%), evidence quality (30%), number of pieces of evidence (20%), recency (20%). **Page-level confidence** is the arithmetic mean of all claim confidence values on the page.
 
-> Full specification of the calibration model: [data-schema/format-spec.md](data-schema/format-spec.md)
+> Full specification of the calibration model: [cross-cutting/format-spec.md](cross-cutting/format-spec.md)
 
 ---
 
@@ -141,13 +141,13 @@ Layer 3 is internally divided into two clearly separated categories:
 * **Content Pages** — sources, entities, concepts, syntheses, reports. These are the actual knowledge carriers. They contain claims, evidence, cross-references. The human reads them actively; they are the purpose of the wiki.
 * **Meta Pages** — index.md, log.md. These are navigation and audit trails. They exist so the LLM can work efficiently (lookup, chronicle, provenance tracking). The human occasionally browses them, but they are not the knowledge store itself.
 
-> Full specification of the vault layout: [data-schema/vault-layout.md](data-schema/vault-layout.md)
+> Full specification of the vault layout: [cross-cutting/vault-layout.md](cross-cutting/vault-layout.md)
 
 ---
 
 ## 4. The Wiki Structure
 
-The Wiki Vault is a structured directory of Markdown files. The physical layout, page types, and relationships between them are specified in [data-schema/vault-layout.md](data-schema/vault-layout.md).
+The Wiki Vault is a structured directory of Markdown files. The physical layout, page types, and relationships between them are specified in [cross-cutting/vault-layout.md](cross-cutting/vault-layout.md).
 
 ### Page Types
 
@@ -155,28 +155,28 @@ Every wiki page belongs to one of five types:
 
 | Type | Folder | Spec | Description |
 | --- | --- | --- | --- |
-| `source` | `sources/` | [source-spec.md](data-schema/source-spec.md) | Processed knowledge foundation from a Raw Source |
-| `entity` | `entities/` | [entity-spec.md](data-schema/entity-spec.md) | Identifiable things: person, project, tool, organization |
-| `concept` | `concepts/` | [concept-spec.md](data-schema/concept-spec.md) | Abstract ideas, theories, patterns, methods |
-| `synthesis` | `syntheses/` | [synthesis-spec.md](data-schema/synthesis-spec.md) | Cross-cutting analyses, comparisons, theses |
-| `report` | `reports/` | [report-spec.md](data-schema/report-spec.md) | Auto-generated dashboards |
+| `source` | `sources/` | [source-spec.md](pages/source-spec.md) | Processed knowledge foundation from a Raw Source |
+| `entity` | `entities/` | [entity-spec.md](pages/entity-spec.md) | Identifiable things: person, project, tool, organization |
+| `concept` | `concepts/` | [concept-spec.md](pages/concept-spec.md) | Abstract ideas, theories, patterns, methods |
+| `synthesis` | `syntheses/` | [synthesis-spec.md](pages/synthesis-spec.md) | Cross-cutting analyses, comparisons, theses |
+| `report` | `reports/` | [report-spec.md](pages/report-spec.md) | Auto-generated dashboards |
 
 ### Format Conventions
 
 All pages use Obsidian wikilinks (`[[path/to/page]]`), YAML frontmatter for metadata (id, page, title, status, tags, confidence, created, updated), and Human Blocks (`<!-- exolith:human:start -->` / `<!-- exolith:human:end -->`) as the only HTML comments. Page-level confidence is the arithmetic mean of all claim confidence values; claim confidence is calibrated via a four-factor model (source type, evidence quality, number of pieces of evidence, recency).
 
-> Full specification: [data-schema/format-spec.md](data-schema/format-spec.md)
+> Full specification: [cross-cutting/format-spec.md](cross-cutting/format-spec.md)
 
 ### Claims
 
 Claims are structured assertions in the `## Claims` chapter with unique IDs, confidence, status, and mandatory `*Evidence:*` wikilinks to Sources. Claims are page-scoped and referenced via `page-id#claim-id` notation.
 
-> Full specification: [data-schema/claim-spec.md](data-schema/claim-spec.md)
+> Full specification: [cross-cutting/claim-spec.md](cross-cutting/claim-spec.md)
 
 ### Meta Pages
 
-* **[index.md](data-schema/index-spec.md)** — Auto-generated content catalog. Every page listed with slug, one-liner summary, claim count, confidence, tags. Supports two-phase lookup (exact slug match + semantic summary match). Even at 500 pages, it's ~25 KB — a single LLM read.
-* **[log.md](data-schema/log-spec.md)** — Append-only chronicle of all operations. Reverse-chronological. The LLM reads the top 15-20 lines at session start to know what changed.
+* **[index.md](pages/index-spec.md)** — Auto-generated content catalog. Every page listed with slug, one-liner summary, claim count, confidence, tags. Supports two-phase lookup (exact slug match + semantic summary match). Even at 500 pages, it's ~25 KB — a single LLM read.
+* **[log.md](pages/log-spec.md)** — Append-only chronicle of all operations. Reverse-chronological. The LLM reads the top 15-20 lines at session start to know what changed.
 
 ---
 
@@ -267,7 +267,7 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 | Aspect | Karpathy (Gist) | This Design |
 | --- | --- | --- |
 | **Source Pages** | Summaries as provenance | Sources as curated knowledge base — the sole place from which extraction and updates are fed |
-| **Claims** | Flowing text | [Structured](data-schema/claim-spec.md) with own ID, evidence, confidence, status |
+| **Claims** | Flowing text | [Structured](cross-cutting/claim-spec.md) with own ID, evidence, confidence, status |
 | **Human/Agent Coexistence** | Not addressed | Human Blocks (only human areas marked, everything else implicitly LLM-managed) |
 | **Health Monitoring** | Ad-hoc lint | Automatic dashboards on every compile |
 | **Query Filing** | Mentioned | Systematic [query-to-page pipeline](operations/query.md) |
@@ -277,10 +277,10 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 | **Lint** | Checklist | Structured issues (severity, category, code) + research agenda |
 | **Multi-Source Conflicts** | Not addressed | Claim contradiction clustering with ID-based referencing |
 | **Machine-Readable Output** | Not addressed | `agent-digest.json`, `claims.jsonl` |
-| **Metadata Format** | Not specified | [YAML frontmatter](data-schema/format-spec.md) for machine-readable fields |
+| **Metadata Format** | Not specified | [YAML frontmatter](cross-cutting/format-spec.md) for machine-readable fields |
 | **Claims as Source Attribution** | Not specified | Every claim carries its evidence directly in the `*Evidence:*` field |
-| **Confidence Calibration** | Not addressed | [Four-factor model](data-schema/format-spec.md) (source type, evidence quality, number of sources, recency) |
-| **Page Type Documentation** | Not addressed | Every page type documented in detail ([data-schema/](data-schema/)) |
+| **Confidence Calibration** | Not addressed | [Four-factor model](cross-cutting/format-spec.md) (source type, evidence quality, number of sources, recency) |
+| **Page Type Documentation** | Not addressed | Every page type documented in detail ([cross-cutting/](cross-cutting/)) |
 | **Contested Claims Resolution** | Not addressed | [First-class resolve operation](operations/resolution.md) with resolution rules, documentation, cascading |
 
 ---

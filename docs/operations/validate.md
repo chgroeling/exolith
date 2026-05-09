@@ -15,5 +15,5 @@ A second LLM run (ideally with a stronger model such as GPT-4o or Claude 3.5 Son
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview (sections on hallucination countermeasures)
-* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim structure validated here
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim structure validated here
 * [lint.md](lint.md) — structural health checks (validate complements lint with content checks)

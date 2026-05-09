@@ -82,6 +82,6 @@ The human can accept individual agenda items (→ task is tracked), reject them 
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim structure checked by lint
-* [../data-schema/format-spec.md](../data-schema/format-spec.md) — format conventions validated by lint
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim structure checked by lint
+* [../cross-cutting/format-spec.md](../cross-cutting/format-spec.md) — format conventions validated by lint
 * [resolution.md](resolution.md) — resolving contested claims detected by lint

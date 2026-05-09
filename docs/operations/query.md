@@ -113,5 +113,5 @@ The human can confirm (→ new page is created), discard, or modify.
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [../data-schema/index-spec.md](../data-schema/index-spec.md) — index.md used in phase 1 (index scan)
-* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claims referenced in synthesis answers
+* [../pages/index-spec.md](../pages/index-spec.md) — index.md used in phase 1 (index scan)
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claims referenced in synthesis answers

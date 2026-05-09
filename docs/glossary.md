@@ -27,6 +27,6 @@
 ## See Also
 
 * [architecture.md](architecture.md) — full architectural overview
-* [data-schema/vault-layout.md](data-schema/vault-layout.md) — vault layout and page types
-* [data-schema/format-spec.md](data-schema/format-spec.md) — format conventions and confidence model
+* [cross-cutting/vault-layout.md](cross-cutting/vault-layout.md) — vault layout and page types
+* [cross-cutting/format-spec.md](cross-cutting/format-spec.md) — format conventions and confidence model
 * [operations/](operations/) — detailed operation specifications

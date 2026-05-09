@@ -103,6 +103,6 @@ Compile separates "writing data" (ingest) from "updating structure" — cleaner 
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [../data-schema/index-spec.md](../data-schema/index-spec.md) — index.md specification (generated in phase 2)
-* [../data-schema/report-spec.md](../data-schema/report-spec.md) — dashboard specification (generated in phase 4)
+* [../pages/index-spec.md](../pages/index-spec.md) — index.md specification (generated in phase 2)
+* [../pages/report-spec.md](../pages/report-spec.md) — dashboard specification (generated in phase 4)
 * [ingest.md](ingest.md) — ingest triggers compile as step 6

@@ -423,6 +423,6 @@ In total, a single source touched **8-10 pages** — exactly Karpathy's "a singl
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [../data-schema/source-spec.md](../data-schema/source-spec.md) — source page specification (created in step 3)
-* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim specification (extracted in step 4)
+* [../pages/source-spec.md](../pages/source-spec.md) — source page specification (created in step 3)
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification (extracted in step 4)
 * [compile.md](compile.md) — compile step (triggered in step 6)

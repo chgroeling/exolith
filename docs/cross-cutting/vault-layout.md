@@ -58,11 +58,11 @@ A Raw Source arrives in `inbox/`. During ingest step 3, the LLM creates a **Sour
 
 | Type | Folder | Slug Pattern | Description |
 | --- | --- | --- | --- |
-| `source` | `sources/` | `source.{slug}` | [Processed knowledge foundation](source-spec.md) from a Raw Source — the basis of all further processing |
-| `entity` | `entities/` | `entity.{slug}` | [Identifiable things](entity-spec.md): person, project, tool, organization, place, event |
-| `concept` | `concepts/` | `concept.{slug}` | [Abstract ideas](concept-spec.md), theories, patterns, methods, frameworks |
-| `synthesis` | `syntheses/` | `synthesis.{slug}` | [Cross-cutting analyses](synthesis-spec.md), comparisons, theses |
-| `report` | `reports/` | `report.{slug}` | [Auto-generated dashboards](report-spec.md) — read-only for humans |
+| `source` | `sources/` | `source.{slug}` | [Processed knowledge foundation](pages/source-spec.md) from a Raw Source — the basis of all further processing |
+| `entity` | `entities/` | `entity.{slug}` | [Identifiable things](pages/entity-spec.md): person, project, tool, organization, place, event |
+| `concept` | `concepts/` | `concept.{slug}` | [Abstract ideas](pages/concept-spec.md), theories, patterns, methods, frameworks |
+| `synthesis` | `syntheses/` | `synthesis.{slug}` | [Cross-cutting analyses](pages/synthesis-spec.md), comparisons, theses |
+| `report` | `reports/` | `report.{slug}` | [Auto-generated dashboards](pages/report-spec.md) — read-only for humans |
 
 All page types share common [format conventions](format-spec.md) including YAML frontmatter, wikilinks, and Human Blocks.
 
@@ -93,5 +93,5 @@ The `id` must be unique across the entire vault. The `page` field in the YAML fr
 
 * [../architecture.md](../architecture.md) — full architectural overview
 * [format-spec.md](format-spec.md) — YAML frontmatter and format conventions
-* [index-spec.md](index-spec.md) — content catalog (meta page)
-* [log-spec.md](log-spec.md) — chronicle (meta page)
+* [pages/index-spec.md](pages/index-spec.md) — content catalog (meta page)
+* [pages/log-spec.md](pages/log-spec.md) — chronicle (meta page)

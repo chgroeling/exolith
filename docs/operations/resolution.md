@@ -67,6 +67,6 @@ This ensures that contradictions are detected and documented, but resolution rem
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview (sections on conflict detection)
-* [../data-schema/claim-spec.md](../data-schema/claim-spec.md) — claim status values including `contested`
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim status values including `contested`
 * [lint.md](lint.md) — lint detects and reports contested claims
 * [ingest.md](ingest.md) — ingest marks contradictions during update step 5
