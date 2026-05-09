@@ -26,16 +26,7 @@ export function createPageId(type: PageType, title: string, options?: SlugOption
   return `${type}.${slugify(title, options)}`;
 }
 
-/** Creates a claim slug: `claim-{slugified-description}` (e.g. `'claim-cortisol-senkung'`) */
+/** Creates a claim identifier: `claim-{slugified-description}` (e.g. `'claim-cortisol-senkung'`) */
 export function createClaimSlug(description: string, options?: SlugOptions): string {
   return `claim-${slugify(description, options)}`;
-}
-
-/** Creates a full claim reference: `{pageId}#{claim-slug}` (e.g. `'entity.seneca#claim-cortisol-senkung'`) */
-export function createClaimReference(
-  pageId: string,
-  description: string,
-  options?: SlugOptions,
-): string {
-  return `${pageId}#${createClaimSlug(description, options)}`;
 }

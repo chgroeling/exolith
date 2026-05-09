@@ -23,7 +23,7 @@ wiki-vault/
 
 ### Layer 1 — Schema (Foundation)
 
-Configuration files that turn a generic LLM into a disciplined wiki maintainer. Defines folder structure, page types, naming conventions (slug-based IDs: `entity.john-doe`, `concept.stoicism`), YAML frontmatter fields per page type, workflows for ingest/query/lint, and formatting rules. Co-developed by human and LLM over time.
+Configuration files that turn a generic LLM into a disciplined wiki maintainer. Defines folder structure, page types, naming conventions (identifiers: `entity.john-doe`, `concept.stoicism`), YAML frontmatter fields per page type, workflows for ingest/query/lint, and formatting rules. Co-developed by human and LLM over time.
 
 ### Layer 2 — Raw Sources (Input)
 

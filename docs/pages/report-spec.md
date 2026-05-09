@@ -53,7 +53,7 @@ updated: 2026-05-02
 **Special Characteristics:**
 
 - Reports have **no** Human Block — they are completely regenerated and contain no personal notes.
-- Claims are identified in dashboards via their `page-id#claim-id` reference.
+- Claims are identified in dashboards via their identifier.
 - Reports are optional — the compile only generates those for which data exists.
 
 ## See Also

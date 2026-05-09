@@ -40,7 +40,7 @@ Claims without evidence are reported by lint as `claim-missing-evidence`.
 
 ## Claim ID Convention
 
-Claims follow the [identifier pattern](identifier-spec.md): `{page-id}#claim-{short-description}`, slugified, unique within a page but vault-wide via the full reference.
+Claims follow the [identifier pattern](identifier-spec.md): `claim-{short-description}`, slugified, vault-wide unique.
 
 ## Format and Examples
 
@@ -64,7 +64,7 @@ Claims in the `## Claims` chapter have a unique ID. Evidence is always a wikilin
 
 ## See Also
 
-* [slug-spec.md](slug-spec.md) — slug-based ID conventions for pages and claims
+* [slug-spec.md](slug-spec.md) — slug generation rules
 * [confidence-spec.md](confidence-spec.md) — confidence calibration model
 * [format-spec.md](format-spec.md) — format conventions
 * [vault-layout.md](vault-layout.md) — where claims live in the vault structure

@@ -4,12 +4,11 @@ When compile detects contradictions between claims, it sets the status to `conte
 
 ## Status: `contested`
 
-Two claims contradict each other → both receive `status: contested`. The system creates a contradiction cluster that links the claims via `page-id#claim-id` reference:
+Two claims contradict each other → both receive `status: contested`. The system creates a contradiction cluster that links the claims via their identifiers:
 
 ```
-Contradiction cluster:
-  entity.seneca#claim-cortisol-senkung
-  ↔ concept.kvt#claim-cortisol-kein-effekt
+  claim-cortisol-senkung
+  ↔ claim-cortisol-kein-effekt
 ```
 
 ## Conflict Detection During Ingest
@@ -39,7 +38,7 @@ Conflict detection works in **two stages**:
 Resolve stands alongside Ingest, Query, and Lint as an independent operation:
 
 ```
-python exolith.py resolve --claim entity.seneca#claim-cortisol-senkung
+python exolith.py resolve --claim claim-cortisol-senkung
 ```
 
 The Resolve Workflow:

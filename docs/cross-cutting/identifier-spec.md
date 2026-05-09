@@ -11,15 +11,13 @@ All identifiers are derived from a slug generated according to the [slug rules](
 | Context | Pattern | Example |
 | ------- | ------- | ------- |
 | Page | `{type}.{slug}` | `entity.seneca` |
-| Claim | `{page-id}#claim-{slug}` | `entity.seneca#claim-cortisol-senkung` |
+| Claim | `claim-{slug}` | `claim-cortisol-senkung` |
 
 The page type prefix is one of: `source`, `entity`, `concept`, `synthesis`, `report`.
 
 ## Uniqueness
 
-- Page identifiers are unique vault-wide. No two pages may have the same identifier. The prefix separates namespaces (`entity.seneca` vs. `concept.stoicism`), but even within the same type the slug must be unique.
-- Claim identifiers are unique within a single page. The full `{page-id}#claim-{slug}` reference is unique vault-wide.
-- Dashboards, the index, and cross-references always use the full reference form.
+All identifiers are unique vault-wide. For pages, the prefix separates namespaces (`entity.seneca` vs. `concept.stoicism`), but even within the same type the slug must be unique. Claim identifiers follow the same rule — no two claims may share the same identifier.
 
 ## Stability
 
@@ -34,7 +32,7 @@ Once created, an identifier never changes — even if the underlying title or de
 | Source page | `source.schneider-metastudie-2024` |
 | Synthesis page | `synthesis.stoizismus-und-empirie` |
 | Report page | `report.open-questions` |
-| Claim reference | `entity.seneca#claim-cortisol-senkung` |
+| Claim | `claim-cortisol-senkung` |
 
 ## See Also
 

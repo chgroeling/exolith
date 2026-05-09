@@ -94,7 +94,7 @@ Compile always regenerates the index **fully** — not incrementally. This is a 
 ## Further Compile Phases
 
 - **Backlink blocks** (`## Related`) inserted into every page — lists sources, backlinks, and shared-source neighbors
-- **Dashboard reports** under `reports/` updated: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, Relationship Graph, provenance coverage, Privacy Review. Claims are identified in dashboards via their `page-id#claim-id` reference.
+- **Dashboard reports** under `reports/` updated: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, Relationship Graph, provenance coverage, Privacy Review. Claims are identified in dashboards via their identifier.
 - **Machine-readable digests** written: `agent-digest.json` (compact summary of all pages incl. claim IDs) and `claims.jsonl` (all claims with full reference as JSON-Lines)
 - Optional: update embedding index
 

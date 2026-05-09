@@ -50,9 +50,9 @@ A processed wiki page of type `source`. The Source is created from a Raw Source 
 
 An LLM-generated and maintained Markdown file with a fixed type: `source`, `entity`, `concept`, `synthesis`, or `report`. Every page has YAML frontmatter with metadata (ID, status, tags, confidence) and structured chapters with Markdown headings.
 
-### Slug-Based ID
+### Identifier
 
-The universal naming convention of the wiki. Every page ID follows the pattern `{type}.{slug}` — a concatenation of the page type prefix and a human-readable, URL-safe slug derived from the title, e.g. `entity.seneca`. Page IDs are unique vault-wide. Claims are referenced via `{page-id}#{claim-slug}`, e.g. `entity.seneca#claim-cortisol-senkung`. Slugs are lowercase, hyphenated, and stay stable once created.
+Every wiki entity — pages, claims, and any future type — has a unique, stable identifier that never changes once created. Page identifiers follow `{type}.{slug}` (e.g. `entity.seneca`), claim identifiers follow `claim-{slug}` (e.g. `claim-cortisol-senkung`). All identifiers are unique vault-wide.
 
 > Specifications: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md) (slug rules), [cross-cutting/identifier-spec.md](cross-cutting/identifier-spec.md) (identifier patterns and uniqueness)
 
@@ -126,7 +126,7 @@ The schema defines the rules of the game, the Raw Sources provide the input, the
 └─────────────────────────────────────────────┘
 ```
 
-**Layer 1 — The Schema (Foundation):** The configuration files that turn a generic LLM into a disciplined wiki maintainer. Defines folder structure, page types, naming conventions (slug-based IDs: `entity.john-doe`, `concept.stoicism`), YAML frontmatter fields per page type, workflows for ingest/query/lint, and formatting rules. Co-developed by human and LLM over time. This layer is the bedrock — it determines *how* raw material becomes structured knowledge.
+**Layer 1 — The Schema (Foundation):** The configuration files that turn a generic LLM into a disciplined wiki maintainer. Defines folder structure, page types, naming conventions (identifiers: `entity.john-doe`, `concept.stoicism`), YAML frontmatter fields per page type, workflows for ingest/query/lint, and formatting rules. Co-developed by human and LLM over time. This layer is the bedrock — it determines *how* raw material becomes structured knowledge.
 
 **Layer 2 — Raw Sources (Input):** Your curated collection of sources. Articles, papers, podcast notes, chat exports, book highlights, meeting transcripts. This layer is *immutable* — the LLM only reads, never writes. This is your Source of Truth. New sources land in `inbox/`, processed ones in `raw-sources/`. Raw Sources are only read once for the ingest; after that, the LLM works exclusively with the Sources created from them (Layer 3).
 
@@ -165,7 +165,7 @@ All pages use Obsidian wikilinks (`[[path/to/page]]`), YAML frontmatter for meta
 
 ### Claims
 
-Claims are structured assertions in the `## Claims` chapter with unique IDs, confidence, status, and mandatory `*Evidence:*` wikilinks to Sources. Claims are page-scoped and referenced via `page-id#claim-id` notation.
+Claims are structured assertions in the `## Claims` chapter with unique identifiers, confidence, status, and mandatory `*Evidence:*` wikilinks to Sources. Claims are vault-wide unique and tracked via their identifier.
 
 > Full specification: [cross-cutting/claim-spec.md](cross-cutting/claim-spec.md)
 

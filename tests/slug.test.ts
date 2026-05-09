@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createClaimReference, createClaimSlug, createPageId, slugify } from '../src/slug.js';
+import { createClaimSlug, createPageId, slugify } from '../src/slug.js';
 
 describe('slugify', () => {
   describe('basic behavior', () => {
@@ -180,25 +180,5 @@ describe('createClaimSlug', () => {
 
   it('handles descriptions with special characters', () => {
     expect(createClaimSlug('Preis: >50€')).toBe('claim-preis-50');
-  });
-});
-
-describe('createClaimReference', () => {
-  it('creates a full claim reference', () => {
-    expect(createClaimReference('entity.seneca', 'Cortisol Senkung')).toBe(
-      'entity.seneca#claim-cortisol-senkung',
-    );
-  });
-
-  it('works with concept page IDs', () => {
-    expect(createClaimReference('concept.praemeditatio-malorum', 'Definition')).toBe(
-      'concept.praemeditatio-malorum#claim-definition',
-    );
-  });
-
-  it('works with source page IDs', () => {
-    expect(createClaimReference('source.schneider-metastudie-2024', 'n=1200')).toBe(
-      'source.schneider-metastudie-2024#claim-n1200',
-    );
   });
 });

@@ -26,7 +26,7 @@ For identifier structure, patterns, and uniqueness, see [identifier-spec.md](ide
 | Concept page | `concept.praemeditatio-malorum` |
 | Source page | `source.schneider-metastudie-2024` |
 | Synthesis page | `synthesis.stoizismus-und-empirie` |
-| Claim reference | `entity.seneca#claim-cortisol-senkung` |
+| Claim | `claim-cortisol-senkung` |
 
 ## See Also
 

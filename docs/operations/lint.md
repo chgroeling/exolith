@@ -45,7 +45,7 @@ Periodic health check of the wiki — as a first-class operation. Lint runs afte
    → Action: ingest a new empirical source for this claim?
 
 ⚠️  WARNING [W022] Contested claims unresolved (> 14 days)
-   entity.seneca#claim-cortisol-senkung ↔ concept.kvt#claim-cortisol-kein-effekt
+   claim-cortisol-senkung ↔ claim-cortisol-kein-effekt
    Contradiction unresolved for 16 days
    → Action: research a new source for resolution or request human
      decision
