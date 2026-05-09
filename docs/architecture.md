@@ -108,7 +108,7 @@ There is **no** managed-block marker. Only Human Blocks are explicitly marked �
 
 Trustworthiness of a claim (0.0–1.0). Initially estimated by the LLM and calibrated by compile based on four factors: source type (30%), evidence quality (30%), number of pieces of evidence (20%), recency (20%). **Page-level confidence** is the arithmetic mean of all claim confidence values on the page.
 
-> Full specification of the calibration model: [cross-cutting/format-spec.md](cross-cutting/format-spec.md)
+> Full specification of the calibration model: [cross-cutting/confidence-spec.md](cross-cutting/confidence-spec.md)
 
 ---
 
@@ -279,7 +279,7 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 | **Machine-Readable Output** | Not addressed | `agent-digest.json`, `claims.jsonl` |
 | **Metadata Format** | Not specified | [YAML frontmatter](cross-cutting/format-spec.md) for machine-readable fields |
 | **Claims as Source Attribution** | Not specified | Every claim carries its evidence directly in the `*Evidence:*` field |
-| **Confidence Calibration** | Not addressed | [Four-factor model](cross-cutting/format-spec.md) (source type, evidence quality, number of sources, recency) |
+| **Confidence Calibration** | Not addressed | [Four-factor model](cross-cutting/confidence-spec.md) (source type, evidence quality, number of sources, recency) |
 | **Page Type Documentation** | Not addressed | Every page type documented in detail ([cross-cutting/](cross-cutting/)) |
 | **Contested Claims Resolution** | Not addressed | [First-class resolve operation](operations/resolution.md) with resolution rules, documentation, cascading |
 

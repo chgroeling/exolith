@@ -28,5 +28,6 @@
 
 * [architecture.md](architecture.md) — full architectural overview
 * [cross-cutting/vault-layout.md](cross-cutting/vault-layout.md) — vault layout and page types
-* [cross-cutting/format-spec.md](cross-cutting/format-spec.md) — format conventions and confidence model
+* [cross-cutting/confidence-spec.md](cross-cutting/confidence-spec.md) — confidence calibration model
+* [cross-cutting/format-spec.md](cross-cutting/format-spec.md) — format conventions
 * [operations/](operations/) — detailed operation specifications

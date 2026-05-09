@@ -57,6 +57,7 @@ Claims in the `## Claims` chapter have a unique ID. Evidence is always a wikilin
 ## See Also
 
 * [slug-spec.md](slug-spec.md) — slug-based ID conventions for pages and claims
-* [format-spec.md](format-spec.md) — confidence calibration model and format conventions
+* [confidence-spec.md](confidence-spec.md) — confidence calibration model
+* [format-spec.md](format-spec.md) — format conventions
 * [vault-layout.md](vault-layout.md) — where claims live in the vault structure
 * [../operations/resolution.md](../operations/resolution.md) — contested claims resolution workflow
