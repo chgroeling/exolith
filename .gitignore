@@ -131,6 +131,9 @@ dist
 # pnpm
 .pnpm-store
 
+# npm lockfile (project uses pnpm)
+package-lock.json
+
 # yarn v3
 .pnp.*
 .yarn/*
