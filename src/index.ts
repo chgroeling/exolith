@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createWriteStream } from 'node:fs';
+import { createInterface } from 'node:readline/promises';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText } from 'ai';
 import { program } from 'commander';
@@ -7,6 +8,9 @@ import pino from 'pino';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { EXIT, visit } from 'unist-util-visit';
+import { Identifier } from './identifier';
+import { Ingest, type IngestConfig } from './operations/ingest';
+import { Slugger } from './slugger';
 
 let logger = pino({ name: 'hello-world' });
 
@@ -82,6 +86,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .option('--log-level <level>', 'log level', 'info')
     .option('-a, --agentic <prompt>', 'run the agentic loop with the given prompt')
     .option('--max-retries <number>', 'max retries for the agentic loop', '3')
+    .option('-i, --inbox <path>', 'run the ingest pipeline on a raw source file')
+    .option('--max-source-size <bytes>', 'maximum source file size in bytes', '10485760')
+    .option('--vault <path>', 'path to the vault directory', '.')
     .action(async (options) => {
       const logStream = createWriteStream(options.logFile, { flags: 'w' });
       logger = pino({ name: 'hello-world', level: options.logLevel }, logStream);
@@ -94,6 +101,22 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (options.agentic) {
         await agenticLoop(options.agentic, Number.parseInt(options.maxRetries), write);
         process.stdout.write('\n');
+      }
+
+      if (options.inbox) {
+        const model = openrouter('deepseek/deepseek-v4-pro');
+        const slugger = new Slugger();
+        const identifier = new Identifier(slugger);
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        const config: IngestConfig = {
+          maxSourceSize: Number.parseInt(options.maxSourceSize),
+          vaultPath: options.vault,
+          onChunk: write,
+          readInput: () => rl.question('> '),
+        };
+        const ingest = new Ingest(model, identifier, config);
+        await ingest.process(options.inbox);
+        rl.close();
       }
 
       logger.info('CLI finished');

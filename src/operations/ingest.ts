@@ -1,7 +1,8 @@
 // Specification: docs/operations/ingest.md
 
-import { access, readFile, stat } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { basename, extname } from 'node:path';
+import { streamText } from 'ai';
 import pino from 'pino';
 import type { IdentifierType } from '../types';
 
@@ -12,15 +13,25 @@ export interface Identifier {
   decomposeId(id: string): { type: IdentifierType; slug: string };
 }
 
+export interface LanguageModel {
+  readonly modelId: string;
+}
+
 export interface IngestConfig {
   maxSourceSize: number;
+  vaultPath: string;
+  onChunk?: (chunk: string) => void;
+  readInput?: () => Promise<string>;
 }
 
 export class Ingest {
   private rawContent = '';
+  private filePath = '';
+  private enrichedSourcePath = '';
   private logger = pino({ name: 'ingest' });
 
   constructor(
+    private model: LanguageModel,
     private identifier: Identifier,
     private config: IngestConfig,
   ) {}
@@ -30,10 +41,11 @@ export class Ingest {
    * @param filePath Absolute path to the raw source file
    */
   async process(filePath: string): Promise<void> {
+    this.filePath = filePath;
     this.logger.info({ filePath }, 'Ingest process started');
 
     // 1. Read raw source completely
-    await this.readRawSource(filePath);
+    await this.readRawSource();
 
     // 2. Discuss key takeaways with the human
     await this.discussKeyTakeaways();
@@ -58,7 +70,8 @@ export class Ingest {
    * Validates and reads the raw source file into memory.
    * Checks: file existence, supported text extension, size limit, binary detection.
    */
-  private async readRawSource(filePath: string): Promise<void> {
+  private async readRawSource(): Promise<void> {
+    const { filePath } = this;
     await access(filePath);
     this.logger.info({ filePath }, 'File exists, reading raw source');
 
@@ -85,8 +98,130 @@ export class Ingest {
     this.logger.info({ filePath, size: buffer.length }, 'Raw source read successfully');
   }
 
-  /** Step 2: Discusses key takeaways and main points with the human. */
-  private async discussKeyTakeaways(): Promise<void> {}
+  /**
+   * Interactive discussion loop with the human.
+   * After the discussion, summarizes the human's feedback and archives the enriched source.
+   */
+  private async discussKeyTakeaways(): Promise<void> {
+    this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
+
+    const initialPrompt = `You have just read the following source: ${this.filePath}
+
+Summarize your reading in a concise, conversational way. Then, ask the human
+for their opinionated judgment to calibrate the upcoming extraction step.
+Specifically, invite them to weigh in on:
+
+- Which claims are central and which are peripheral?
+- How credible is the source — should claims carry high or low confidence?
+- Which entities, concepts, or relationships deserve priority extraction?
+- What should be ignored or deprioritized?
+- Are there nuances the source hints at but doesn't fully unpack?
+
+Your human partner will respond before extraction begins.
+
+Source:
+${this.rawContent}`;
+
+    const messages: { role: 'user'; content: string }[] = [
+      { role: 'user', content: initialPrompt },
+    ];
+
+    this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
+    await this.llmTurn(messages);
+
+    let turn = 1;
+    while (this.config.readInput) {
+      const input = await this.config.readInput();
+      if (!input) break;
+
+      turn++;
+      this.logger.trace({ turn, input }, 'Discussion: received user input');
+      messages.push({ role: 'user', content: input });
+      this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
+      await this.llmTurn(messages);
+    }
+
+    this.logger.info(
+      { filePath: this.filePath, turns: turn },
+      'Discussion ended, summarizing feedback',
+    );
+    const summary = await this.summarizeDiscussion(messages);
+    await this.archiveToRawSources(summary);
+
+    this.logger.info(
+      { filePath: this.filePath, enrichedPath: this.enrichedSourcePath },
+      'Discussion step completed',
+    );
+  }
+
+  /**
+   * Asks the LLM to extract the human's key feedback from the full discussion.
+   */
+  private async summarizeDiscussion(
+    messages: { role: 'user'; content: string }[],
+  ): Promise<string> {
+    const humanMessages = messages.slice(1);
+
+    const prompt = `Extract the human's key feedback and calibration decisions from the following discussion. Focus on what is important for rebuilding the wiki later: confidence judgments, priority signals, nuance flags, and decisions about what to include or ignore. Output only the summary as a concise Markdown list. Do not include the original source content.
+
+${humanMessages.map((m) => m.content).join('\n\n')}`;
+
+    this.logger.debug('Summarizing discussion feedback');
+    const result = await this.internalPrompt(prompt);
+    this.logger.trace({ summary: result }, 'Discussion summary generated');
+    return result;
+  }
+
+  /**
+   * Copies the raw source file to raw-sources/ and appends the discussion summary.
+   */
+  private async archiveToRawSources(summary: string): Promise<void> {
+    const rawSourcesDir = `${this.config.vaultPath}/raw-sources`;
+    await mkdir(rawSourcesDir, { recursive: true });
+
+    const destPath = `${rawSourcesDir}/${basename(this.filePath)}`;
+    await copyFile(this.filePath, destPath);
+    this.logger.info({ destPath }, 'Copied raw source to raw-sources');
+
+    const archiveContent = `${this.rawContent}\n\n## Discussion Summary\n${summary}\n`;
+    await writeFile(destPath, archiveContent, 'utf-8');
+    this.logger.info({ destPath }, 'Appended discussion summary');
+
+    this.enrichedSourcePath = destPath;
+  }
+
+  private async llmTurn(messages: { role: 'user'; content: string }[]): Promise<void> {
+    this.logger.debug({ messageCount: messages.length }, 'LLM turn started');
+    this.logger.trace({ messages }, 'LLM turn: outgoing messages');
+
+    const result = streamText({ model: this.model, messages });
+
+    let responseText = '';
+    for await (const chunk of result.textStream) {
+      this.config.onChunk?.(chunk);
+      responseText += chunk;
+    }
+
+    this.logger.trace({ response: responseText }, 'LLM turn: received response');
+    this.logger.debug(
+      { messageCount: messages.length, responseLength: responseText.length },
+      'LLM turn completed',
+    );
+  }
+
+  /**
+   * Sends a prompt to the LLM and collects the full response without streaming.
+   */
+  private async internalPrompt(prompt: string): Promise<string> {
+    const result = streamText({ model: this.model, prompt });
+
+    let text = '';
+    for await (const chunk of result.textStream) {
+      text += chunk;
+    }
+
+    return text;
+  }
 
   /** Step 3: Writes a processed source page to the vault. */
   private async writeSourcePage(): Promise<void> {}

@@ -4,8 +4,8 @@ The core workflow. A source is not just indexed, but **actively integrated into 
 
 ## The Seven Steps of Ingest
 
-1. LLM reads the raw source completely (not chunk-by-chunk)
-2. Discusses key takeaways with the human (optional, but recommended)
+1. Read and validate the raw source file (no LLM)
+2. Discuss key takeaways with the human (interactive, calibration-focused)
 3. Writes a source page in `sources/` — the processed knowledge base
 4. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
 5. **Updates all affected wiki pages** — a single source can touch 10-15 pages
@@ -16,24 +16,32 @@ The core workflow. A source is not just indexed, but **actively integrated into 
 
 ## Step 1 — Read Raw Source Completely
 
-The first step is the simplest but most critical: the LLM receives the entire source text at once, not chunk-by-chunk. This is the fundamental difference from RAG — the LLM understands the full context, recognizes implicit connections, and can establish cross-references within the source that chunk-based systems miss.
+The first step reads and validates the raw source file without involving the LLM. The file is checked for existence, type (`.md`, `.txt`, `.textile`), size (under the configured limit), and binary content (null bytes rejected). Once validated, the full content is read into memory.
 
 New sources land in `inbox/`. After processing (step 3), the raw source is moved to `raw-sources/` — that is the archive. `raw-sources/` is not processed further by the LLM; it serves exclusively as a reference for the human. The sources in `sources/` link to the corresponding raw source in `raw-sources/` via wikilink (`*Originaldatei:*`).
 
-Here the LLM only reads and builds a mental model. It does not write anything yet. The context is then "warm" — all subsequent steps (discussion, source creation, extraction, update) benefit from the source being fully in the LLM's short-term memory.
+The raw content is held in memory for the subsequent discussion and extraction steps — the LLM will receive the entire source at once, not chunk-by-chunk. This is the fundamental difference from RAG: the LLM understands the full context, recognizes implicit connections, and can establish cross-references within the source that chunk-based systems miss.
 
 ---
 
-## Step 2 — Discuss Key Takeaways & Main Points (optional)
+## Step 2 — Discuss Key Takeaways & Main Points
 
-Before the LLM creates the source and extracts knowledge, the human can initiate a brief discussion. From the read source text (step 1), the LLM formulates both the **Main Points** (the author's central statements — neutral, descriptive) and the **Key Takeaways** (what *you* find interesting — which statements are relevant to your wiki, which confirm or contradict existing knowledge, what is new). The human gives feedback on both: "This main point is the core," "I would weight this takeaway differently," "here the source contradicts my experience."
+Before the LLM creates the source and extracts knowledge, the human engages in an interactive discussion. The LLM reads the raw source content and summarizes it conversationally, then asks the human for opinionated judgment to calibrate the upcoming extraction step.
 
-This step is optional but valuable for:
-- **New, complex sources** (>5 pages), where the LLM doesn't have the full overview
-- **Contradictory content**, where the human must assess epistemic authority ("This is a blog post, not a paper — weight it low")
-- **Personal notes**, where the human has supplementary context not in the text
+The human is asked to weigh in on:
+- Which claims are central and which are peripheral?
+- How credible is the source — should claims carry high or low confidence?
+- Which entities, concepts, or relationships deserve priority extraction?
+- What should be ignored or deprioritized?
+- Are there nuances the source hints at but doesn't fully unpack?
 
-The human feedback from this step flows directly into source creation (step 3) — the source is thus not just an LLM summary, but a human-reviewed and potentially corrected document.
+The discussion is a back-and-forth: the LLM responds, the human provides feedback, and the loop continues until the human signals completion (empty input).
+
+### Discussion Summary and Archiving
+
+After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `## Discussion Summary` chapter.
+
+This enriched file in `raw-sources/` becomes the canonical source for all subsequent steps — it contains both the original content and the human's calibration signals. The full discussion transcript is discarded; only the extracted summary is preserved. This ensures the wiki can be rebuilt without losing the critical decisions that emerged from the human interaction.
 
 ---
 
