@@ -40,7 +40,7 @@ Claims without evidence are reported by lint as `claim-missing-evidence`.
 
 ## Claim ID Convention
 
-Claims follow the [identifier pattern](identifier-spec.md): `claim.{short-description}`, slugified, vault-wide unique.
+Claims use the standard [identifier pattern](identifier-spec.md): `{type}.{slug}` with type `claim`.
 
 ## Format and Examples
 

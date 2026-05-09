@@ -52,7 +52,7 @@ An LLM-generated and maintained Markdown file with a fixed type: `source`, `enti
 
 ### Identifier
 
-Every wiki entity — pages, claims, and any future type — has a unique, stable identifier that never changes once created. Page identifiers follow `{type}.{slug}` (e.g. `entity.seneca`), claim identifiers follow `claim.{slug}` (e.g. `claim.cortisol-senkung`). All identifiers are unique vault-wide.
+Every wiki entity — pages, claims, and any future type — has a unique, stable identifier following the pattern `{type}.{slug}` (e.g. `entity.seneca`, `claim.cortisol-senkung`). All identifiers are unique vault-wide.
 
 > Specifications: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md) (slug rules), [cross-cutting/identifier-spec.md](cross-cutting/identifier-spec.md) (identifier patterns and uniqueness)
 
@@ -330,7 +330,7 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 
 **Countermeasures:**
 * Fixed page types with folders. Compile checks directory consistency.
-* Lint finds duplicate IDs (also duplicate claim IDs within a page), orphan pages, broken wikilinks.
+* Lint finds duplicate identifiers, orphan pages, broken wikilinks.
 * Merge strategy: Before creating a new page, check via semantic similarity whether a similar one exists.
 * Slug-based IDs enforce uniqueness.
 

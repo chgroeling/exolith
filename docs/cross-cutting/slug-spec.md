@@ -22,11 +22,11 @@ For identifier structure, patterns, and uniqueness, see [identifier-spec.md](ide
 
 | Type | ID |
 | ---- | -- |
-| Entity page | `entity.seneca` |
-| Concept page | `concept.praemeditatio-malorum` |
-| Source page | `source.schneider-metastudie-2024` |
-| Synthesis page | `synthesis.stoizismus-und-empirie` |
-| Claim | `claim.cortisol-senkung` |
+| `entity` | `entity.seneca` |
+| `concept` | `concept.praemeditatio-malorum` |
+| `source` | `source.schneider-metastudie-2024` |
+| `synthesis` | `synthesis.stoizismus-und-empirie` |
+| `claim` | `claim.cortisol-senkung` |
 
 ## See Also
 

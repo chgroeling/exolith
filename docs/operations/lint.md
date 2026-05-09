@@ -6,7 +6,7 @@ Periodic health check of the wiki — as a first-class operation. Lint runs afte
 
 | Category     | Severity  | Checks                                                                                                                                                                       |
 | ------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Struktur** | `error`   | Duplicate page IDs, missing YAML frontmatter, page-type-directory mismatch, broken wikilinks, orphan pages (no backlinks), duplicate claim IDs within a page                 |
+| **Struktur** | `error`   | Duplicate identifiers, missing YAML frontmatter, page-type-directory mismatch, broken wikilinks, orphan pages (no backlinks)                |
 | **Herkunft** | `error`   | Claims without evidence (`*Beleg:*` field missing), evidence without a valid wikilink                                                                                        |
 | **Qualität** | `warning` | Low-confidence claims (< 0.5), stale pages (>90 days without update), open questions without progress for >30 days, contradictions between claims (contested for >14 days)   |
 | **Wachstum** | `info`    | Concepts without their own page (mentioned in >2 sources), underrepresented topic areas (<3 pages), outdated index entries, unused tags                                      |

@@ -2,22 +2,24 @@
 
 Every thing in the wiki — pages, claims, and any future entity — has a unique, stable, slug-based identifier. An identifier is a machine-indexable, human-readable name that never changes once created.
 
-## Slug Rules
+## Structure
 
-All identifiers are derived from a slug generated according to the [slug rules](slug-spec.md#slug-rules): lowercase, hyphens, ASCII-only, symbols removed, trimmed, with a fallback hash for empty results.
+All identifiers follow the pattern `{type}.{slug}` — a type prefix, a dot separator, and a slugified name:
 
-## Patterns
+| Component | Description | Example |
+| --------- | ----------- | ------- |
+| `type`    | Type prefix | `entity`, `claim`, `concept`, ... |
+| `.`       | Separator | `.` |
+| `slug`    | Slugified name from the title or description | `seneca`, `cortisol-senkung` |
+| **Identifier** | | `entity.seneca`, `claim.cortisol-senkung` |
 
-| Context | Pattern | Example |
-| ------- | ------- | ------- |
-| Page | `{type}.{slug}` | `entity.seneca` |
-| Claim | `claim.{slug}` | `claim.cortisol-senkung` |
+Valid type prefixes: `source`, `entity`, `concept`, `synthesis`, `report`, `claim`.
 
-The page type prefix is one of: `source`, `entity`, `concept`, `synthesis`, `report`.
+The slug is generated from the natural-language title or description following the [slug rules](slug-spec.md#slug-rules).
 
 ## Uniqueness
 
-All identifiers are unique vault-wide. For pages, the prefix separates namespaces (`entity.seneca` vs. `concept.stoicism`), but even within the same type the slug must be unique. Claim identifiers follow the same rule — no two claims may share the same identifier.
+All identifiers are unique vault-wide. The type prefix separates namespaces (`entity.seneca` vs. `concept.stoicism` vs. `claim.cortisol-senkung`), but even within the same type the slug must be unique.
 
 ## Stability
 
@@ -25,14 +27,14 @@ Once created, an identifier never changes — even if the underlying title or de
 
 ## Examples
 
-| Context | Identifier |
-| ------- | ---------- |
-| Entity page | `entity.seneca` |
-| Concept page | `concept.praemeditatio-malorum` |
-| Source page | `source.schneider-metastudie-2024` |
-| Synthesis page | `synthesis.stoizismus-und-empirie` |
-| Report page | `report.open-questions` |
-| Claim | `claim.cortisol-senkung` |
+| Type | Identifier |
+| ---- | ---------- |
+| `entity` | `entity.seneca` |
+| `concept` | `concept.praemeditatio-malorum` |
+| `source` | `source.schneider-metastudie-2024` |
+| `synthesis` | `synthesis.stoizismus-und-empirie` |
+| `report` | `report.open-questions` |
+| `claim` | `claim.cortisol-senkung` |
 
 ## See Also
 
