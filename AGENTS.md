@@ -74,6 +74,12 @@ One test file per source module. Mock dependencies at module boundaries. Assert 
 
 Set configuration once at construction. No options arguments on methods.
 
+### Service Layer
+
+Services are abstracted behind interfaces living in `src/` root (`*-service.ts`). Implementations live in `src/services/` as `*-service-impl.ts`, classes suffixed `*ServiceImpl`. Providers live in `src/providers/`.
+
+When a service wraps an external dependency (e.g., an AI SDK), introduce a provider interface (`*-provider.ts` in `src/` root) and use an adapter `*ServiceImpl` to translate between the two interfaces. This keeps the consumer decoupled from any specific provider implementation.
+
 ## Git Workflow
 
 - ALWAYS remove temporary and debug files before committing
