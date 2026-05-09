@@ -38,17 +38,23 @@ Before we dive into the architecture and structure, here are the fundamental bui
 
 ### Raw Source
 
-An unprocessed source document: article, paper, transcript, podcast note, chat export, book highlight. Raw Sources are **immutable** — the LLM only reads them on first ingest, never overwrites them. They live in `raw-sources/`. After processing they are no longer used by the LLM; they serve solely as the original reference for the human.
+An unprocessed source document: article, paper, transcript, podcast note, chat export, book highlight. Raw Sources are **immutable** — the LLM only reads them on first ingest, never overwrites them. After processing they are no longer used by the LLM; they serve solely as the original reference for the human.
 
 ### Source
 
-A processed wiki page of type `source` in the `sources/` folder. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge foundation**: key takeaways are prioritized, ambiguities are flagged, context is framed. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
+A processed wiki page of type `source`. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge foundation**: key takeaways are prioritized, ambiguities are flagged, context is framed. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
 
 > Full specification: [data-schema/source-spec.md](data-schema/source-spec.md)
 
 ### Wiki Page
 
 An LLM-generated and maintained Markdown file with a fixed type: `source`, `entity`, `concept`, `synthesis`, or `report`. Every page has YAML frontmatter with metadata (ID, status, tags, confidence) and structured chapters with Markdown headings.
+
+### Slug-Based ID
+
+The universal naming convention of the wiki. Every page ID follows the pattern `{type}.{slug}` — a concatenation of the page type prefix and a human-readable, URL-safe slug derived from the title, e.g. `entity.seneca`. Page IDs are unique vault-wide. Claims are referenced via `{page-id}#{claim-slug}`, e.g. `entity.seneca#claim-cortisol-senkung`. Slugs are lowercase, hyphenated, and stay stable once created.
+
+> Full specification: [data-schema/slug-spec.md](data-schema/slug-spec.md)
 
 ### Entity
 
@@ -70,7 +76,7 @@ A **cross-cutting analysis** that links multiple entities or concepts into a hig
 
 ### Report
 
-An **automatically generated dashboard** — completely regenerated on every compile. Reports are read-only for the human; the LLM uses them for health monitoring. Example: `reports/open-questions.md`, `reports/contradictions.md`.
+An **automatically generated dashboard** — completely regenerated on every compile. Reports are read-only for the human; the LLM uses them for health monitoring. Examples: open questions report, contradictions report.
 
 > Full specification: [data-schema/report-spec.md](data-schema/report-spec.md)
 
