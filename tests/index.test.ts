@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { agenticLoop, greet, hasMarkdownHeading } from '../src/index.js';
+import { agenticLoop, greet, hasMarkdownHeading } from '../src/index';
 
 vi.mock('ai', () => ({
   streamText: vi.fn(),
