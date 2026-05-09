@@ -1,6 +1,6 @@
 # Format conventions
 
-The entire wiki uses Obsidian wikilinks (`[[path/to/page]]`) instead of Markdown links. Metadata that must be machine-parsed lives in the **YAML frontmatter** — tags, ID, page type, status, confidence, timestamps. Everything else (Claims, Verknüpfungen) lives as normal Markdown in the body.
+The entire wiki uses Obsidian wikilinks (`[[path/to/page]]`) instead of Markdown links. Metadata that must be machine-parsed lives in the **YAML frontmatter** — tags, ID, status, confidence, timestamps. Everything else (Claims, Verknüpfungen) lives as normal Markdown in the body.
 
 **Human Blocks** (`<!-- exolith:human:start -->` / `<!-- exolith:human:end -->`) are the only HTML comments in the system and protect handwritten notes from being overwritten. Everything outside these markers is implicitly LLM-managed — there are no managed-block markers. Only normal Markdown headings (`##`, `###`) are used for chapter structuring.
 
@@ -11,7 +11,6 @@ Every wiki page begins with a YAML frontmatter block. The following fields are d
 | Field        | Required | Type   | Description                                                                                 |
 | ------------ | -------- | ------ | ------------------------------------------------------------------------------------------- |
 | `id`         | ✅        | string | Unique identifier, e.g. `entity.seneca`. Prefix = page type, suffix = slug.                 |
-| `page`       | ✅        | enum   | `source`, `entity`, `concept`, `synthesis`, `report`                                        |
 | `title`      | ✅        | string | Display name of the page                                                                    |
 | `status`     | ✅        | string | `active`, `review`, `archived`                                                              |
 | `tags`       | ✅        | list   | Thematic tags for filtering (e.g. `[philosophie, stoizismus]`)                              |
@@ -21,7 +20,6 @@ Every wiki page begins with a YAML frontmatter block. The following fields are d
 
 **Rules:**
 - `id` is unique across the entire vault. No two pages may have the same ID.
-- `page` must match the folder (`entities/seneca.md` → `page: entity`). Mismatch → lint error.
 - `tags` are a YAML list, not inline flags. Tags are stored lowercase and without the `#` prefix.
 - `confidence` is `null` when the page has no claims (e.g. newly created, no extraction yet).
 - `status: review` means: page is new and has not yet been approved by a human.

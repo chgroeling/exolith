@@ -23,7 +23,6 @@ The page type `report` is an **automatically generated dashboard**. Unlike all o
 ```markdown
 ---
 id: report.open-questions
-page: report
 title: Open Questions
 status: active
 tags:

@@ -78,7 +78,6 @@ The source page in `sources/` is the **processed knowledge base** of the wiki. I
 ```markdown
 ---
 id: source.{slug}
-page: source
 title: {title}
 status: active
 tags:
@@ -314,7 +313,6 @@ No diff, no commentary — the whole page.
 ```markdown
 ---
 id: entity.seneca
-page: entity
 title: Seneca
 confidence: 0.8
 status: active
@@ -348,7 +346,6 @@ Meditations — less cryptic, more directly applicable.
 ```markdown
 ---
 id: entity.seneca
-page: entity
 title: Seneca
 confidence: 0.8
 status: active

@@ -17,7 +17,6 @@ The page type `synthesis` combines multiple Entities or Concepts into a **higher
 ```markdown
 ---
 id: synthesis.stoizismus-und-empirie
-page: synthesis
 title: Stoicism and Empiricism — What the Research Says
 confidence: 0.75
 status: active

@@ -9,7 +9,6 @@ The page type `concept` describes an **abstract idea, theory, pattern, method, o
 ```markdown
 ---
 id: concept.praemeditatio-malorum
-page: concept
 title: Praemeditatio Malorum
 confidence: 0.7
 status: active

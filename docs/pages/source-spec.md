@@ -11,7 +11,6 @@ The source links to the Raw Source so that the human can consult the original at
 ```markdown
 ---
 id: source.briefe-an-lucilius
-page: source
 title: Letters to Lucilius (13th Letter)
 status: active
 tags:
@@ -51,7 +50,6 @@ updated: 2026-05-01
 ```markdown
 ---
 id: source.{slug}
-page: source
 title: {title}
 status: active
 tags:

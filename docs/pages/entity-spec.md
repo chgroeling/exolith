@@ -9,7 +9,6 @@ The Page type `entity` describes an **identifiable thing**: person, organization
 ```markdown
 ---
 id: entity.seneca
-page: entity
 title: Seneca
 confidence: 0.9
 status: active

@@ -34,31 +34,31 @@ Even at 200 pages, the index is only ~10-15 KB. The LLM can read it in a single 
 ## Sources
 
 - [[sources/briefe-an-lucilius]]
-  `page:source` `1 claim` `active` `2026-05-01` `#philosophie #stoizismus`
+  `1 claim` `active` `2026-05-01` `#philosophie #stoizismus`
   — Verarbeitete Quelle: Senecas 13. Brief an Lucilius
 
 - [[sources/schneider-metastudie-2024]]
-  `page:source` `2 claims` `active` `2026-05-02` `#psychologie #metastudie`
+  `2 claims` `active` `2026-05-02` `#psychologie #metastudie`
   — Metastudie zur Wirksamkeit der praemeditatio malorum (n=1.200)
 
 ## Entities
 
 - [[entities/seneca]]
-  `page:entity` `2 claims` `conf:0.9` `active` `2026-05-01` `#philosophie #stoizismus #antike`
+  `2 claims` `conf:0.9` `active` `2026-05-01` `#philosophie #stoizismus #antike`
   — Römischer Philosoph, Stoiker, Autor der Briefe an Lucilius
 
 - [[entities/maria-schneider]]
-  `page:entity` `2 claims` `conf:0.8` `active` `2026-05-02` `#psychologie #forschung`
+  `2 claims` `conf:0.8` `active` `2026-05-02` `#psychologie #forschung`
   — Forscherin an der Uni Tübingen, Autorin der 2024er Metastudie
 
 ## Concepts
 
 - [[concepts/praemeditatio-malorum]]
-  `page:concept` `2 claims` `❓` `conf:0.7` `active` `2026-05-02` `#stoizismus #psychologie`
+  `2 claims` `❓` `conf:0.7` `active` `2026-05-02` `#stoizismus #psychologie`
   — Stoische Übung: bewusste Vorstellung des Schlimmsten zur Angstbewältigung
 
 - [[concepts/stoizismus]]
-  `page:concept` `1 claim` `conf:0.8` `active` `2026-05-01` `#philosophie`
+  `1 claim` `conf:0.8` `active` `2026-05-01` `#philosophie`
   — Philosophische Schule der Stoa, Fokus auf das Kontrollierbare
 ```
 
