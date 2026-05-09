@@ -38,6 +38,10 @@ Linting and formatting are handled by [Biome](https://biomejs.dev). Configuratio
 
 Biome also provides IDE integrations for VS Code and JetBrains — install the official extension for real-time feedback.
 
+## Logging
+
+Pino — default to `pino({ name: '<module>' })`.
+
 ## Code Style
 
 - Spaces for indentation (2 spaces)
@@ -55,6 +59,8 @@ One source file per specification document. Reference the spec(s) in the top com
 ### Dependency Inversion
 
 The consumer owns the interface. The implementation module conforms structurally — no imports between them.
+
+**Logging is the sole exception:** import and use `pino` directly. Do not abstract logging behind an interface.
 
 ### Test Strategy
 
