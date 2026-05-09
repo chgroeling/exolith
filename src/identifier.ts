@@ -1,20 +1,22 @@
 // Specification: docs/cross-cutting/identifier-spec.md
-// Specification: docs/cross-cutting/slug-spec.md
 
-import { slugify } from './slug';
-import type { SlugOptions } from './slug';
-import { PAGE_TYPES } from './types';
-import type { PageType } from './types';
+import { IDENTIFIER_TYPES } from './types';
+import type { IdentifierType } from './types';
 
-/** Creates a vault-wide page ID: `{type}.{slug}` (e.g. `'entity.seneca'`) */
-export function createPageId(type: PageType, title: string, options?: SlugOptions): string {
-  if (!PAGE_TYPES.includes(type)) {
-    throw new Error(`Invalid page type: ${type}. Must be one of: ${PAGE_TYPES.join(', ')}`);
-  }
-  return `${type}.${slugify(title, options)}`;
+export interface Slugger {
+  slugify(text: string): string;
 }
 
-/** Creates a claim identifier: `claim.{slugified-description}` (e.g. `'claim.cortisol-senkung'`) */
-export function createClaimSlug(description: string, options?: SlugOptions): string {
-  return `claim.${slugify(description, options)}`;
+export class Identifier {
+  constructor(private slugger: Slugger) {}
+
+  /** Creates a vault-wide identifier: `{type}.{slug}` (e.g. `'entity.seneca'`) */
+  createId(type: IdentifierType, text: string): string {
+    if (!IDENTIFIER_TYPES.includes(type)) {
+      throw new Error(
+        `Invalid identifier type: ${type}. Must be one of: ${IDENTIFIER_TYPES.join(', ')}`,
+      );
+    }
+    return `${type}.${this.slugger.slugify(text)}`;
+  }
 }

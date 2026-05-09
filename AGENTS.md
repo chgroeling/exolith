@@ -20,30 +20,14 @@ An LLM-maintained wiki — compile knowledge once, query it forever.
 ```
 exolith/
 ├── src/
-│   └── index.ts          # CLI entry point, greet(), askQuestion()
 ├── tests/
-│   └── index.test.ts     # Vitest tests for exported functions
-├── dist/
-│   └── index.js          # tsup ESM bundle (git-ignored)
 ├── docs/
-│   ├── architecture.md   # Technical design document
-│   ├── data-schema/      # Data schema documentation
-│   ├── glossary.md       # Terminology reference
-│   └── operations/       # Operations documentation
-├── package.json          # ESM package, bin: "hello-world"
-├── tsconfig.json         # TypeScript configuration
-├── biome.json            # Biome linter/formatter configuration
-├── exolith.log           # Pino log output (git-ignored)
-└── AGENTS.md             # This file — LLM-maintained wiki
+├── dist/
+├── package.json
+├── tsconfig.json
+├── biome.json
+└── AGENTS.md
 ```
-
-| File/Dir        | Purpose                                       |
-|-----------------|-----------------------------------------------|
-| `src/index.ts`  | Sole source file: CLI, `greet()`, `askQuestion()`, logging setup |
-| `tests/`        | Vitest test suite (unit tests for exported fns) |
-| `dist/`         | Compiled ESM output from `pnpm build`         |
-| `docs/`         | Architecture and design documents             |
-| `biome.json`    | Biome config (linter + formatter)             |
 
 ## Biome
 
@@ -59,6 +43,26 @@ Biome also provides IDE integrations for VS Code and JetBrains — install the o
 - Spaces for indentation (2 spaces)
 - Single quotes, semicolons, trailing commas
 - Use descriptive variable/function names
+
+## Design Principles
+
+Document architecture and principles — not specific files or implementations.
+
+### Module-Spec Alignment
+
+One source file per specification document. Reference the spec(s) in the top comment. Never mix concerns across module boundaries.
+
+### Dependency Inversion
+
+The consumer owns the interface. The implementation module conforms structurally — no imports between them.
+
+### Test Strategy
+
+One test file per source module. Mock dependencies at module boundaries. Assert only the module's own logic, never the behavior of its dependencies.
+
+### Constructor Options, Not Per-Call
+
+Set configuration once at construction. No options arguments on methods.
 
 ## Git Workflow
 

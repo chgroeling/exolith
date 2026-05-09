@@ -8,7 +8,7 @@ export interface SlugOptions {
 }
 
 /** Slugifies text: lowercase, hyphens, ASCII-only, symbols removed, fallback hash for empty results */
-export function slugify(text: string, options?: SlugOptions): string {
+function slugify(text: string, options?: SlugOptions): string {
   return slug(text, {
     replacement: '-',
     lower: true,
@@ -16,4 +16,12 @@ export function slugify(text: string, options?: SlugOptions): string {
     fallback: true,
     ...options,
   });
+}
+
+export class Slugger {
+  constructor(private options?: SlugOptions) {}
+
+  slugify(text: string): string {
+    return slugify(text, this.options);
+  }
 }
