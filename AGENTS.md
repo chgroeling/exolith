@@ -6,14 +6,15 @@ An LLM-maintained wiki — compile knowledge once, query it forever.
 
 ## Running the project
 
-| Command          | Description                        |
-|------------------|------------------------------------|
-| `pnpm dev`       | Run TypeScript directly via tsx (hot-reload) |
-| `pnpm build`     | Bundle to `dist/` with tsup        |
-| `pnpm start`     | Run the compiled CLI               |
-| `pnpm test`      | Run Vitest test suite              |
-| `pnpm lint`      | Run Biome linter                   |
-| `pnpm format`    | Run Biome formatter (in-place fix) |
+| Command            | Description                           |
+|--------------------|---------------------------------------|
+| `pnpm dev`         | Run TypeScript directly via tsx (hot-reload) |
+| `pnpm build`       | Bundle to `dist/` with tsup           |
+| `pnpm start`       | Run the compiled CLI                  |
+| `pnpm test`        | Run Vitest test suite                 |
+| `pnpm typecheck`   | Run TypeScript type checker           |
+| `pnpm lint`        | Run Biome linter                      |
+| `pnpm format`      | Run Biome formatter (in-place fix)    |
 
 ## Project Structure
 
@@ -28,6 +29,16 @@ exolith/
 ├── biome.json
 └── AGENTS.md
 ```
+
+## Quality Gate
+
+Before committing, run all three checks sequentially:
+
+```
+pnpm typecheck && pnpm lint && pnpm test
+```
+
+All three must pass with zero errors. Fix any failures before staging.
 
 ## Biome
 
@@ -83,7 +94,7 @@ When a service wraps an external dependency (e.g., an AI SDK), introduce a provi
 ## Git Workflow
 
 - ALWAYS remove temporary and debug files before committing
-- ALWAYS run `pnpm test` before committing
+- ALWAYS run the quality gate (`pnpm typecheck && pnpm lint && pnpm test`) before committing
 - NEVER use `git push --force` on the main branch
 - Use `git push --force-with-lease` for feature branches if needed
 - Use conventional commits style for git commit messages

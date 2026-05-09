@@ -5,7 +5,7 @@ import { basename, extname } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../identifier-service';
-import type { LlmService } from '../llm-service';
+import type { LlmMessage, LlmService } from '../llm-service';
 import type { PromptService } from '../prompt-service';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
@@ -107,15 +107,18 @@ export class Ingest {
       rawContent: this.rawContent,
     });
 
-    const messages: { role: 'user'; content: string }[] = [
-      { role: 'user', content: initialPrompt },
-    ];
+    const messages: LlmMessage[] = [{ role: 'user', content: initialPrompt }];
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
-    await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
+    const initialResponse = await this.llmService.generateStream(
+      messages,
+      this.config.onChunk ?? (() => {}),
+    );
+    messages.push({ role: 'assistant', content: initialResponse });
     process.stdout.write('\n');
 
     let turn = 1;
+
     while (this.config.readInput) {
       const input = await this.config.readInput();
       if (!input) break;
@@ -124,7 +127,11 @@ export class Ingest {
       this.logger.trace({ turn, input }, 'Discussion: received user input');
       messages.push({ role: 'user', content: input });
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
-      await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
+      const response = await this.llmService.generateStream(
+        messages,
+        this.config.onChunk ?? (() => {}),
+      );
+      messages.push({ role: 'assistant', content: response });
       process.stdout.write('\n');
     }
 
@@ -144,10 +151,8 @@ export class Ingest {
   /**
    * Asks the LLM to extract the human's key feedback from the full discussion.
    */
-  private async summarizeDiscussion(
-    messages: { role: 'user'; content: string }[],
-  ): Promise<string> {
-    const humanMessages = messages.slice(1);
+  private async summarizeDiscussion(messages: LlmMessage[]): Promise<string> {
+    const humanMessages = messages.slice(1).filter((m) => m.role === 'user');
 
     const prompt = this.promptService.render('summarize-discussion', {
       humanMessages: humanMessages.map((m) => m.content).join('\n\n'),

@@ -4,7 +4,7 @@ export interface LlmMessage {
 }
 
 export interface LlmService {
-  generateStream(messages: LlmMessage[], onChunk: (chunk: string) => void): Promise<void>;
+  generateStream(messages: LlmMessage[], onChunk: (chunk: string) => void): Promise<string>;
 
   generate(prompt: string): Promise<string>;
 }

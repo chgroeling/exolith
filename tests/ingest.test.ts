@@ -13,15 +13,37 @@ import type { IdentifierType } from '../src/types';
 function makeMockLlm(opts?: {
   streamDelay?: () => Promise<void>;
   generateResponse?: string;
+  streamResponse?: string;
 }): LlmService {
   return {
     async generateStream(_messages, onChunk) {
       if (opts?.streamDelay) await opts.streamDelay();
       onChunk('mock-chunk');
+      return opts?.streamResponse ?? 'mock response';
     },
     async generate(_prompt) {
       return opts?.generateResponse ?? 'mock summary';
     },
+  };
+}
+
+function makeRecordingLlm(): {
+  llm: LlmService;
+  getCalls: () => { role: string; content: string }[][];
+} {
+  const recordedCalls: { role: string; content: string }[][] = [];
+  return {
+    llm: {
+      async generateStream(messages, onChunk) {
+        recordedCalls.push(structuredClone(messages));
+        onChunk('chunk');
+        return 'assistant-response';
+      },
+      async generate(_prompt) {
+        return 'summary';
+      },
+    },
+    getCalls: () => recordedCalls,
   };
 }
 
@@ -116,6 +138,65 @@ describe('Ingest', () => {
       const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
+    });
+
+    it('sends the assistant response back in conversation history', async () => {
+      const { llm, getCalls } = makeRecordingLlm();
+      let inputCount = 0;
+      const config = makeConfig({
+        readInput: async () => {
+          inputCount++;
+          return inputCount === 1 ? 'my feedback' : '';
+        },
+      });
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Test\n\nContent', 'utf-8');
+
+      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
+      await ingest.process(filePath);
+
+      const calls = getCalls();
+      expect(calls.length).toBe(2);
+
+      const firstCall = calls[0];
+      expect(firstCall.length).toBe(1);
+      expect(firstCall[0].role).toBe('user');
+
+      const secondCall = calls[1];
+      expect(secondCall.length).toBe(3);
+      expect(secondCall[0].role).toBe('user');
+      expect(secondCall[1].role).toBe('assistant');
+      expect(secondCall[1].content).toBe('assistant-response');
+      expect(secondCall[2].role).toBe('user');
+      expect(secondCall[2].content).toBe('my feedback');
+    });
+
+    it('builds alternating user/assistant conversation over multiple turns', async () => {
+      const { llm, getCalls } = makeRecordingLlm();
+      const inputs = ['first feedback', 'second feedback', ''];
+      let idx = 0;
+      const config = makeConfig({
+        readInput: async () => inputs[idx++] ?? '',
+      });
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Test\n\nMulti-turn', 'utf-8');
+
+      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
+      await ingest.process(filePath);
+
+      const calls = getCalls();
+      expect(calls.length).toBe(3);
+
+      const thirdCall = calls[2];
+      expect(thirdCall.length).toBe(5);
+      expect(thirdCall[0].role).toBe('user');
+      expect(thirdCall[1].role).toBe('assistant');
+      expect(thirdCall[2].role).toBe('user');
+      expect(thirdCall[3].role).toBe('assistant');
+      expect(thirdCall[4].role).toBe('user');
+      expect(thirdCall[4].content).toBe('second feedback');
     });
 
     it('handles multiple human inputs in the discussion loop', async () => {

@@ -15,15 +15,18 @@ export class LlmServiceImpl {
   async generateStream(
     messages: { role: string; content: string }[],
     onChunk: (chunk: string) => void,
-  ): Promise<void> {
+  ): Promise<string> {
     this.logger.debug({ messageCount: messages.length }, 'generateStream started');
     const result = this.provider.streamText({ messages });
 
+    let text = '';
     for await (const chunk of result.textStream) {
       onChunk(chunk);
+      text += chunk;
     }
 
     this.logger.debug({ messageCount: messages.length }, 'generateStream completed');
+    return text;
   }
 
   async generate(prompt: string): Promise<string> {
