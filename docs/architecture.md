@@ -52,7 +52,7 @@ An LLM-generated and maintained Markdown file with a fixed type: `source`, `enti
 
 ### Identifier
 
-Every wiki entity — pages, claims, and any future type — has a unique, stable identifier that never changes once created. Page identifiers follow `{type}.{slug}` (e.g. `entity.seneca`), claim identifiers follow `claim-{slug}` (e.g. `claim-cortisol-senkung`). All identifiers are unique vault-wide.
+Every wiki entity — pages, claims, and any future type — has a unique, stable identifier that never changes once created. Page identifiers follow `{type}.{slug}` (e.g. `entity.seneca`), claim identifiers follow `claim.{slug}` (e.g. `claim.cortisol-senkung`). All identifiers are unique vault-wide.
 
 > Specifications: [cross-cutting/slug-spec.md](cross-cutting/slug-spec.md) (slug rules), [cross-cutting/identifier-spec.md](cross-cutting/identifier-spec.md) (identifier patterns and uniqueness)
 
@@ -216,7 +216,7 @@ Claims are structured data in the `## Claims` chapter, not just flowing text. Ev
 
 ```markdown
 ## Claims
-- `id:claim-stoicism-stress` `conf:0.7` `status:active`
+- `id:claim.stoicism-stress` `conf:0.7` `status:active`
   Stoicism demonstrably reduces stress
   *Evidence:* [[sources/meta-analysis-2024]] (lines 45-62, n=1,200)
   *Evidence:* [[sources/personal-experience]] (lines 12-18)

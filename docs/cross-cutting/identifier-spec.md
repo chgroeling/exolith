@@ -11,7 +11,7 @@ All identifiers are derived from a slug generated according to the [slug rules](
 | Context | Pattern | Example |
 | ------- | ------- | ------- |
 | Page | `{type}.{slug}` | `entity.seneca` |
-| Claim | `claim-{slug}` | `claim-cortisol-senkung` |
+| Claim | `claim.{slug}` | `claim.cortisol-senkung` |
 
 The page type prefix is one of: `source`, `entity`, `concept`, `synthesis`, `report`.
 
@@ -32,7 +32,7 @@ Once created, an identifier never changes — even if the underlying title or de
 | Source page | `source.schneider-metastudie-2024` |
 | Synthesis page | `synthesis.stoizismus-und-empirie` |
 | Report page | `report.open-questions` |
-| Claim | `claim-cortisol-senkung` |
+| Claim | `claim.cortisol-senkung` |
 
 ## See Also
 

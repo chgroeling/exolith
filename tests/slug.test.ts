@@ -168,17 +168,17 @@ describe('createPageId', () => {
 });
 
 describe('createClaimSlug', () => {
-  it('prepends claim- to the slugified description', () => {
-    expect(createClaimSlug('Cortisol Senkung')).toBe('claim-cortisol-senkung');
+  it('prepends claim. to the slugified description', () => {
+    expect(createClaimSlug('Cortisol Senkung')).toBe('claim.cortisol-senkung');
   });
 
   it('slugifies complex descriptions', () => {
     expect(createClaimSlug('Senkung des Cortisol-Spiegels um 26%')).toBe(
-      'claim-senkung-des-cortisol-spiegels-um-26',
+      'claim.senkung-des-cortisol-spiegels-um-26',
     );
   });
 
   it('handles descriptions with special characters', () => {
-    expect(createClaimSlug('Preis: >50€')).toBe('claim-preis-50');
+    expect(createClaimSlug('Preis: >50€')).toBe('claim.preis-50');
   });
 });

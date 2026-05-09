@@ -34,18 +34,18 @@ Periodic health check of the wiki — as a first-class operation. Lint runs afte
 
 ━━━ Herkunft (errors) ━━━
 ❌ ERROR [E010] Claim without evidence
-   entities/neurologie.md → claim-dopamin-ausschuettung
+   entities/neurologie.md → claim.dopamin-ausschuettung
    No *Beleg:* field present
    → Fix: add evidence from source or delete claim
 
 ━━━ Qualität (warnings) ━━━
 ⚠️  WARNING [W020] Low confidence claim (< 0.5)
-   entity.seneca → claim-seneca-angst-these (conf: 0.3)
+   entity.seneca → claim.seneca-angst-these (conf: 0.3)
    Status: uncertain | Age: 5 days
    → Action: ingest a new empirical source for this claim?
 
 ⚠️  WARNING [W022] Contested claims unresolved (> 14 days)
-   claim-cortisol-senkung ↔ claim-cortisol-kein-effekt
+   claim.cortisol-senkung ↔ claim.cortisol-kein-effekt
    Contradiction unresolved for 16 days
    → Action: research a new source for resolution or request human
      decision

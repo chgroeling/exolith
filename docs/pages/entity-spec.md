@@ -34,13 +34,13 @@ bestätigt: tägliche Übungen senken den Cortisol-Spiegel um 18%.
 
 ## Claims
 
-- `id:claim-seneca-angst-these` `conf:0.3` `status:uncertain`
+- `id:claim.seneca-angst-these` `conf:0.3` `status:uncertain`
   Senecas These: „Die meisten Ängste entstehen aus antizipiertem Leiden,
   nicht aus realem"
   *Beleg:* [[sources/briefe-an-lucilius]] (13. Brief)
   *Einschränkung:* Philosophische Behauptung, 2.000 Jahre alt, kein empirischer Beleg
 
-- `id:claim-cortisol-senkung` `conf:0.85` `status:active`
+- `id:claim.cortisol-senkung` `conf:0.85` `status:active`
   Praemeditatio malorum senkt Cortisol um durchschnittlich 18%
   *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 3, n=1.200)
   *Einschränkung:* Keine Wirkung bei Teilnehmern unter 25 Jahren

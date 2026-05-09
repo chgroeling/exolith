@@ -38,13 +38,13 @@ malorum, dichotomy of control) show measurable effects, others
 
 ## Claims
 
-- `id:claim-praemeditatio-best-belegt` `conf:0.85` `status:active`
+- `id:claim.praemeditatio-best-belegt` `conf:0.85` `status:active`
   Praemeditatio malorum is the most empirically substantiated Stoic technique
   *Evidence:* [[sources/schneider-metastudie-2024]]
   *Limitation:* Other techniques (dichotomy of control) not examined in
   controlled studies
 
-- `id:claim-stoa-kvt-vergleichbar` `conf:0.5` `status:uncertain`
+- `id:claim.stoa-kvt-vergleichbar` `conf:0.5` `status:uncertain`
   Stoic practices are comparable to CBT in effectiveness
   *Evidence:* [[sources/kvt-leitlinien-2023]] (indirect comparison)
   *Limitation:* No direct head-to-head comparison; confidence low

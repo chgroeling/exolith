@@ -45,7 +45,7 @@ Index generation is Phase 2 of compile — and the heart of structural integrity
    - Summary as L1 one-liner (first sentence after `# Title`)
 
 4. **Register claim IDs:**
-   - Extract all `id:claim-xxx` from the `## Claims` chapter of each page
+   - Extract all `id:claim.xxx` from the `## Claims` chapter of each page
    - Store for direct referencing from dashboards and cross-references
 
 5. **Output grouped by category:**
@@ -80,7 +80,7 @@ Input: All wiki pages (.md files)
 | `summary`          | First sentence after `# Title`            | L1 one-liner, max. 1 sentence |
 | `path`             | File path relative to vault root          | From filesystem            |
 | `claimCount`       | Claims in `## Claims` chapter             | Counted                    |
-| `claimIds`         | `id:claim-xxx` in `## Claims` chapter     | Parsed                     |
+| `claimIds`         | `id:claim.xxx` in `## Claims` chapter     | Parsed                     |
 | `hasOpenQuestions` | `len(questions) > 0`                      | Boolean                    |
 | `confidence`       | YAML frontmatter: `confidence`            | YAML parse                 |
 | `status`           | YAML frontmatter: `status`                | Default: `active`          |

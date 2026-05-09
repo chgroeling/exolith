@@ -8,7 +8,7 @@ Every claim in the `## Claims` chapter has:
 
 | Field               | Type     | Required | Description                                                                             |
 | ------------------- | -------- | -------- | --------------------------------------------------------------------------------------- |
-| `id:claim-xxx`      | string   | ✅        | Unique claim ID, slug pattern, page-scoped (e.g. `id:claim-cortisol-reduction`)          |
+| `id:claim.xxx`      | string   | ✅        | Unique claim ID, slug pattern, page-scoped (e.g. `id:claim.cortisol-reduction`)          |
 | `conf:0.X`          | float    | ✅        | Confidence (0.0–1.0), set by LLM, calibrated by compile                                 |
 | `status:...`        | enum     | ✅        | `active`, `contested`, `superseded`, `deprecated`, `uncertain`                          |
 | `*Evidence:*`       | wikilink | ✅        | Wikilink to Source + optional location reference                                        |
@@ -40,7 +40,7 @@ Claims without evidence are reported by lint as `claim-missing-evidence`.
 
 ## Claim ID Convention
 
-Claims follow the [identifier pattern](identifier-spec.md): `claim-{short-description}`, slugified, vault-wide unique.
+Claims follow the [identifier pattern](identifier-spec.md): `claim.{short-description}`, slugified, vault-wide unique.
 
 ## Format and Examples
 
@@ -49,12 +49,12 @@ Claims in the `## Claims` chapter have a unique ID. Evidence is always a wikilin
 ```markdown
 ## Claims
 
-- `id:claim-cortisol-reduction` `conf:0.85` `status:active`
+- `id:claim.cortisol-reduction` `conf:0.85` `status:active`
   Praemeditatio malorum reduces cortisol by an average of 18%
   *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 3, n=1,200)
   *Limitation:* No effect in participants under 25 years
 
-- `id:claim-seneca-anxiety-thesis` `conf:0.3` `status:uncertain`
+- `id:claim.seneca-anxiety-thesis` `conf:0.3` `status:uncertain`
   Seneca's thesis: "Most anxieties arise from anticipated suffering,
   not from real suffering"
   *Evidence:* [[sources/letters-to-lucilius]] (13th Letter)

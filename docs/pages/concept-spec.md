@@ -31,12 +31,12 @@ Lucilius. In 2024 it was empirically confirmed by Dr. Maria Schneider
 
 ## Claims
 
-- `id:claim-cortisol-significant` `conf:0.85` `status:active`
+- `id:claim.cortisol-significant` `conf:0.85` `status:active`
   Daily praemeditatio significantly reduces cortisol (p < 0.001)
   *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 3, n=1,200)
   *Limitation:* No effect in participants under 25 years
 
-- `id:claim-age-threshold` `conf:0.8` `status:active`
+- `id:claim.age-threshold` `conf:0.8` `status:active`
   The effect only occurs in participants over 25 years
   *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 4)
   *Limitation:* Age threshold not granularly examined (only </≥25)

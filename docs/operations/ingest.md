@@ -150,7 +150,7 @@ ID: {source_id}
 3. **Claims** — verifiable assertions contained in the source.
    Each claim needs a unique claim ID (slug pattern),
    and an assessment of how strongly the source supports it.
-   Format: `claim-id | text | confidence (0-1) | evidence location (paragraph/line) | einschränkungen`
+   Format: `claim.id | text | confidence (0-1) | evidence location (paragraph/line) | einschränkungen`
 
 4. **Relationships** — explicit connections between entities
    and/or concepts.
@@ -177,8 +177,8 @@ praemeditatio malorum | philosophy/psychology | Stoic exercise: deliberate visua
 Cortisol reduction through meditation | neurobiology | measurable effect of mental exercises on stress hormones | "reduce cortisol levels by 18%"
 
 ## Claims
-claim-cortisol-senkung | praemeditatio malorum reduces cortisol by 18% | 0.85 | Paragraph 2 | Meta-study, n=1,200, Nature Human Behaviour; limitation: no effect <25 yrs
-claim-seneca-angst-these | Anxieties arise from anticipation, not from real events | 0.3 | Paragraph 1 | Seneca's philosophical assertion, no empirical evidence
+claim.cortisol-senkung | praemeditatio malorum reduces cortisol by 18% | 0.85 | Paragraph 2 | Meta-study, n=1,200, Nature Human Behaviour; limitation: no effect <25 yrs
+claim.seneca-angst-these | Anxieties arise from anticipation, not from real events | 0.3 | Paragraph 1 | Seneca's philosophical assertion, no empirical evidence
 
 ## Relationships
 Seneca | defined | praemeditatio malorum | 13th letter to Lucilius
@@ -288,7 +288,7 @@ other pages receive their own prompts.
    into the existing text. No "Update: ..." prefix, but genuine merge.
 
 3. **Append claims** — Add new claims in the `## Claims` chapter,
-   with unique claim ID (`id:claim-xxx`) and inline metadata
+   with unique claim ID (`id:claim.xxx`) and inline metadata
    (`conf:0.X` `status:...`). Do not delete existing claims
    (unless superseded → `status:superseded`).
    Each claim receives a new, stable ID that never changes.
@@ -377,13 +377,13 @@ Behavioral Therapy draws on central Stoic concepts).
 
 ## Claims
 
-- `id:claim-seneca-angst-these` `conf:0.3` `status:uncertain`
+- `id:claim.seneca-angst-these` `conf:0.3` `status:uncertain`
   Seneca's thesis: "Most anxieties arise from anticipated suffering,
   not from real suffering"
   *Beleg:* [[sources/briefe-an-lucilius]] (13th Letter)
   *Einschränkung:* Philosophical assertion, 2,000 years old, no empirical evidence
 
-- `id:claim-cortisol-senkung` `conf:0.85` `status:active`
+- `id:claim.cortisol-senkung` `conf:0.85` `status:active`
   Praemeditatio malorum reduces cortisol by an average of 18%
   *Beleg:* [[sources/schneider-metastudie-2024]] (Paragraph 3, n=1,200)
   *Einschränkung:* No effect in participants under 25 years
@@ -405,7 +405,7 @@ Meditations — less cryptic, more directly applicable.
 **Breakdown — what exactly happened:**
 
 1. **Prose merge:** The "Teachings" section was expanded with two new paragraphs — praemeditatio definition, empirical evidence, limitation.
-2. **Structured claim:** Seneca's anxiety thesis with `id:claim-seneca-angst-these`, `confidence: 0.3` and `status: uncertain` — explicitly marked as a philosophical assertion.
+2. **Structured claim:** Seneca's anxiety thesis with `id:claim.seneca-angst-these`, `confidence: 0.3` and `status: uncertain` — explicitly marked as a philosophical assertion.
 3. **New relationships:** Reciprocal update on both affected pages.
 4. **Human block untouched:** The personal note remained exactly preserved.
 

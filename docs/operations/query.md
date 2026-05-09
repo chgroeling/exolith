@@ -61,7 +61,7 @@ L2 scan (TL;DR = first paragraph):
 **Praemeditatio malorum** is the best-confirmed Stoic technique:
 - Cortisol reduction of 18% in a meta-study with n=1,200 (Schneider 2024,
   Nature Human Behaviour) — [[sources/schneider-metastudie-2024]]
-  `claim-cortisol-signifikant` (conf: 0.85)
+  `claim.cortisol-signifikant` (conf: 0.85)
 - Limitation: No effect in participants under 25 years
 
 ### Comparison with CBT
@@ -72,7 +72,7 @@ comparisons:
 - CBT for anxiety disorders: d=0.8 ([[sources/kvt-leitlinien-2023]])
 - Praemeditatio: Cortisol reduction 18%, but no clinical
   endpoint studies ([[sources/schneider-metastudie-2024]])
-- `claim-stoa-kvt-vergleichbar` (conf: 0.5, uncertain) — this assertion
+- `claim.stoa-kvt-vergleichbar` (conf: 0.5, uncertain) — this assertion
   is speculative, direct comparative studies are lacking
 
 ### What is NOT confirmed

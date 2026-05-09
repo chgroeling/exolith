@@ -15,7 +15,7 @@ The index is the central navigation structure of the wiki. It is automatically r
 | `summary`          | First sentence after `# Title` | string      | L1 one-liner (max. 1 sentence)                                      |
 | `path`             | File path                     | string       | Relative path, e.g. `entities/seneca.md`                            |
 | `claimCount`       | `## Claims`                   | number       | Number of structured claims                                         |
-| `claimIds`         | `id:claim-xxx` in `## Claims` | string[]     | List of all claim IDs on the page (for direct referencing)          |
+| `claimIds`         | `id:claim.xxx` in `## Claims` | string[]     | List of all claim IDs on the page (for direct referencing)          |
 | `hasOpenQuestions` | `## Offene Fragen`            | boolean      | For dashboard query: which pages have open questions?               |
 | `confidence`       | `confidence` in frontmatter   | number\|null | Page-level confidence (average of all claims)                       |
 | `status`           | `status` in frontmatter       | string       | `active`, `review`, `archived`                                      |
@@ -99,7 +99,7 @@ The LLM uses the index for a lookup strategy in **two phases**, both of which ar
 - **One file, one read.** No directory scan, no glob pattern.
 - **Summaries as mini-embeddings.** The one-liners allow the LLM to do a semantic comparison without having to compute actual embeddings.
 - **Metadata flags avoid unnecessary page loads.** The `❓` flag immediately shows: open questions — relevant for the dashboard, but no reason to load the page during ingest.
-- **Claim IDs enable precise referencing.** Dashboards and cross-references can point directly to individual claims (`claim-cortisol-senkung`).
+- **Claim IDs enable precise referencing.** Dashboards and cross-references can point directly to individual claims (`claim.cortisol-senkung`).
 - **Linearly scaling.** 500 pages = ~25 KB index — easily fits in a single LLM read.
 
 Optionally, for vaults >500 pages, an embedding index (via `sentence-transformers` or `ollama`) can be added. The curated index remains the primary navigation mechanism, however.
