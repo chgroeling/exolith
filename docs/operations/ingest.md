@@ -20,22 +20,7 @@ The first step is the simplest but most critical: the LLM receives the entire so
 
 New sources land in `inbox/`. After processing (step 3), the raw source is moved to `raw-sources/` — that is the archive. `raw-sources/` is not processed further by the LLM; it serves exclusively as a reference for the human. The sources in `sources/` link to the corresponding raw source in `raw-sources/` via wikilink (`*Originaldatei:*`).
 
-**Prompt for Step 1:**
-
-```markdown
-Read the following source text completely. Take notes on:
-- Main statements and line of argument
-- Named people, organizations, methods, theories
-- Notable claims with or without evidence
-- Contradictions to what you already know about the topic
-
-Source: {title} ({source_type})
-
-{source_content}
-
-After reading, we will summarize the key takeaways before
-structured extraction begins.
-```
+Prompt for this step is defined in prompts.md.
 
 Here the LLM only reads and builds a mental model. It does not write anything yet. The context is then "warm" — all subsequent steps (discussion, source creation, extraction, update) benefit from the source being fully in the LLM's short-term memory.
 
@@ -52,20 +37,7 @@ This step is optional but valuable for:
 
 The human feedback from this step flows directly into source creation (step 3) — the source is thus not just an LLM summary, but a human-reviewed and potentially corrected document.
 
-**The Discussion Prompt (Template):**
-
-```markdown
-You have just read the following source: {title} ({source_type})
-
-Formulate:
-1. The 3-5 central Main Points of the text (what the author says — descriptive)
-2. Your 3-5 Key Takeaways (what is relevant to the wiki — evaluative)
-3. Which of these statements confirm, extend, or contradict
-   existing wiki knowledge (briefly check index.md for this)
-4. Which parts require interpretation
-
-Your human partner will respond before extraction begins.
-```
+Prompt for this step is defined in prompts.md.
 
 ---
 
@@ -73,45 +45,7 @@ Your human partner will respond before extraction begins.
 
 The source page in `sources/` is the **processed knowledge base** of the wiki. It is created from the raw source (read in step 1), enriched by the human feedback from the discussion (step 2).
 
-**Template for Source Pages:**
-
-```markdown
----
-id: source.{slug}
-title: {title}
-status: active
-tags:
-  - {tag1}
-  - {tag2}
-created: {YYYY-MM-DD}
-updated: {YYYY-MM-DD}
----
-
-# {title}
-
-*Typ:* {article|paper|transcript|note|book}
-*Autor(en):* {authors}
-*Datum:* {date}
-*URL/Referenz:* {url_or_ref}
-*Originaldatei:* [[raw-sources/{raw_filename}]]
-
-## Zusammenfassung
-{1-2 paragraphs, what the source states — neutral, no value judgment}
-
-## Main Points
-- Main Point 1
-- Main Point 2
-- ...
-
-## Key Takeaways
-- Takeaway 1
-- Takeaway 2
-- ...
-
-## Verlinkte Wiki-Seiten
-- [[entities/seneca]] (2 Claims)
-- [[concepts/praemeditatio-malorum]] (1 Claim)
-```
+Template for this page is defined in prompts.md.
 
 The source links to the raw source in `raw-sources/` — but exclusively for the human. For the LLM, the source is the sole working object from this point on. The raw source is not read again after step 3. All further processing (extraction in step 4, updates in step 5) is based exclusively on the source.
 
@@ -123,47 +57,7 @@ Step 4 is the heart of ingest — here the curated source becomes machine-readab
 
 **Important context switch:** From this step on, the LLM works **exclusively with the source** from step 3. The raw text from step 1 is no longer used — the LLM context is cleaned. Only what is in the source exists for extraction.
 
-**The Extraction Prompt (Template):**
-
-```markdown
-You are a knowledge extractor. Your task is to extract structured
-knowledge from the following source. Extract ONLY what is explicitly
-stated in the source — do not invent anything.
-
-## Source
-Title: {title}
-Type: {source_type}
-ID: {source_id}
-
-{source_content}
-
-## Extraction Instructions
-
-1. **Entities** — identifiable things (people, organizations,
-   projects, tools, places, events).
-   Format: `name | typ | beschreibung (1 satz) | schlüsselzitat`
-
-2. **Concepts** — abstract ideas, theories, methods, patterns,
-   frameworks.
-   Format: `name | domäne | definition (1-2 sätze) | schlüsselzitat`
-
-3. **Claims** — verifiable assertions contained in the source.
-   Each claim needs a unique claim ID (slug pattern),
-   and an assessment of how strongly the source supports it.
-   Format: `claim.id | text | confidence (0-1) | evidence location (paragraph/line) | einschränkungen`
-
-4. **Relationships** — explicit connections between entities
-   and/or concepts.
-   Format: `von | beziehung | nach | begründung (1 satz)`
-
-5. **Open Questions** — questions the source raises but does not
-   answer.
-   Format: `frage | kontext (warum ist sie relevant)`
-
-## Output
-Deliver ONLY the structured extraction in the specified format.
-No introduction, no commentary.
-```
+Prompt for this step is defined in prompts.md.
 
 **Concrete Example — Output (Extraction):**
 
@@ -260,51 +154,7 @@ For each open question:
   └─ Enter on the loaded affected pages as ## Offene Fragen
 ```
 
-### The Update Prompt
-
-This prompt is executed **individually per affected page**.
-
-```markdown
-You are a wiki maintainer. Your task is to update ONE existing
-wiki page with new knowledge from a just-ingested source.
-This prompt concerns EXCLUSIVELY the page specified below —
-other pages receive their own prompts.
-
-## Existing Page
-{current_page_content}
-
-## New Knowledge from Source "{source_title}" (ID: [[sources/{source_slug}]])
-- Entities: {extracted_entities_for_this_page}
-- Claims: {extracted_claims_for_this_page}
-- Relationships: {extracted_relationships_for_this_page}
-- Open Questions: {extracted_questions_for_this_page}
-
-## Update Rules
-
-1. **Human Block** — Your changes go ONLY into the implicitly LLM-managed
-   area. Human blocks (`<!-- exolith:human -->`) are OFF-LIMITS.
-
-2. **Update prose** — Integrate the new information seamlessly
-   into the existing text. No "Update: ..." prefix, but genuine merge.
-
-3. **Append claims** — Add new claims in the `## Claims` chapter,
-   with unique claim ID (`id:claim.xxx`) and inline metadata
-   (`conf:0.X` `status:...`). Do not delete existing claims
-   (unless superseded → `status:superseded`).
-   Each claim receives a new, stable ID that never changes.
-
-4. **Maintain relationships** — Add new connections in the `## Verknüpfungen`
-   chapter. RECIPROCAL: If A → B is new, also add B → A.
-
-5. **Mark contradictions** — If a new claim contradicts an existing one:
-   do NOT resolve independently. Mark both with `status:contested`.
-
-6. **Open Questions** — Add new questions to the `## Offene Fragen` chapter.
-
-## Output
-Deliver the COMPLETE updated page.
-No diff, no commentary — the whole page.
-```
+This prompt is executed **individually per affected page**. Prompt is defined in prompts.md.
 
 ### Before/After — Example on the `entity.seneca` Page
 
