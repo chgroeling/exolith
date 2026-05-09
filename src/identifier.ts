@@ -19,4 +19,23 @@ export class Identifier {
     }
     return `${type}.${this.slugger.slugify(text)}`;
   }
+
+  /** Splits an identifier into its type and slug components (e.g. `'entity.seneca'` → `{ type: 'entity', slug: 'seneca' }`) */
+  decomposeId(id: string): { type: IdentifierType; slug: string } {
+    const dotIndex = id.indexOf('.');
+    if (dotIndex === -1) {
+      throw new Error(`Malformed identifier: missing type prefix in '${id}'`);
+    }
+    const type = id.slice(0, dotIndex);
+    if (!IDENTIFIER_TYPES.includes(type as IdentifierType)) {
+      throw new Error(
+        `Invalid identifier type: ${type}. Must be one of: ${IDENTIFIER_TYPES.join(', ')}`,
+      );
+    }
+    const slug = id.slice(dotIndex + 1);
+    if (slug.length === 0) {
+      throw new Error(`Malformed identifier: missing slug in '${id}'`);
+    }
+    return { type: type as IdentifierType, slug };
+  }
 }
