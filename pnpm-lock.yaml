@@ -26,6 +26,9 @@ importers:
       remark-parse:
         specifier: ^11.0.0
         version: 11.0.0
+      slug:
+        specifier: ^11.0.1
+        version: 11.0.1
       unified:
         specifier: ^11.0.5
         version: 11.0.5
@@ -39,6 +42,9 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/slug':
+        specifier: ^5.0.9
+        version: 5.0.9
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)
@@ -475,6 +481,9 @@ packages:
   '@types/node@25.6.0':
     resolution: {integrity: sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==}
 
+  '@types/slug@5.0.9':
+    resolution: {integrity: sha512-6Yp8BSplP35Esa/wOG1wLNKiqXevpQTEF/RcL/NV6BBQaMmZh4YlDwCgrrFSoUE4xAGvnKd5c+lkQJmPrBAzfQ==}
+
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
@@ -851,6 +860,10 @@ packages:
 
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
+
+  slug@11.0.1:
+    resolution: {integrity: sha512-VrM060OM/E7rdLQSnp6JHrzFfJFmqQBp0+TMhZStnEB8PfNliaZ9UWYjTHGHLUFVJorZ8TjVd/aKvIxHWU2O7g==}
+    hasBin: true
 
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
@@ -1318,6 +1331,8 @@ snapshots:
   '@types/node@25.6.0':
     dependencies:
       undici-types: 7.19.2
+
+  '@types/slug@5.0.9': {}
 
   '@types/unist@3.0.3': {}
 
@@ -1787,6 +1802,8 @@ snapshots:
   safe-stable-stringify@2.5.0: {}
 
   siginfo@2.0.0: {}
+
+  slug@11.0.1: {}
 
   sonic-boom@4.2.1:
     dependencies:
