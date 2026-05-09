@@ -20,8 +20,6 @@ The first step is the simplest but most critical: the LLM receives the entire so
 
 New sources land in `inbox/`. After processing (step 3), the raw source is moved to `raw-sources/` — that is the archive. `raw-sources/` is not processed further by the LLM; it serves exclusively as a reference for the human. The sources in `sources/` link to the corresponding raw source in `raw-sources/` via wikilink (`*Originaldatei:*`).
 
-Prompt for this step is defined in prompts.md.
-
 Here the LLM only reads and builds a mental model. It does not write anything yet. The context is then "warm" — all subsequent steps (discussion, source creation, extraction, update) benefit from the source being fully in the LLM's short-term memory.
 
 ---
@@ -37,15 +35,11 @@ This step is optional but valuable for:
 
 The human feedback from this step flows directly into source creation (step 3) — the source is thus not just an LLM summary, but a human-reviewed and potentially corrected document.
 
-Prompt for this step is defined in prompts.md.
-
 ---
 
 ## Step 3 — Write Source Page
 
 The source page in `sources/` is the **processed knowledge base** of the wiki. It is created from the raw source (read in step 1), enriched by the human feedback from the discussion (step 2).
-
-Template for this page is defined in prompts.md.
 
 The source links to the raw source in `raw-sources/` — but exclusively for the human. For the LLM, the source is the sole working object from this point on. The raw source is not read again after step 3. All further processing (extraction in step 4, updates in step 5) is based exclusively on the source.
 
@@ -56,8 +50,6 @@ The source links to the raw source in `raw-sources/` — but exclusively for the
 Step 4 is the heart of ingest — here the curated source becomes machine-readable knowledge.
 
 **Important context switch:** From this step on, the LLM works **exclusively with the source** from step 3. The raw text from step 1 is no longer used — the LLM context is cleaned. Only what is in the source exists for extraction.
-
-Prompt for this step is defined in prompts.md.
 
 **Concrete Example — Output (Extraction):**
 
@@ -153,8 +145,6 @@ For each extracted relationship:
 For each open question:
   └─ Enter on the loaded affected pages as ## Offene Fragen
 ```
-
-This prompt is executed **individually per affected page**. Prompt is defined in prompts.md.
 
 ### Before/After — Example on the `entity.seneca` Page
 
