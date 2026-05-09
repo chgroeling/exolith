@@ -2,7 +2,7 @@
 
 The entire wiki uses Obsidian wikilinks (`[[path/to/page]]`) instead of Markdown links. Metadata that must be machine-parsed lives in the **YAML frontmatter** — tags, ID, page type, status, confidence, timestamps. Everything else (Claims, Verknüpfungen) lives as normal Markdown in the body.
 
-**Human Blocks** (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) are the only HTML comments in the system and protect handwritten notes from being overwritten. Everything outside these markers is implicitly LLM-managed — there are no managed-block markers. Only normal Markdown headings (`##`, `###`) are used for chapter structuring.
+**Human Blocks** (`<!-- exolith:human:start -->` / `<!-- exolith:human:end -->`) are the only HTML comments in the system and protect handwritten notes from being overwritten. Everything outside these markers is implicitly LLM-managed — there are no managed-block markers. Only normal Markdown headings (`##`, `###`) are used for chapter structuring.
 
 ## YAML frontmatter: Fields in detail
 

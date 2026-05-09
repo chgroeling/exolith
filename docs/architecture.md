@@ -1,4 +1,4 @@
-# LLM Wiki — Architecture
+# Exolith — Architecture
 
 > Idea / Design Document
 
@@ -86,14 +86,14 @@ The proof for a claim — always a wikilink to a Source in the `*Evidence:*` fie
 
 ### Human Block
 
-The only marked section in a wiki page — enclosed by `<!-- llm-wiki:human:start -->` and `<!-- llm-wiki:human:end -->`. Contains the human's handwritten notes and is **never** touched by the LLM. Everything outside these markers is implicitly LLM-managed and may be read and written by the agent.
+The only marked section in a wiki page — enclosed by `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Contains the human's handwritten notes and is **never** touched by the LLM. Everything outside these markers is implicitly LLM-managed and may be read and written by the agent.
 
 ```markdown
 {EVERYTHING outside the human markers is LLM-managed: prose, claims, links, open questions}
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 [Handwritten notes — NEVER touched by the LLM]
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 There is **no** managed-block marker. Only Human Blocks are explicitly marked — everything else is implicitly LLM-managed. These are the only HTML comments in the system.
@@ -157,7 +157,7 @@ Every wiki page belongs to one of five types:
 
 ### Format Conventions
 
-All pages use Obsidian wikilinks (`[[path/to/page]]`), YAML frontmatter for metadata (id, page, title, status, tags, confidence, created, updated), and Human Blocks (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) as the only HTML comments. Page-level confidence is the arithmetic mean of all claim confidence values; claim confidence is calibrated via a four-factor model (source type, evidence quality, number of pieces of evidence, recency).
+All pages use Obsidian wikilinks (`[[path/to/page]]`), YAML frontmatter for metadata (id, page, title, status, tags, confidence, created, updated), and Human Blocks (`<!-- exolith:human:start -->` / `<!-- exolith:human:end -->`) as the only HTML comments. Page-level confidence is the arithmetic mean of all claim confidence values; claim confidence is calibrated via a four-factor model (source type, evidence quality, number of pieces of evidence, recency).
 
 > Full specification: [data-schema/format-spec.md](data-schema/format-spec.md)
 
@@ -201,9 +201,9 @@ Every wiki page can contain Human Blocks — the only HTML comments in the entir
 [Implicitly LLM-managed: prose, claims, links, open questions —
  everything outside the human markers may be read and written by the agent.]
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 [My handwritten notes — NEVER touched]
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 This builds trust: The agent can regenerate pages arbitrarily without destroying human annotations. The markers need no parser — pure regex/string matching. There are no managed-block markers; only Human Blocks are explicitly designated. Everything outside is implicitly LLM-managed.
@@ -296,7 +296,7 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 
 **Countermeasures:**
 * A migration agent reads `wiki-schema.md` (new) vs. the page's `_schema_version` (old).
-* Migration as explicit command: `python llm-wiki.py migrate --target-version 2.0`.
+* Migration as explicit command: `python exolith.py migrate --target-version 2.0`.
 * The script runs over all `.md` files and transforms the YAML frontmatter fields to the new schema.
 * Before each migration: git commit as a rollback point.
 
@@ -338,7 +338,7 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 
 **Countermeasures:**
 * Human Blocks strictly protected as the only marked areas. Everything outside is implicitly LLM-managed.
-* Human Blocks (`<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->`) are never touched.
+* Human Blocks (`<!-- exolith:human:start -->` / `<!-- exolith:human:end -->`) are never touched.
 * Git as safety net: before compile `git commit`, on error `git revert`.
 
 ### Scope Creep — the Wiki as an End in Itself

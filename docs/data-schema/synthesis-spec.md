@@ -61,14 +61,14 @@ malorum, dichotomy of control) show measurable effects, others
 - Are there Stoic techniques that have been empirically *disproven*?
 - How do Stoic and Buddhist meditation compare in a direct comparison?
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 ## My Assessment
 
 The empirical confirmation is nice, but for me it's not the
 decisive point. Stoicism works for me subjectively —
 that's enough. Still, it's exciting to see that the research
 partially supports it.
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 **Special Characteristics:**

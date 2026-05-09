@@ -283,7 +283,7 @@ other pages receive their own prompts.
 ## Update Rules
 
 1. **Human Block** — Your changes go ONLY into the implicitly LLM-managed
-   area. Human blocks (`<!-- llm-wiki:human -->`) are OFF-LIMITS.
+   area. Human blocks (`<!-- exolith:human -->`) are OFF-LIMITS.
 
 2. **Update prose** — Integrate the new information seamlessly
    into the existing text. No "Update: ..." prefix, but genuine merge.
@@ -336,11 +336,11 @@ Seneca emphasized the practical application of philosophy in everyday life.
 Central is the distinction between what we can control
 and what we cannot control.
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 ## Persönliche Notizen
 I find Seneca's letters more accessible than Marcus Aurelius's
 Meditations — less cryptic, more directly applicable.
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 **After Ingest:**
@@ -398,11 +398,11 @@ Behavioral Therapy draws on central Stoic concepts).
 - `wurde_empirisch_bestätigt_durch` → [[entities/maria-schneider]]
   *Notiz:* Schneider's meta-study (2024) confirms the cortisol reduction
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 ## Persönliche Notizen
 I find Seneca's letters more accessible than Marcus Aurelius's
 Meditations — less cryptic, more directly applicable.
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 **Breakdown — what exactly happened:**

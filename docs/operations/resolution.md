@@ -39,7 +39,7 @@ Conflict detection works in **two stages**:
 Resolve stands alongside Ingest, Query, and Lint as an independent operation:
 
 ```
-python llm-wiki.py resolve --claim entity.seneca#claim-cortisol-senkung
+python exolith.py resolve --claim entity.seneca#claim-cortisol-senkung
 ```
 
 The Resolve Workflow:

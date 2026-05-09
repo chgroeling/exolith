@@ -56,12 +56,12 @@ Lucilius. In 2024 it was empirically confirmed by Dr. Maria Schneider
 - Why does praemeditatio not work for people under 25?
   *Context:* Possible explanation: prefrontal cortex not yet fully developed
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 ## Personal Notes
 
 Been practicing this since January — subjectively noticeable effect before
 presentations. The empirical confirmation makes it more credible for me.
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 **Special Characteristics:**

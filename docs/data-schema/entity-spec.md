@@ -58,12 +58,12 @@ bestätigt: tägliche Übungen senken den Cortisol-Spiegel um 18%.
 - Hält die Cortisol-Senkung nach Absetzen der Übungen an?
   *Kontext:* Studie misst nur akute Effekte
 
-<!-- llm-wiki:human:start -->
+<!-- exolith:human:start -->
 ## Persönliche Notizen
 
 Ich finde Senecas Briefe zugänglicher als Marc Aurels
 Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
-<!-- llm-wiki:human:end -->
+<!-- exolith:human:end -->
 ```
 
 **Special characteristics:**
@@ -71,7 +71,7 @@ Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
 - Entities collect claims that *concern* a person/organization — not only statements *by* them.
 - `## Verknüpfungen` lists directed relationships to other Entities and Concepts (e.g. `definierte → [[concepts/praemeditatio-malorum]]`).
 - An Entity can reference claims from different Sources — each claim carries its own reference.
-- Everything outside of `<!-- llm-wiki:human:start -->` / `<!-- llm-wiki:human:end -->` is implicitly LLM-managed.
+- Everything outside of `<!-- exolith:human:start -->` / `<!-- exolith:human:end -->` is implicitly LLM-managed.
 
 ## See Also
 
