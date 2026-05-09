@@ -2,8 +2,8 @@
 
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
-import { streamText } from 'ai';
 import pino from 'pino';
+import type { LlmService } from '../llm-service';
 import type { IdentifierType } from '../types';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
@@ -11,10 +11,6 @@ const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
 export interface Identifier {
   createId(type: IdentifierType, text: string): string;
   decomposeId(id: string): { type: IdentifierType; slug: string };
-}
-
-export interface LanguageModel {
-  readonly modelId: string;
 }
 
 export interface IngestConfig {
@@ -31,7 +27,7 @@ export class Ingest {
   private logger = pino({ name: 'ingest' });
 
   constructor(
-    private model: LanguageModel,
+    private llmService: LlmService,
     private identifier: Identifier,
     private config: IngestConfig,
   ) {}
@@ -127,7 +123,7 @@ ${this.rawContent}`;
     ];
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
-    await this.llmTurn(messages);
+    await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
 
     let turn = 1;
     while (this.config.readInput) {
@@ -138,7 +134,7 @@ ${this.rawContent}`;
       this.logger.trace({ turn, input }, 'Discussion: received user input');
       messages.push({ role: 'user', content: input });
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
-      await this.llmTurn(messages);
+      await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
     }
 
     this.logger.info(
@@ -167,7 +163,7 @@ ${this.rawContent}`;
 ${humanMessages.map((m) => m.content).join('\n\n')}`;
 
     this.logger.debug('Summarizing discussion feedback');
-    const result = await this.internalPrompt(prompt);
+    const result = await this.llmService.generate(prompt);
     this.logger.trace({ summary: result }, 'Discussion summary generated');
     return result;
   }
@@ -188,39 +184,6 @@ ${humanMessages.map((m) => m.content).join('\n\n')}`;
     this.logger.info({ destPath }, 'Appended discussion summary');
 
     this.enrichedSourcePath = destPath;
-  }
-
-  private async llmTurn(messages: { role: 'user'; content: string }[]): Promise<void> {
-    this.logger.debug({ messageCount: messages.length }, 'LLM turn started');
-    this.logger.trace({ messages }, 'LLM turn: outgoing messages');
-
-    const result = streamText({ model: this.model, messages });
-
-    let responseText = '';
-    for await (const chunk of result.textStream) {
-      this.config.onChunk?.(chunk);
-      responseText += chunk;
-    }
-
-    this.logger.trace({ response: responseText }, 'LLM turn: received response');
-    this.logger.debug(
-      { messageCount: messages.length, responseLength: responseText.length },
-      'LLM turn completed',
-    );
-  }
-
-  /**
-   * Sends a prompt to the LLM and collects the full response without streaming.
-   */
-  private async internalPrompt(prompt: string): Promise<string> {
-    const result = streamText({ model: this.model, prompt });
-
-    let text = '';
-    for await (const chunk of result.textStream) {
-      text += chunk;
-    }
-
-    return text;
   }
 
   /** Step 3: Writes a processed source page to the vault. */

@@ -10,6 +10,7 @@ import { unified } from 'unified';
 import { EXIT, visit } from 'unist-util-visit';
 import { Identifier } from './identifier';
 import { Ingest, type IngestConfig } from './operations/ingest';
+import { VercelLlmService } from './providers/vercel-llm-service';
 import { Slugger } from './slugger';
 
 let logger = pino({ name: 'hello-world' });
@@ -114,7 +115,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           onChunk: write,
           readInput: () => rl.question('> '),
         };
-        const ingest = new Ingest(model, identifier, config);
+        const vercelLlm = new VercelLlmService(model);
+        const ingest = new Ingest(vercelLlm, identifier, config);
         await ingest.process(options.inbox);
         rl.close();
       }
