@@ -25,6 +25,10 @@ export class Ingest {
     private config: IngestConfig,
   ) {}
 
+  /**
+   * Runs the full ingest pipeline on a raw source file.
+   * @param filePath Absolute path to the raw source file
+   */
   async process(filePath: string): Promise<void> {
     this.logger.info({ filePath }, 'Ingest process started');
 
@@ -50,6 +54,10 @@ export class Ingest {
     await this.writeLogEntry();
   }
 
+  /**
+   * Validates and reads the raw source file into memory.
+   * Checks: file existence, supported text extension, size limit, binary detection.
+   */
   private async readRawSource(filePath: string): Promise<void> {
     await access(filePath);
     this.logger.info({ filePath }, 'File exists, reading raw source');
@@ -77,15 +85,21 @@ export class Ingest {
     this.logger.info({ filePath, size: buffer.length }, 'Raw source read successfully');
   }
 
+  /** Step 2: Discusses key takeaways and main points with the human. */
   private async discussKeyTakeaways(): Promise<void> {}
 
+  /** Step 3: Writes a processed source page to the vault. */
   private async writeSourcePage(): Promise<void> {}
 
+  /** Step 4: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
   private async extract(): Promise<void> {}
 
+  /** Step 5: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {}
 
+  /** Step 6: Triggers compilation of index, backlinks, and dashboards. */
   private async triggerCompile(): Promise<void> {}
 
+  /** Step 7: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {}
 }

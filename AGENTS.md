@@ -38,6 +38,10 @@ Linting and formatting are handled by [Biome](https://biomejs.dev). Configuratio
 
 Biome also provides IDE integrations for VS Code and JetBrains — install the official extension for real-time feedback.
 
+## TSDoc
+
+Use TSDoc (`/** ... */`) where appropriate — no inline comments.
+
 ## Logging
 
 Pino — default to `pino({ name: '<module>' })`.
