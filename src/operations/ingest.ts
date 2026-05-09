@@ -3,15 +3,10 @@
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import pino from 'pino';
+import type { IdentifierService } from '../identifier-service';
 import type { LlmService } from '../llm-service';
-import type { IdentifierType } from '../types';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
-
-export interface Identifier {
-  createId(type: IdentifierType, text: string): string;
-  decomposeId(id: string): { type: IdentifierType; slug: string };
-}
 
 export interface IngestConfig {
   maxSourceSize: number;
@@ -28,7 +23,7 @@ export class Ingest {
 
   constructor(
     private llmService: LlmService,
-    private identifier: Identifier,
+    private identifier: IdentifierService,
     private config: IngestConfig,
   ) {}
 

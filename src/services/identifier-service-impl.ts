@@ -1,14 +1,11 @@
 // Specification: docs/cross-cutting/identifier-spec.md
 
-import { IDENTIFIER_TYPES } from './types';
-import type { IdentifierType } from './types';
+import type { SluggerService } from '../slugger-service';
+import { IDENTIFIER_TYPES } from '../types';
+import type { IdentifierType } from '../types';
 
-export interface Slugger {
-  slugify(text: string): string;
-}
-
-export class Identifier {
-  constructor(private slugger: Slugger) {}
+export class IdentifierServiceImpl {
+  constructor(private slugger: SluggerService) {}
 
   /** Creates a vault-wide identifier: `{type}.{slug}` (e.g. `'entity.seneca'`) */
   createId(type: IdentifierType, text: string): string {

@@ -1,11 +1,11 @@
 // Specification: docs/cross-cutting/slug-spec.md
 
 import { describe, expect, it } from 'vitest';
-import { Slugger } from '../src/slugger';
+import { SluggerServiceImpl } from '../src/services/slugger-service-impl';
 
-const s = new Slugger();
+const s = new SluggerServiceImpl();
 
-describe('Slugger', () => {
+describe('SluggerServiceImpl', () => {
   describe('basic behavior', () => {
     it('replaces spaces with hyphens', () => {
       expect(s.slugify('hello world')).toBe('hello-world');
@@ -53,7 +53,7 @@ describe('Slugger', () => {
     });
 
     it('transliterates Cyrillic with explicit locale', () => {
-      const sLocale = new Slugger({ locale: 'ru' });
+      const sLocale = new SluggerServiceImpl({ locale: 'ru' });
       expect(sLocale.slugify('маленький подъезд')).toBe('malenkij-poduezd');
     });
   });

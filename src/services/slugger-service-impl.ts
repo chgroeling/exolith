@@ -18,7 +18,7 @@ function slugify(text: string, options?: SlugOptions): string {
   });
 }
 
-export class Slugger {
+export class SluggerServiceImpl {
   constructor(private options?: SlugOptions) {}
 
   slugify(text: string): string {

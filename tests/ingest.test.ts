@@ -4,8 +4,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { IdentifierService } from '../src/identifier-service';
 import type { LlmService } from '../src/llm-service';
-import { type Identifier, Ingest, type IngestConfig } from '../src/operations/ingest';
+import { Ingest, type IngestConfig } from '../src/operations/ingest';
 import type { IdentifierType } from '../src/types';
 
 function makeMockLlm(opts?: {
@@ -23,7 +24,7 @@ function makeMockLlm(opts?: {
   };
 }
 
-function makeMockIdentifier(): Identifier {
+function makeMockIdentifier(): IdentifierService {
   return {
     createId(type: IdentifierType, text: string) {
       return `${type}.${text.toLowerCase().replace(/\s+/g, '-')}`;

@@ -8,10 +8,11 @@ import pino from 'pino';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { EXIT, visit } from 'unist-util-visit';
-import { Identifier } from './identifier';
 import { Ingest, type IngestConfig } from './operations/ingest';
 import { VercelLlmService } from './providers/vercel-llm-service';
-import { Slugger } from './slugger';
+import { IdentifierServiceImpl } from './services/identifier-service-impl';
+import { LlmServiceImpl } from './services/llm-service-impl';
+import { SluggerServiceImpl } from './services/slugger-service-impl';
 
 let logger = pino({ name: 'hello-world' });
 
@@ -106,8 +107,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
       if (options.inbox) {
         const model = openrouter('deepseek/deepseek-v4-pro');
-        const slugger = new Slugger();
-        const identifier = new Identifier(slugger);
+        const slugger = new SluggerServiceImpl();
+        const identifier = new IdentifierServiceImpl(slugger);
         const rl = createInterface({ input: process.stdin, output: process.stdout });
         const config: IngestConfig = {
           maxSourceSize: Number.parseInt(options.maxSourceSize),
@@ -115,8 +116,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           onChunk: write,
           readInput: () => rl.question('> '),
         };
-        const vercelLlm = new VercelLlmService(model);
-        const ingest = new Ingest(vercelLlm, identifier, config);
+        const provider = new VercelLlmService(model);
+        const llmService = new LlmServiceImpl(provider);
+        const ingest = new Ingest(llmService, identifier, config);
         await ingest.process(options.inbox);
         rl.close();
       }

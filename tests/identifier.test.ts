@@ -1,15 +1,16 @@
 // Specification: docs/cross-cutting/identifier-spec.md
 
 import { describe, expect, it } from 'vitest';
-import { Identifier, type Slugger } from '../src/identifier';
+import { IdentifierServiceImpl } from '../src/services/identifier-service-impl';
+import type { SluggerService } from '../src/slugger-service';
 
-const mockSlugger: Slugger = {
+const mockSlugger: SluggerService = {
   slugify(_text: string) {
     return '<slug>';
   },
 };
 
-const id = new Identifier(mockSlugger);
+const id = new IdentifierServiceImpl(mockSlugger);
 
 describe('createId', () => {
   it('formats {type}.{slug}', () => {
