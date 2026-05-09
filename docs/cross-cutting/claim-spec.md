@@ -40,11 +40,7 @@ Claims without evidence are reported by lint as `claim-missing-evidence`.
 
 ## Claim ID Convention
 
-- Pattern: `claim-<short-description>` — slugified, lowercase, hyphens
-- Scope: unique within a page (not vault-wide)
-- Full reference: `page-id#claim-id`, e.g. `entity.seneca#claim-cortisol-reduction`
-- The ID is assigned by the LLM on creation and never changes
-- Dashboards and the index reference claims via this full reference
+The claim ID follows the [Claim ID](../concepts/claim-id.md) pattern: `{page-id}#claim-{short-description}`, slugified, unique within a page but vault-wide via the full reference.
 
 ## Format and Examples
 

@@ -2,18 +2,9 @@
 
 The universal naming convention of the wiki. Every identifier — whether for a page or a claim — follows a stable, human-readable pattern that is machine-indexable without a database.
 
-## Page IDs
+For the structure and uniqueness rules of page IDs, see [Page ID](../concepts/page-id.md). For claim ID structure, scope, and format, see [Claim ID](../concepts/claim-id.md).
 
-Every wiki page has a unique, vault-wide ID following the pattern `{type}.{slug}`:
-
-| Component | Description | Example |
-| --------- | ----------- | ------- |
-| `type`    | Page type prefix: `source`, `entity`, `concept`, `synthesis`, `report` | `entity` |
-| `.`       | Separator | `.` |
-| `slug`    | URL-safe, lowercase, hyphenated name derived from the title | `seneca` |
-| **Full ID** | | `entity.seneca` |
-
-### Slug Rules
+## Slug Rules
 
 - Output is RFC 3986 compliant — only unreserved URI characters (letters, digits, `-`, `.`, `_`, `~`) may appear, with hyphens as the sole separator
 - Lowercase — all characters are converted to lowercase, including transliterated output (e.g., `"München"` → `"munchen"`)
@@ -27,31 +18,6 @@ Every wiki page has a unique, vault-wide ID following the pattern `{type}.{slug}
 - Stable once created — the slug never changes even if the title changes
 - Derived from the natural-language title, e.g. "Praemeditatio Malorum" → `praemeditatio-malorum`
 
-### Uniqueness
-
-Page IDs are unique across the entire vault. No two pages may have the same ID. The prefix already separates namespaces (`entity.seneca` vs. `concept.stoicism`), but even within the same type the slug must be unique.
-
-## Claim IDs
-
-Claims use a two-part reference: `{page-id}#{claim-slug}`.
-
-| Component | Description | Example |
-| --------- | ----------- | ------- |
-| `page-id` | The ID of the page the claim belongs to | `entity.seneca` |
-| `#`       | Separator | `#` |
-| `claim-slug` | Claim identifier, pattern `claim-<description>` | `claim-cortisol-senkung` |
-| **Full reference** | | `entity.seneca#claim-cortisol-senkung` |
-
-### Scope
-
-Claim IDs are unique within a single page — not vault-wide. The full `{page-id}#{claim-slug}` reference is unique vault-wide. Dashboards, the index, and cross-references always use this full reference.
-
-### Claim Slug Rules
-
-- Pattern: `claim-<short-description>`
-- Description is slugified: lowercase, hyphens, no special characters
-- Assigned by the LLM on creation and never changed
-
 ## Examples
 
 | Type | ID |
@@ -64,5 +30,7 @@ Claim IDs are unique within a single page — not vault-wide. The full `{page-id
 
 ## See Also
 
+* [../concepts/page-id.md](../concepts/page-id.md) — page ID structure and uniqueness
+* [../concepts/claim-id.md](../concepts/claim-id.md) — claim ID structure and scope
 * [claim-spec.md](claim-spec.md) — claim structure including the claim ID convention in context
 * [format-spec.md](format-spec.md) — YAML frontmatter where the page `id` field lives
