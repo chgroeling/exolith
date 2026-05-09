@@ -183,7 +183,7 @@ ${humanMessages.map((m) => m.content).join('\n\n')}`;
     await copyFile(this.filePath, destPath);
     this.logger.info({ destPath }, 'Copied raw source to raw-sources');
 
-    const archiveContent = `${this.rawContent}\n\n## Discussion Summary\n${summary}\n`;
+    const archiveContent = `${this.rawContent}\n\n---\n\n# Discussion Summary\n\n${summary}\n`;
     await writeFile(destPath, archiveContent, 'utf-8');
     this.logger.info({ destPath }, 'Appended discussion summary');
 

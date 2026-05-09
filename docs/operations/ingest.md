@@ -39,7 +39,7 @@ The discussion is a back-and-forth: the LLM responds, the human provides feedbac
 
 ### Discussion Summary and Archiving
 
-After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `## Discussion Summary` chapter.
+After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `# Discussion Summary` chapter, preceded by a `---` separator.
 
 This enriched file in `raw-sources/` becomes the canonical source for all subsequent steps — it contains both the original content and the human's calibration signals. The full discussion transcript is discarded; only the extracted summary is preserved. This ensures the wiki can be rebuilt without losing the critical decisions that emerged from the human interaction.
 
