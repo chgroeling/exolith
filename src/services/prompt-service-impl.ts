@@ -1,14 +1,16 @@
 import { Environment, FileSystemLoader } from 'nunjucks';
 import pino from 'pino';
+import type { Logger } from 'pino';
 
 export class PromptServiceImpl {
   private env: Environment;
-  private logger = pino({ name: 'prompt-service-impl' });
+  private logger: Logger;
 
-  constructor(templateDir: string) {
+  constructor(templateDir: string, parentLogger?: Logger) {
     this.env = new Environment(new FileSystemLoader(templateDir), {
       autoescape: false,
     });
+    this.logger = (parentLogger ?? pino()).child({ name: 'prompt-service-impl' });
     this.logger.info({ templateDir }, 'PromptService initialized');
   }
 

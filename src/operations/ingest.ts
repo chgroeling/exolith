@@ -3,6 +3,7 @@
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import pino from 'pino';
+import type { Logger } from 'pino';
 import type { IdentifierService } from '../identifier-service';
 import type { LlmService } from '../llm-service';
 import type { PromptService } from '../prompt-service';
@@ -20,14 +21,17 @@ export class Ingest {
   private rawContent = '';
   private filePath = '';
   private enrichedSourcePath = '';
-  private logger = pino({ name: 'ingest' });
+  private logger: Logger;
 
   constructor(
     private llmService: LlmService,
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
-  ) {}
+    parentLogger?: Logger,
+  ) {
+    this.logger = (parentLogger ?? pino()).child({ name: 'ingest' });
+  }
 
   /**
    * Runs the full ingest pipeline on a raw source file.
@@ -109,6 +113,7 @@ export class Ingest {
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
     await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
+    process.stdout.write('\n');
 
     let turn = 1;
     while (this.config.readInput) {
@@ -120,6 +125,7 @@ export class Ingest {
       messages.push({ role: 'user', content: input });
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
       await this.llmService.generateStream(messages, this.config.onChunk ?? (() => {}));
+      process.stdout.write('\n');
     }
 
     this.logger.info(

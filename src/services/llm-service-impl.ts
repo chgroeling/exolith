@@ -1,10 +1,16 @@
 import pino from 'pino';
+import type { Logger } from 'pino';
 import type { LlmProvider } from '../llm-provider';
 
 export class LlmServiceImpl {
-  private logger = pino({ name: 'llm-service-impl' });
+  private logger: Logger;
 
-  constructor(private provider: LlmProvider) {}
+  constructor(
+    private provider: LlmProvider,
+    parentLogger?: Logger,
+  ) {
+    this.logger = (parentLogger ?? pino()).child({ name: 'llm-service-impl' });
+  }
 
   async generateStream(
     messages: { role: string; content: string }[],
