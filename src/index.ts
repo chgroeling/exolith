@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, existsSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
+import { fileURLToPath } from 'node:url';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText } from 'ai';
 import { program } from 'commander';
@@ -12,9 +13,16 @@ import { Ingest, type IngestConfig } from './operations/ingest';
 import { VercelLlmService } from './providers/vercel-llm-service';
 import { IdentifierServiceImpl } from './services/identifier-service-impl';
 import { LlmServiceImpl } from './services/llm-service-impl';
+import { PromptServiceImpl } from './services/prompt-service-impl';
 import { SluggerServiceImpl } from './services/slugger-service-impl';
 
 let logger = pino({ name: 'hello-world' });
+
+function resolveTemplateDir(importMetaUrl: string): string {
+  const bundledDir = fileURLToPath(new URL('./templates', importMetaUrl));
+  const devDir = fileURLToPath(new URL('../templates', importMetaUrl));
+  return existsSync(bundledDir) ? bundledDir : devDir;
+}
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -118,7 +126,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         };
         const provider = new VercelLlmService(model);
         const llmService = new LlmServiceImpl(provider);
-        const ingest = new Ingest(llmService, identifier, config);
+        const promptService = new PromptServiceImpl(resolveTemplateDir(import.meta.url));
+        const ingest = new Ingest(llmService, identifier, promptService, config);
         await ingest.process(options.inbox);
         rl.close();
       }

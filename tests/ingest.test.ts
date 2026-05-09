@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { IdentifierService } from '../src/identifier-service';
 import type { LlmService } from '../src/llm-service';
 import { Ingest, type IngestConfig } from '../src/operations/ingest';
+import type { PromptService } from '../src/prompt-service';
 import type { IdentifierType } from '../src/types';
 
 function makeMockLlm(opts?: {
@@ -36,6 +37,16 @@ function makeMockIdentifier(): IdentifierService {
   };
 }
 
+function makeMockPrompt(): PromptService {
+  return {
+    render(_templateName: string, context: Record<string, unknown>): string {
+      return Object.entries(context)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n');
+    },
+  };
+}
+
 function makeConfig(overrides?: Partial<IngestConfig>): IngestConfig {
   return {
     maxSourceSize: 1024 * 1024,
@@ -54,7 +65,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'test.md');
       await writeFile(filePath, '# Hello\n\nWorld', 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
     });
@@ -65,7 +76,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'test.pdf');
       await writeFile(filePath, 'not a pdf', 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).rejects.toThrow('Unsupported file type');
     });
@@ -76,7 +87,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'big.md');
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).rejects.toThrow('Source file exceeds maximum size');
     });
@@ -89,7 +100,7 @@ describe('Ingest', () => {
       buf[20] = 0;
       await writeFile(filePath, buf);
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).rejects.toThrow('Source file appears to be binary');
     });
@@ -102,7 +113,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nSome content', 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
     });
@@ -121,7 +132,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nMulti-turn content', 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
     });
@@ -134,7 +145,7 @@ describe('Ingest', () => {
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
       const llm = makeMockLlm({ generateResponse: summary });
-      const ingest = new Ingest(llm, makeMockIdentifier(), config);
+      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
 
       await ingest.process(filePath);
 
@@ -160,7 +171,7 @@ describe('Ingest', () => {
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
       const llm = makeMockLlm({ generateResponse: 'expected-summary' });
-      const ingest = new Ingest(llm, makeMockIdentifier(), config);
+      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
 
       await ingest.process(filePath);
 
@@ -177,7 +188,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'source.txt');
       await writeFile(filePath, '# Full pipeline test', 'utf-8');
 
-      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), config);
+      const ingest = new Ingest(makeMockLlm(), makeMockIdentifier(), makeMockPrompt(), config);
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
     });

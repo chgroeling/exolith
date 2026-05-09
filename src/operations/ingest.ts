@@ -5,6 +5,7 @@ import { basename, extname } from 'node:path';
 import pino from 'pino';
 import type { IdentifierService } from '../identifier-service';
 import type { LlmService } from '../llm-service';
+import type { PromptService } from '../prompt-service';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
 
@@ -24,6 +25,7 @@ export class Ingest {
   constructor(
     private llmService: LlmService,
     private identifier: IdentifierService,
+    private promptService: PromptService,
     private config: IngestConfig,
   ) {}
 
@@ -96,22 +98,10 @@ export class Ingest {
   private async discussKeyTakeaways(): Promise<void> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
 
-    const initialPrompt = `You have just read the following source: ${this.filePath}
-
-Summarize your reading in a concise, conversational way. Then, ask the human
-for their opinionated judgment to calibrate the upcoming extraction step.
-Specifically, invite them to weigh in on:
-
-- Which claims are central and which are peripheral?
-- How credible is the source — should claims carry high or low confidence?
-- Which entities, concepts, or relationships deserve priority extraction?
-- What should be ignored or deprioritized?
-- Are there nuances the source hints at but doesn't fully unpack?
-
-Your human partner will respond before extraction begins.
-
-Source:
-${this.rawContent}`;
+    const initialPrompt = this.promptService.render('discuss-key-takeaways', {
+      filePath: this.filePath,
+      rawContent: this.rawContent,
+    });
 
     const messages: { role: 'user'; content: string }[] = [
       { role: 'user', content: initialPrompt },
@@ -153,9 +143,9 @@ ${this.rawContent}`;
   ): Promise<string> {
     const humanMessages = messages.slice(1);
 
-    const prompt = `Extract the human's key feedback and calibration decisions from the following discussion. Focus on what is important for rebuilding the wiki later: confidence judgments, priority signals, nuance flags, and decisions about what to include or ignore. Output only the summary as a concise Markdown list. Do not include the original source content.
-
-${humanMessages.map((m) => m.content).join('\n\n')}`;
+    const prompt = this.promptService.render('summarize-discussion', {
+      humanMessages: humanMessages.map((m) => m.content).join('\n\n'),
+    });
 
     this.logger.debug('Summarizing discussion feedback');
     const result = await this.llmService.generate(prompt);

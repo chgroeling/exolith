@@ -6,7 +6,7 @@
     "hello-world": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --clean --treeshake",
+    "build": "tsup",
     "start": "node dist/index.js",
     "dev": "tsx --watch src/index.ts",
     "test": "vitest run",
@@ -16,6 +16,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^25.6.0",
+    "@types/nunjucks": "^3.2.6",
     "@types/slug": "^5.0.9",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
@@ -27,6 +28,7 @@
     "@types/unist": "^3.0.3",
     "ai": "^6.0.175",
     "commander": "^14.0.3",
+    "nunjucks": "^3.2.4",
     "pino": "^10.3.1",
     "remark-parse": "^11.0.0",
     "slug": "^11.0.1",
