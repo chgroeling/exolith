@@ -86,10 +86,6 @@ The **central knowledge building block** of the wiki — a single, verifiable as
 
 > Full specification: [cross-cutting/claim-spec.md](cross-cutting/claim-spec.md)
 
-### Evidence
-
-The proof for a claim — always a wikilink to a Source in the `*Evidence:*` field. No claim without evidence. Every claim carries its own provenance directly with it, rather than referencing a separate source list. This makes traceability more granular and precise.
-
 ### Human Block
 
 The only marked section in a wiki page — enclosed by `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Contains the human's handwritten notes and is **never** touched by the LLM. Everything outside these markers is implicitly LLM-managed and may be read and written by the agent.
