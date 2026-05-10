@@ -1,0 +1,23 @@
+# Source File Metadata
+- File path: {{ filePath }}
+- File name: {{ fileName }}
+
+# Raw Source Content
+{{ rawContent }}
+
+# Discussion Summary
+{{ discussionSummary }}
+
+Based on the raw source content above and the discussion summary (human calibration feedback), create a source page for the wiki. A source page is the processed, curated knowledge foundation — the sole working object for all subsequent extraction and update steps.
+
+Follow the source page specification exactly:
+
+- **title**: The main topic/person covered by this source. Concise but descriptive.
+- **type**: Classify as one of: article, paper, transcript, note, book.
+- **authors**: The author(s) of the source. Use "Unknown" if not identifiable.
+- **date**: Publication/creation date in YYYY-MM-DD format if possible, otherwise natural language (e.g. "ca. 62-64 CE").
+- **urlOrReference**: Citation URL or reference if available. Use "-" if none.
+- **summary**: 1-2 paragraphs summarizing what the source says — neutral, descriptive, no value judgment. Answer: "What does the source say?"
+- **mainPoints**: The central statements of the author — neutral, descriptive, objective. Answer: "What are the key claims the author makes?"
+- **keyTakeaways**: The statements relevant to the wiki, enriched by human feedback from the discussion summary. Answer: "What should the wiki remember from this source?" Incorporate the calibration decisions from the discussion (confidence signals, priority hints, nuance flags, things to ignore).
+- **tags**: 2-5 lowercase thematic tags without # prefix (e.g. philosophie, stoizismus, psychologie).

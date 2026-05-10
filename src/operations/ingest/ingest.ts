@@ -1,7 +1,7 @@
 // Specification: docs/operations/ingest.md
 
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
@@ -9,12 +9,26 @@ import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { IngestConfig, IngestPresentation, IngestService } from './ingest-service';
 
+/** Structured output from the LLM for a source page. */
+interface SourcePage {
+  title: string;
+  type: string;
+  authors: string;
+  date: string;
+  urlOrReference: string;
+  summary: string;
+  mainPoints: string[];
+  keyTakeaways: string[];
+  tags: string[];
+}
+
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
 
 export class Ingest implements IngestService {
   private rawContent = '';
   private filePath = '';
   private enrichedSourcePath = '';
+  private discussionSummary = '';
   private logger: Logger;
 
   constructor(
@@ -142,6 +156,7 @@ export class Ingest implements IngestService {
       'Discussion ended, summarizing feedback',
     );
     const summary = await this.summarizeDiscussion(session.getMessages());
+    this.discussionSummary = summary;
     await this.archiveToRawSources(summary);
 
     this.logger.info(
@@ -198,7 +213,95 @@ export class Ingest implements IngestService {
   }
 
   /** Step 3: Writes a processed source page to the vault. */
-  private async writeSourcePage(): Promise<void> {}
+  private async writeSourcePage(): Promise<void> {
+    const systemPrompt = this.promptService.render('system-prompt', {});
+    const fileName = basename(this.filePath);
+
+    const prompt = this.promptService.render('create-source-page', {
+      filePath: this.filePath,
+      fileName,
+      rawContent: this.rawContent,
+      discussionSummary: this.discussionSummary,
+    });
+
+    this.logger.info({ filePath: this.filePath }, 'Generating source page from LLM');
+
+    const sourcePage = await this.llmService.generateStructured<SourcePage>({
+      systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+      schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          type: { type: 'string', enum: ['article', 'paper', 'transcript', 'note', 'book'] },
+          authors: { type: 'string' },
+          date: { type: 'string' },
+          urlOrReference: { type: 'string' },
+          summary: { type: 'string' },
+          mainPoints: { type: 'array', items: { type: 'string' } },
+          keyTakeaways: { type: 'array', items: { type: 'string' } },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+        required: [
+          'title',
+          'type',
+          'authors',
+          'date',
+          'summary',
+          'mainPoints',
+          'keyTakeaways',
+          'tags',
+        ],
+        additionalProperties: false,
+      },
+      schemaName: 'SourcePage',
+      schemaDescription: 'A processed source page for the wiki vault.',
+    });
+
+    const sourceId = this.identifier.createId('source', sourcePage.title);
+    const slug = this.identifier.decomposeId(sourceId).slug;
+    const sourceDir = join(this.config.vaultPath, 'sources');
+    await mkdir(sourceDir, { recursive: true });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const tagLines = sourcePage.tags.map((t) => `  - ${t}`);
+
+    const content = [
+      '---',
+      `id: ${sourceId}`,
+      `title: ${sourcePage.title}`,
+      'status: active',
+      'tags:',
+      ...tagLines,
+      `created: ${today}`,
+      `updated: ${today}`,
+      '---',
+      '',
+      `# ${sourcePage.title}`,
+      '',
+      `*Type:* ${sourcePage.type}`,
+      `*Author(s):* ${sourcePage.authors}`,
+      `*Date:* ${sourcePage.date}`,
+      `*URL/Reference:* ${sourcePage.urlOrReference || '-'}`,
+      `*Original File:* [[raw-sources/${fileName}]]`,
+      '',
+      '## Summary',
+      sourcePage.summary,
+      '',
+      '## Main Points',
+      ...sourcePage.mainPoints.map((p) => `- ${p}`),
+      '',
+      '## Key Takeaways',
+      ...sourcePage.keyTakeaways.map((k) => `- ${k}`),
+      '',
+      '## Linked Wiki Pages',
+      '',
+    ].join('\n');
+
+    const sourcePath = join(sourceDir, `${slug}.md`);
+    await writeFile(sourcePath, content, 'utf-8');
+    this.logger.info({ sourcePath }, 'Source page written');
+  }
 
   /** Step 4: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
   private async extract(): Promise<void> {}
