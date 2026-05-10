@@ -51,7 +51,7 @@ Biome also provides IDE integrations for VS Code and JetBrains — install the o
 
 ## TSDoc
 
-Use TSDoc (`/** ... */`) where appropriate — no inline comments.
+Every file, class, interface, public method, and property must carry a TSDoc (`/** ... */`) comment. Describe the purpose, the contract, and any non-obvious behavior. No inline comments (`//`). Private methods may omit TSDoc when their purpose is self-evident from the name.
 
 ## Logging
 

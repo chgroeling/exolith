@@ -1,44 +1,47 @@
 import pino from 'pino';
-import type { Logger } from 'pino';
 import type { LlmProvider } from '../llm-provider';
+import type { LlmService, LlmStructuredRequest } from '../llm-service';
+import { LlmSessionImpl } from './llm-session-impl';
 
-export class LlmServiceImpl {
-  private logger: Logger;
+export class LlmServiceImpl implements LlmService {
+  private logger = pino({ name: 'llm-service-impl' });
 
-  constructor(
-    private provider: LlmProvider,
-    parentLogger?: Logger,
-  ) {
-    this.logger = (parentLogger ?? pino()).child({ name: 'llm-service-impl' });
-  }
+  constructor(private provider: LlmProvider) {}
 
-  async generateStream(
-    messages: { role: string; content: string }[],
-    onChunk: (chunk: string) => void,
-  ): Promise<string> {
-    this.logger.debug({ messageCount: messages.length }, 'generateStream started');
-    const result = this.provider.streamText({ messages });
+  async complete(prompt: string, systemPrompt: string): Promise<string> {
+    this.logger.debug({ promptLength: prompt.length }, 'complete started');
 
-    let text = '';
-    for await (const chunk of result.textStream) {
-      onChunk(chunk);
-      text += chunk;
-    }
-
-    this.logger.debug({ messageCount: messages.length }, 'generateStream completed');
-    return text;
-  }
-
-  async generate(prompt: string): Promise<string> {
-    this.logger.debug({ promptLength: prompt.length }, 'generate started');
-    const result = this.provider.streamText({ prompt });
+    const result = this.provider.streamText({ system: systemPrompt, prompt });
 
     let text = '';
     for await (const chunk of result.textStream) {
       text += chunk;
     }
 
-    this.logger.debug({ responseLength: text.length }, 'generate completed');
+    this.logger.debug({ responseLength: text.length }, 'complete finished');
     return text;
+  }
+
+  createSession(systemPrompt: string): LlmSessionImpl {
+    this.logger.debug('createSession');
+    return new LlmSessionImpl(this.provider, systemPrompt);
+  }
+
+  async generateStructured<T>(request: LlmStructuredRequest): Promise<T> {
+    this.logger.debug(
+      { schemaName: request.schemaName, messageCount: request.messages.length },
+      'generateStructured started',
+    );
+
+    const result = await this.provider.generateObject<T>({
+      system: request.systemPrompt,
+      messages: request.messages,
+      schema: request.schema,
+      schemaName: request.schemaName,
+      schemaDescription: request.schemaDescription,
+    });
+
+    this.logger.debug({ schemaName: request.schemaName }, 'generateStructured finished');
+    return result.object;
   }
 }

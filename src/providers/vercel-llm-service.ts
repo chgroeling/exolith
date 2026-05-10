@@ -1,17 +1,27 @@
-import { streamText } from 'ai';
-import type { LanguageModel, ModelMessage } from 'ai';
-import type { LlmProvider } from '../llm-provider';
+import { generateObject, streamText } from 'ai';
+import type { LlmObjectParams, LlmProvider, LlmStreamParams } from '../llm-provider';
 
 export class VercelLlmService implements LlmProvider {
-  constructor(private model: LanguageModel) {}
+  constructor(
+    private model: {
+      readonly modelId: string;
+    },
+  ) {}
 
-  streamText(params: {
-    messages?: { role: string; content: string }[];
-    prompt?: string;
-  }): { textStream: AsyncIterable<string> } {
-    if (params.messages) {
-      return streamText({ model: this.model, messages: params.messages as ModelMessage[] });
-    }
-    return streamText({ model: this.model, prompt: params.prompt ?? '' });
+  streamText(params: LlmStreamParams): { textStream: AsyncIterable<string> } {
+    return streamText({ model: this.model, ...params });
+  }
+
+  async generateObject<T>(params: LlmObjectParams): Promise<{ object: T }> {
+    const result = await generateObject<Record<string, unknown>>({
+      model: this.model,
+      system: params.system,
+      messages: params.messages,
+      schema: params.schema,
+      schemaName: params.schemaName,
+      schemaDescription: params.schemaDescription,
+    });
+
+    return { object: result.object as T };
   }
 }

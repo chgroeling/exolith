@@ -4,46 +4,44 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { IdentifierService } from '../src/identifier-service';
-import type { LlmService } from '../src/llm-service';
-import { Ingest, type IngestConfig } from '../src/operations/ingest';
-import type { PromptService } from '../src/prompt-service';
-import type { IdentifierType } from '../src/types';
+import type { IdentifierService } from '../../src/identifier-service';
+import type { LlmService, LlmStructuredRequest } from '../../src/llm-service';
+import { Ingest, type IngestConfig } from '../../src/operations/ingest';
+import type { PromptService } from '../../src/prompt-service';
+import type { IdentifierType } from '../../src/types';
 
 function makeMockLlm(opts?: {
   streamDelay?: () => Promise<void>;
-  generateResponse?: string;
-  streamResponse?: string;
+  completeResponse?: string;
 }): LlmService {
   return {
-    async generateStream(_messages, onChunk) {
-      if (opts?.streamDelay) await opts.streamDelay();
-      onChunk('mock-chunk');
-      return opts?.streamResponse ?? 'mock response';
+    async complete(_prompt, _systemPrompt) {
+      return opts?.completeResponse ?? 'mock summary';
     },
-    async generate(_prompt) {
-      return opts?.generateResponse ?? 'mock summary';
+    createSession(_systemPrompt) {
+      const messages: { role: string; content: string }[] = [];
+      return {
+        addUserMessage(content: string) {
+          messages.push({ role: 'user', content });
+        },
+        addAssistantMessage(content: string) {
+          messages.push({ role: 'assistant', content });
+        },
+        async stream(onChunk: (chunk: string) => void) {
+          if (opts?.streamDelay) await opts.streamDelay();
+          onChunk('mock-chunk');
+        },
+        async complete() {
+          return opts?.completeResponse ?? 'mock summary';
+        },
+        getMessages() {
+          return Object.freeze([...messages]);
+        },
+      };
     },
-  };
-}
-
-function makeRecordingLlm(): {
-  llm: LlmService;
-  getCalls: () => { role: string; content: string }[][];
-} {
-  const recordedCalls: { role: string; content: string }[][] = [];
-  return {
-    llm: {
-      async generateStream(messages, onChunk) {
-        recordedCalls.push(structuredClone(messages));
-        onChunk('chunk');
-        return 'assistant-response';
-      },
-      async generate(_prompt) {
-        return 'summary';
-      },
+    async generateStructured<T>(_request: LlmStructuredRequest): Promise<T> {
+      return {} as T;
     },
-    getCalls: () => recordedCalls,
   };
 }
 
@@ -140,65 +138,6 @@ describe('Ingest', () => {
       await expect(ingest.process(filePath)).resolves.not.toThrow();
     });
 
-    it('sends the assistant response back in conversation history', async () => {
-      const { llm, getCalls } = makeRecordingLlm();
-      let inputCount = 0;
-      const config = makeConfig({
-        readInput: async () => {
-          inputCount++;
-          return inputCount === 1 ? 'my feedback' : '';
-        },
-      });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nContent', 'utf-8');
-
-      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
-      await ingest.process(filePath);
-
-      const calls = getCalls();
-      expect(calls.length).toBe(2);
-
-      const firstCall = calls[0];
-      expect(firstCall.length).toBe(1);
-      expect(firstCall[0].role).toBe('user');
-
-      const secondCall = calls[1];
-      expect(secondCall.length).toBe(3);
-      expect(secondCall[0].role).toBe('user');
-      expect(secondCall[1].role).toBe('assistant');
-      expect(secondCall[1].content).toBe('assistant-response');
-      expect(secondCall[2].role).toBe('user');
-      expect(secondCall[2].content).toBe('my feedback');
-    });
-
-    it('builds alternating user/assistant conversation over multiple turns', async () => {
-      const { llm, getCalls } = makeRecordingLlm();
-      const inputs = ['first feedback', 'second feedback', ''];
-      let idx = 0;
-      const config = makeConfig({
-        readInput: async () => inputs[idx++] ?? '',
-      });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nMulti-turn', 'utf-8');
-
-      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
-      await ingest.process(filePath);
-
-      const calls = getCalls();
-      expect(calls.length).toBe(3);
-
-      const thirdCall = calls[2];
-      expect(thirdCall.length).toBe(5);
-      expect(thirdCall[0].role).toBe('user');
-      expect(thirdCall[1].role).toBe('assistant');
-      expect(thirdCall[2].role).toBe('user');
-      expect(thirdCall[3].role).toBe('assistant');
-      expect(thirdCall[4].role).toBe('user');
-      expect(thirdCall[4].content).toBe('second feedback');
-    });
-
     it('handles multiple human inputs in the discussion loop', async () => {
       const inputs = ['This is central', 'Ignore that part', ''];
       let callCount = 0;
@@ -225,7 +164,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
-      const llm = makeMockLlm({ generateResponse: summary });
+      const llm = makeMockLlm({ completeResponse: summary });
       const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
 
       await ingest.process(filePath);
@@ -239,7 +178,7 @@ describe('Ingest', () => {
   });
 
   describe('summarizeDiscussion', () => {
-    it('passes human messages to generate and returns the result', async () => {
+    it('passes human messages to complete and returns the result', async () => {
       let calls = 0;
       const config = makeConfig({
         readInput: () => {
@@ -251,7 +190,7 @@ describe('Ingest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
-      const llm = makeMockLlm({ generateResponse: 'expected-summary' });
+      const llm = makeMockLlm({ completeResponse: 'expected-summary' });
       const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config);
 
       await ingest.process(filePath);

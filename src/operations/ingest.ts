@@ -3,9 +3,8 @@
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import pino from 'pino';
-import type { Logger } from 'pino';
 import type { IdentifierService } from '../identifier-service';
-import type { LlmMessage, LlmService } from '../llm-service';
+import type { LlmService } from '../llm-service';
 import type { PromptService } from '../prompt-service';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
@@ -21,17 +20,14 @@ export class Ingest {
   private rawContent = '';
   private filePath = '';
   private enrichedSourcePath = '';
-  private logger: Logger;
+  private logger = pino({ name: 'ingest' });
 
   constructor(
     private llmService: LlmService,
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
-    parentLogger?: Logger,
-  ) {
-    this.logger = (parentLogger ?? pino()).child({ name: 'ingest' });
-  }
+  ) {}
 
   /**
    * Runs the full ingest pipeline on a raw source file.
@@ -102,44 +98,36 @@ export class Ingest {
   private async discussKeyTakeaways(): Promise<void> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
 
+    const systemPrompt = this.promptService.render('system-prompt', {});
+
     const initialPrompt = this.promptService.render('discuss-key-takeaways', {
       filePath: this.filePath,
       rawContent: this.rawContent,
     });
 
-    const messages: LlmMessage[] = [{ role: 'user', content: initialPrompt }];
+    const session = this.llmService.createSession(systemPrompt);
+    session.addUserMessage(initialPrompt);
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
-    const initialResponse = await this.llmService.generateStream(
-      messages,
-      this.config.onChunk ?? (() => {}),
-    );
-    messages.push({ role: 'assistant', content: initialResponse });
-    process.stdout.write('\n');
+    await session.stream(this.config.onChunk ?? (() => {}));
 
     let turn = 1;
-
     while (this.config.readInput) {
       const input = await this.config.readInput();
       if (!input) break;
 
       turn++;
       this.logger.trace({ turn, input }, 'Discussion: received user input');
-      messages.push({ role: 'user', content: input });
+      session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
-      const response = await this.llmService.generateStream(
-        messages,
-        this.config.onChunk ?? (() => {}),
-      );
-      messages.push({ role: 'assistant', content: response });
-      process.stdout.write('\n');
+      await session.stream(this.config.onChunk ?? (() => {}));
     }
 
     this.logger.info(
       { filePath: this.filePath, turns: turn },
       'Discussion ended, summarizing feedback',
     );
-    const summary = await this.summarizeDiscussion(messages);
+    const summary = await this.summarizeDiscussion(session.getMessages());
     await this.archiveToRawSources(summary);
 
     this.logger.info(
@@ -151,15 +139,21 @@ export class Ingest {
   /**
    * Asks the LLM to extract the human's key feedback from the full discussion.
    */
-  private async summarizeDiscussion(messages: LlmMessage[]): Promise<string> {
-    const humanMessages = messages.slice(1).filter((m) => m.role === 'user');
+  private async summarizeDiscussion(
+    messages: readonly {
+      role: string;
+      content: string;
+    }[],
+  ): Promise<string> {
+    const systemPrompt = this.promptService.render('system-prompt', {});
+    const humanMessages = messages.slice(2);
 
     const prompt = this.promptService.render('summarize-discussion', {
       humanMessages: humanMessages.map((m) => m.content).join('\n\n'),
     });
 
     this.logger.debug('Summarizing discussion feedback');
-    const result = await this.llmService.generate(prompt);
+    const result = await this.llmService.complete(prompt, systemPrompt);
     this.logger.trace({ summary: result }, 'Discussion summary generated');
     return result;
   }
