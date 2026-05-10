@@ -13,7 +13,7 @@ import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-fa
 /** Resolves the template directory for both dev and bundled modes. */
 export function resolveTemplateDir(importMetaUrl: string): string {
   const bundledDir = fileURLToPath(new URL('./templates', importMetaUrl));
-  const devDir = fileURLToPath(new URL('../templates', importMetaUrl));
+  const devDir = fileURLToPath(new URL('../../templates', importMetaUrl));
   return existsSync(bundledDir) ? bundledDir : devDir;
 }
 

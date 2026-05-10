@@ -1,8 +1,9 @@
-import { Box, useInput } from 'ink';
-import { useState } from 'react';
+import { resolve } from 'node:path';
+import { Box } from 'ink';
+import { useMemo, useState } from 'react';
 import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
+import { FileBrowser } from './components/file-browser';
 import { Header } from './components/header';
-import { InputBox } from './components/input-box';
 import { Menu } from './components/menu';
 import { StatusBar } from './components/status-bar';
 import { IngestApp } from './ingest-app';
@@ -23,12 +24,7 @@ export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
   const [phase, setPhase] = useState<AppPhase>('menu');
   const [filePath, setFilePath] = useState('');
 
-  useInput((_input, key) => {
-    if (key.escape && phase === 'path-input') {
-      setPhase('menu');
-      setFilePath('');
-    }
-  });
+  const inboxPath = useMemo(() => resolve(vaultPath, 'inbox'), [vaultPath]);
 
   const handleMenuSelect = (value: string) => {
     if (value === 'process-inbox') {
@@ -46,6 +42,11 @@ export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
     setPhase('ingest');
   };
 
+  const handleCancel = () => {
+    setPhase('menu');
+    setFilePath('');
+  };
+
   const handleIngestDone = () => {
     setPhase('menu');
     setFilePath('');
@@ -57,14 +58,14 @@ export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
         <>
           <Header title="Exolith" />
           <Menu items={MENU_ITEMS} onSelect={handleMenuSelect} />
-          <StatusBar text="\u2191\u2193 to navigate \u00b7 Enter to select" />
+          <StatusBar text={'\u2191\u2193 to navigate \u00b7 Enter to select'} />
         </>
       )}
       {phase === 'path-input' && (
         <>
           <Header title="Process Inbox" />
-          <InputBox placeholder="Enter source file path..." onSubmit={handlePathSubmit} />
-          <StatusBar text="Type path and press Enter \u00b7 Esc to go back" />
+          <FileBrowser rootPath={inboxPath} onSubmit={handlePathSubmit} onCancel={handleCancel} />
+          <StatusBar text={'\u2191\u2193 to navigate \u00b7 Enter to select \u00b7 Esc to go up'} />
         </>
       )}
       {phase === 'ingest' && (

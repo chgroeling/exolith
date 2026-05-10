@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface InputBoxProps {
   placeholder: string;
@@ -8,6 +8,14 @@ export interface InputBoxProps {
 
 export function InputBox({ placeholder, onSubmit }: InputBoxProps) {
   const [value, setValue] = useState('');
+  const [cursorVisible, setCursorVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCursorVisible((prev) => !prev);
+    }, 530);
+    return () => clearInterval(id);
+  }, []);
 
   useInput((input, key) => {
     if (key.return) {
@@ -22,7 +30,14 @@ export function InputBox({ placeholder, onSubmit }: InputBoxProps) {
 
   return (
     <Box paddingLeft={1} paddingRight={1}>
-      {value ? <Text>{value}</Text> : <Text dimColor>{placeholder}</Text>}
+      {value ? (
+        <Text>
+          {value}
+          {cursorVisible ? '\u2588' : ' '}
+        </Text>
+      ) : (
+        <Text dimColor>{placeholder}</Text>
+      )}
     </Box>
   );
 }

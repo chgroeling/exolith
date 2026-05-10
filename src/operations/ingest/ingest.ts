@@ -36,26 +36,31 @@ export class Ingest implements IngestService {
     this.filePath = filePath;
     this.logger.info({ filePath }, 'Ingest process started');
 
-    // 1. Read raw source completely
-    await this.readRawSource();
+    try {
+      // 1. Read raw source completely
+      await this.readRawSource();
 
-    // 2. Discuss key takeaways with the human
-    await this.discussKeyTakeaways();
+      // 2. Discuss key takeaways with the human
+      await this.discussKeyTakeaways();
 
-    // 3. Write source page
-    await this.writeSourcePage();
+      // 3. Write source page
+      await this.writeSourcePage();
 
-    // 4. Extract entities, concepts, claims, relationships
-    await this.extract();
+      // 4. Extract entities, concepts, claims, relationships
+      await this.extract();
 
-    // 5. Update all affected wiki pages
-    await this.updateWikiPages();
+      // 5. Update all affected wiki pages
+      await this.updateWikiPages();
 
-    // 6. Trigger compile step
-    await this.triggerCompile();
+      // 6. Trigger compile step
+      await this.triggerCompile();
 
-    // 7. Write log entry
-    await this.writeLogEntry();
+      // 7. Write log entry
+      await this.writeLogEntry();
+    } catch (err) {
+      this.logger.error({ filePath, err }, 'Ingest process failed');
+      throw err;
+    }
   }
 
   /**
@@ -108,7 +113,12 @@ export class Ingest implements IngestService {
     session.addUserMessage(initialPrompt);
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
-    await session.stream(this.presentation.onChunk);
+    let response = '';
+    await session.stream((chunk) => {
+      response += chunk;
+      this.presentation.onChunk(chunk);
+    });
+    session.addAssistantMessage(response);
 
     let turn = 1;
     while (true) {
@@ -119,7 +129,12 @@ export class Ingest implements IngestService {
       this.logger.trace({ turn, input }, 'Discussion: received user input');
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
-      await session.stream(this.presentation.onChunk);
+      response = '';
+      await session.stream((chunk) => {
+        response += chunk;
+        this.presentation.onChunk(chunk);
+      });
+      session.addAssistantMessage(response);
     }
 
     this.logger.info(
@@ -145,10 +160,17 @@ export class Ingest implements IngestService {
     }[],
   ): Promise<string> {
     const systemPrompt = this.promptService.render('system-prompt', {});
-    const humanMessages = messages.slice(2);
+    const discussionMessages = messages
+      .slice(2)
+      .filter((m) => m.role === 'user' || m.role === 'assistant');
+
+    this.logger.trace({ discussionMessages }, 'Summarization input');
 
     const prompt = this.promptService.render('summarize-discussion', {
-      humanMessages: humanMessages.map((m) => m.content).join('\n\n'),
+      messages: discussionMessages.map((m) => ({
+        role: m.role === 'assistant' ? 'Assistant' : 'User',
+        content: m.content,
+      })),
     });
 
     this.logger.debug('Summarizing discussion feedback');
