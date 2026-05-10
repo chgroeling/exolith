@@ -85,6 +85,7 @@ function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPr
   return {
     onChunk: () => {},
     readInput: () => Promise.resolve(''),
+    onStep: () => {},
     ...overrides,
   };
 }
@@ -480,6 +481,69 @@ describe('Ingest', () => {
         'keyTakeaways',
         'tags',
       ]);
+    });
+  });
+
+  describe('onStep', () => {
+    it('calls onStep with each pipeline step in order', async () => {
+      const steps: string[] = [];
+
+      const config = makeConfig();
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Content', 'utf-8');
+
+      const presentation = makeMockPresentation({
+        readInput: () => Promise.resolve(''),
+        onStep: (step) => {
+          steps.push(step);
+        },
+      });
+      const ingest = new Ingest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await ingest.process(filePath);
+
+      expect(steps).toEqual([
+        'reading',
+        'discussing',
+        'writing-source',
+        'extracting',
+        'updating',
+        'compiling',
+        'logging',
+      ]);
+    });
+
+    it('does not call onStep for later steps if an early step throws', async () => {
+      const steps: string[] = [];
+
+      const config = makeConfig({ maxSourceSize: 1 });
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'big.md');
+      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
+
+      const presentation = makeMockPresentation({
+        onStep: (step) => {
+          steps.push(step);
+        },
+      });
+      const ingest = new Ingest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await expect(ingest.process(filePath)).rejects.toThrow();
+
+      expect(steps).toEqual(['reading']);
     });
   });
 

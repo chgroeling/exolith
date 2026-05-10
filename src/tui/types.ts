@@ -1,3 +1,5 @@
+import type { IngestStep } from '../operations/ingest/ingest-service';
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'info' | 'error';
@@ -12,3 +14,5 @@ export interface MenuItem {
   label: string;
   value: string;
 }
+
+export type { IngestStep };

@@ -1,11 +1,16 @@
 import { Box, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
+import type {
+  IngestPresentation,
+  IngestServiceFactory,
+  IngestStep,
+} from '../operations/ingest/ingest-service';
+import { INGEST_STEP_LABELS } from '../operations/ingest/ingest-service';
 import { Header } from './components/header';
 import { InputBox } from './components/input-box';
 import { MessageList } from './components/message-list';
 import { StatusBar } from './components/status-bar';
-import type { IngestPhase, Message } from './types';
+import type { Message } from './types';
 
 let nextId = 0;
 
@@ -28,7 +33,10 @@ export function IngestApp({
   vaultPath,
   onDone,
 }: IngestAppProps) {
-  const [phase, setPhase] = useState<IngestPhase>('loading');
+  const [phase, setPhase] = useState<
+    'loading' | 'streaming' | 'waiting' | 'summarizing' | 'done' | 'error'
+  >('loading');
+  const [currentStep, setCurrentStep] = useState<IngestStep | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const resolveRef = useRef<((value: string) => void) | null>(null);
 
@@ -49,6 +57,10 @@ export function IngestApp({
     });
   }, []);
 
+  const onStep = useCallback((step: IngestStep) => {
+    setCurrentStep(step);
+  }, []);
+
   const handleSubmit = useCallback((input: string) => {
     if (input) {
       setMessages((prev) => [...prev, makeMessage('user', input)]);
@@ -65,7 +77,8 @@ export function IngestApp({
   });
 
   useEffect(() => {
-    const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, { onChunk, readInput });
+    const presentation: IngestPresentation = { onChunk, readInput, onStep };
+    const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, presentation);
 
     ingest
       .process(filePath)
@@ -76,7 +89,7 @@ export function IngestApp({
         setMessages((prev) => [...prev, makeMessage('error', err.message)]);
         setPhase('error');
       });
-  }, [filePath, ingestFactory, maxSourceSize, vaultPath, onChunk, readInput]);
+  }, [filePath, ingestFactory, maxSourceSize, vaultPath, onChunk, readInput, onStep]);
 
   return (
     <Box flexDirection="column">
@@ -91,6 +104,9 @@ export function IngestApp({
       {phase === 'loading' && <StatusBar text="Loading source file..." />}
       {phase === 'streaming' && <StatusBar text="Receiving response..." />}
       {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
+      {currentStep && phase !== 'done' && phase !== 'error' && (
+        <StatusBar text={`Step: ${INGEST_STEP_LABELS[currentStep]}`} />
+      )}
       {phase === 'done' && <StatusBar text="Ingest complete. Press Enter to return to menu." />}
       {phase === 'error' && <StatusBar text="An error occurred. Press Enter to return to menu." />}
     </Box>

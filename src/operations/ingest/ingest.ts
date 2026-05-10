@@ -52,24 +52,31 @@ export class Ingest implements IngestService {
 
     try {
       // 1. Read raw source completely
+      this.presentation.onStep('reading');
       await this.readRawSource();
 
       // 2. Discuss key takeaways with the human
+      this.presentation.onStep('discussing');
       await this.discussKeyTakeaways();
 
       // 3. Write source page
+      this.presentation.onStep('writing-source');
       await this.writeSourcePage();
 
       // 4. Extract entities, concepts, claims, relationships
+      this.presentation.onStep('extracting');
       await this.extract();
 
       // 5. Update all affected wiki pages
+      this.presentation.onStep('updating');
       await this.updateWikiPages();
 
       // 6. Trigger compile step
+      this.presentation.onStep('compiling');
       await this.triggerCompile();
 
       // 7. Write log entry
+      this.presentation.onStep('logging');
       await this.writeLogEntry();
     } catch (err) {
       this.logger.error({ filePath, err }, 'Ingest process failed');
