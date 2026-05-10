@@ -1,0 +1,56 @@
+// Specification: docs/cross-cutting/vault-layout.md
+
+import { readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import JSON5 from 'json5';
+import type { Logger } from 'pino';
+import type { ConfigLoaderService } from './config-loader';
+import { CONFIG_FILE_NAME } from './config-types';
+import type { ConfigLoadResult, ExolithConfig } from './config-types';
+
+export class ConfigLoaderServiceImpl implements ConfigLoaderService {
+  constructor(private logger?: Logger) {}
+
+  /**
+   * Searches upward from `cwd` for {@link CONFIG_FILE_NAME}.
+   * @param cwd Starting directory for the bubble-up search.
+   * @returns The parsed configuration and the discovered root directory.
+   * @throws If {@link CONFIG_FILE_NAME} is not found up to the filesystem boundary.
+   */
+  async load(cwd: string): Promise<ConfigLoadResult> {
+    let current = resolve(cwd);
+
+    while (true) {
+      const candidate = join(current, CONFIG_FILE_NAME);
+
+      try {
+        const raw = await readFile(candidate, 'utf-8');
+        const config = this.parseConfig(candidate, raw);
+
+        this.logger?.info({ configPath: candidate, rootDir: current }, 'Configuration loaded');
+
+        return { config, rootDir: current };
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw err;
+        }
+      }
+
+      const parent = resolve(current, '..');
+      if (parent === current) {
+        throw new Error(
+          `Exolith root not found: ${CONFIG_FILE_NAME} missing. Place ${CONFIG_FILE_NAME} in the project root.`,
+        );
+      }
+      current = parent;
+    }
+  }
+
+  private parseConfig(path: string, raw: string): ExolithConfig {
+    try {
+      return JSON5.parse(raw.trim() || '{}');
+    } catch (err) {
+      throw new Error(`Malformed configuration at ${path}: ${(err as Error).message}`);
+    }
+  }
+}
