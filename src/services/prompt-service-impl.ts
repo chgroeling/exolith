@@ -10,7 +10,7 @@ export class PromptServiceImpl {
     this.env = new Environment(new FileSystemLoader(templateDir), {
       autoescape: false,
     });
-    this.logger = (parentLogger ?? pino()).child({ name: 'prompt-service-impl' });
+    this.logger = parentLogger?.child({ name: 'prompt-service-impl' }) ?? pino({ enabled: false });
     this.logger.info({ templateDir }, 'PromptService initialized');
   }
 

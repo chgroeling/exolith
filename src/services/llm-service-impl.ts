@@ -1,12 +1,18 @@
 import pino from 'pino';
+import type { Logger } from 'pino';
 import type { LlmProvider } from '../llm-provider';
 import type { LlmService, LlmStructuredRequest } from '../llm-service';
 import { LlmSessionImpl } from './llm-session-impl';
 
 export class LlmServiceImpl implements LlmService {
-  private logger = pino({ name: 'llm-service-impl' });
+  private logger: Logger;
 
-  constructor(private provider: LlmProvider) {}
+  constructor(
+    private provider: LlmProvider,
+    parentLogger?: Logger,
+  ) {
+    this.logger = parentLogger?.child({ name: 'llm-service-impl' }) ?? pino({ enabled: false });
+  }
 
   async complete(prompt: string, systemPrompt: string): Promise<string> {
     this.logger.debug({ promptLength: prompt.length }, 'complete started');
@@ -24,7 +30,7 @@ export class LlmServiceImpl implements LlmService {
 
   createSession(systemPrompt: string): LlmSessionImpl {
     this.logger.debug('createSession');
-    return new LlmSessionImpl(this.provider, systemPrompt);
+    return new LlmSessionImpl(this.provider, systemPrompt, this.logger);
   }
 
   async generateStructured<T>(request: LlmStructuredRequest): Promise<T> {

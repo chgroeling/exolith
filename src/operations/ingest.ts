@@ -3,6 +3,7 @@
 import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname } from 'node:path';
 import pino from 'pino';
+import type { Logger } from 'pino';
 import type { IdentifierService } from '../identifier-service';
 import type { LlmService } from '../llm-service';
 import type { PromptService } from '../prompt-service';
@@ -20,14 +21,17 @@ export class Ingest {
   private rawContent = '';
   private filePath = '';
   private enrichedSourcePath = '';
-  private logger = pino({ name: 'ingest' });
+  private logger: Logger;
 
   constructor(
     private llmService: LlmService,
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
-  ) {}
+    parentLogger?: Logger,
+  ) {
+    this.logger = parentLogger?.child({ name: 'ingest' }) ?? pino({ enabled: false });
+  }
 
   /**
    * Runs the full ingest pipeline on a raw source file.

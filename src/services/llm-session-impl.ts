@@ -1,16 +1,19 @@
 import pino from 'pino';
+import type { Logger } from 'pino';
 import type { LlmProvider } from '../llm-provider';
 import type { LlmMessage } from '../llm-service';
 
 export class LlmSessionImpl {
-  private logger = pino({ name: 'llm-session-impl' });
+  private logger: Logger;
 
   private messages: LlmMessage[];
 
   constructor(
     private provider: LlmProvider,
     systemPrompt: string,
+    parentLogger?: Logger,
   ) {
+    this.logger = parentLogger?.child({ name: 'llm-session-impl' }) ?? pino({ enabled: false });
     this.messages = [{ role: 'system', content: systemPrompt }];
   }
 
