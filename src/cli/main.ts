@@ -28,6 +28,7 @@ export function run(): void {
           maxSourceSize: Number.parseInt(options.maxSourceSize),
           vaultPath: options.vault,
         }),
+        { alternateScreen: true, exitOnCtrlC: false },
       );
       await waitUntilExit();
 

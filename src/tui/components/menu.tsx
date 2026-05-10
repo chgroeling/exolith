@@ -21,13 +21,24 @@ export function Menu({ items, onSelect }: MenuProps) {
   });
 
   return (
-    <Box flexDirection="column" paddingLeft={1} paddingRight={1}>
-      {items.map((item, index) => (
-        <Text key={item.value}>
-          {index === selectedIndex ? '> ' : '  '}
-          {item.label}
-        </Text>
-      ))}
+    <Box flexGrow={1} justifyContent="center" alignItems="center">
+      <Box
+        flexDirection="column"
+        paddingLeft={3}
+        paddingRight={3}
+        paddingTop={2}
+        paddingBottom={2}
+        borderStyle="round"
+        borderColor="white"
+        backgroundColor="#4a4a4a"
+      >
+        {items.map((item, index) => (
+          <Text key={item.value} backgroundColor={index === selectedIndex ? '#6a6a6a' : '#4a4a4a'}>
+            {index === selectedIndex ? '> ' : '  '}
+            {item.label}
+          </Text>
+        ))}
+      </Box>
     </Box>
   );
 }

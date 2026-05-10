@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
-import { Box, useStdout } from 'ink';
-import { useEffect, useMemo, useState } from 'react';
+import { Box, useWindowSize } from 'ink';
+import { useMemo, useState } from 'react';
 import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { FileBrowser } from './components/file-browser';
 import { Header } from './components/header';
@@ -21,7 +21,7 @@ export interface AppProps {
 }
 
 export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
-  const { stdout } = useStdout();
+  const { rows } = useWindowSize();
   const [phase, setPhase] = useState<AppPhase>('menu');
   const [filePath, setFilePath] = useState('');
 
@@ -53,15 +53,8 @@ export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
     setFilePath('');
   };
 
-  useEffect(() => {
-    process.stdout.write('\x1b[?1049h');
-    return () => {
-      process.stdout.write('\x1b[?1049l');
-    };
-  }, []);
-
   return (
-    <Box flexDirection="column" height={stdout.rows}>
+    <Box flexDirection="column" height={rows}>
       {phase === 'menu' && (
         <>
           <Header title="Exolith" />
