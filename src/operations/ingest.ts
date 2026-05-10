@@ -5,17 +5,11 @@ import { basename, extname } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../identifier-service';
+import type { IngestConfig } from '../ingest-service';
 import type { LlmService } from '../llm-service';
 import type { PromptService } from '../prompt-service';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
-
-export interface IngestConfig {
-  maxSourceSize: number;
-  vaultPath: string;
-  onChunk?: (chunk: string) => void;
-  readInput?: () => Promise<string>;
-}
 
 export class Ingest {
   private rawContent = '';
