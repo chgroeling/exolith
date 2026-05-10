@@ -49,8 +49,16 @@ export function IngestApp({
   onDone,
 }: IngestAppProps) {
   const [phase, setPhase] = useState<
-    'loading' | 'streaming' | 'waiting' | 'summarizing' | 'done' | 'error'
-  >('loading');
+    | 'starting'
+    | 'pending'
+    | 'completed'
+    | 'streaming'
+    | 'waiting'
+    | 'summarizing'
+    | 'done'
+    | 'error'
+    | null
+  >(null);
   const [stepStatus, setStepStatus] = useState<Record<IngestStep, StepStatus>>(() => {
     const status: Record<string, StepStatus> = {};
     for (const step of INGEST_STEP_ORDER) {
@@ -80,10 +88,12 @@ export function IngestApp({
 
   const onStep = useCallback((step: IngestStep) => {
     setStepStatus((prev) => ({ ...prev, [step]: 'active' }));
+    setPhase('pending');
   }, []);
 
   const onStepComplete = useCallback((step: IngestStep) => {
     setStepStatus((prev) => ({ ...prev, [step]: 'completed' }));
+    setPhase('completed');
   }, []);
 
   const handleSubmit = useCallback((input: string) => {
@@ -105,6 +115,7 @@ export function IngestApp({
     const presentation: IngestPresentation = { onChunk, readInput, onStep, onStepComplete };
     const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, presentation);
 
+    setPhase('starting');
     ingest
       .process(filePath)
       .then(() => {
@@ -156,7 +167,6 @@ export function IngestApp({
           onSubmit={handleSubmit}
         />
       )}
-      {phase === 'loading' && <StatusBar text="Loading source file..." />}
       {phase === 'streaming' && <StatusBar text="Receiving response..." />}
       {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
       {phase === 'done' && <StatusBar text="Ingest complete. Press Enter to return to menu." />}
