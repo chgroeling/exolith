@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface InputBoxProps {
   placeholder: string;
@@ -9,13 +9,36 @@ export interface InputBoxProps {
 export function InputBox({ placeholder, onSubmit }: InputBoxProps) {
   const [value, setValue] = useState('');
   const [cursorVisible, setCursorVisible] = useState(true);
+  const blinkRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const typingRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const isTyping = useRef(false);
+
+  const startBlink = useCallback(() => {
+    clearInterval(blinkRef.current);
+    blinkRef.current = setInterval(() => {
+      if (!isTyping.current) {
+        setCursorVisible((prev) => !prev);
+      }
+    }, 530);
+  }, []);
+
+  const onTyping = useCallback(() => {
+    isTyping.current = true;
+    setCursorVisible(true);
+    clearTimeout(typingRef.current);
+    typingRef.current = setTimeout(() => {
+      isTyping.current = false;
+      startBlink();
+    }, 500);
+  }, [startBlink]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setCursorVisible((prev) => !prev);
-    }, 530);
-    return () => clearInterval(id);
-  }, []);
+    startBlink();
+    return () => {
+      clearInterval(blinkRef.current);
+      clearTimeout(typingRef.current);
+    };
+  }, [startBlink]);
 
   useInput((input, key) => {
     if (key.return) {
@@ -23,8 +46,10 @@ export function InputBox({ placeholder, onSubmit }: InputBoxProps) {
       setValue('');
     } else if (key.backspace || key.delete) {
       setValue((prev) => prev.slice(0, -1));
+      onTyping();
     } else if (input && !key.ctrl && !key.meta) {
       setValue((prev) => prev + input);
+      onTyping();
     }
   });
 

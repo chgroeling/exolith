@@ -54,7 +54,7 @@ export function App({ ingestFactory, maxSourceSize, vaultPath }: AppProps) {
   };
 
   return (
-    <Box flexDirection="column" height={rows}>
+    <Box flexDirection="column" height={rows} borderStyle="round" borderColor="white">
       {phase === 'menu' && (
         <>
           <Header title="Exolith" />
