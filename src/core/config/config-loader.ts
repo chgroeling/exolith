@@ -12,4 +12,14 @@ export interface ConfigLoaderService {
    *         or if the found file contains malformed JSON5.
    */
   load(cwd: string): Promise<ConfigLoadResult>;
+
+  /**
+   * Loads configuration from an explicit directory. No bubble-up search is
+   * performed. The directory must contain {@link CONFIG_FILE_NAME}.
+   * @param dir Absolute or relative path to the vault directory.
+   * @returns The parsed configuration and the resolved root directory.
+   * @throws If {@link CONFIG_FILE_NAME} does not exist at `dir`,
+   *         or if the file contains malformed JSON5.
+   */
+  loadAt(dir: string): Promise<ConfigLoadResult>;
 }

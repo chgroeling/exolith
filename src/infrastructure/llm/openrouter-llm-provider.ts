@@ -1,4 +1,4 @@
-import { generateObject, streamText } from 'ai';
+import { generateObject, jsonSchema, streamText } from 'ai';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { LlmObjectParams, LlmProvider, LlmStreamParams } from './llm-provider';
 
@@ -19,16 +19,14 @@ export class OpenRouterLlmProvider implements LlmProvider {
   }
 
   async generateObject<T>(params: LlmObjectParams): Promise<{ object: T }> {
-    const aiParams = {
+    const result = await generateObject({
       model: this.model,
       system: params.system,
-      messages: params.messages,
-      schema: params.schema,
+      messages: params.messages as unknown as ModelMessage[],
+      schema: jsonSchema(params.schema),
       schemaName: params.schemaName,
       schemaDescription: params.schemaDescription,
-    } as unknown as Parameters<typeof generateObject>[0];
-
-    const result = await generateObject(aiParams);
+    });
     return { object: result.object as T };
   }
 }

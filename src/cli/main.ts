@@ -21,14 +21,16 @@ export function run(): void {
     .option('-l, --log-file <path>', 'path to log file')
     .option('--log-level <level>', 'log level')
     .option('--max-source-size <bytes>', 'maximum source file size in bytes')
+    .option('-v, --vault-dir <path>', 'path to the vault directory containing exolith.json')
     .action(async (options) => {
-      const cwd = process.cwd();
       const configLoader = new ConfigLoaderServiceImpl();
 
       let result: ConfigLoadResult;
 
       try {
-        result = await configLoader.load(cwd);
+        result = options.vaultDir
+          ? await configLoader.loadAt(options.vaultDir)
+          : await configLoader.load(process.cwd());
       } catch (err) {
         console.error((err as Error).message);
         process.exit(1);

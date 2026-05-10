@@ -16,45 +16,49 @@ async function writeConfig(dir: string, content: string): Promise<void> {
   await writeFile(join(dir, CONFIG_FILE_NAME), content, 'utf-8');
 }
 
+function testDir(): string {
+  return join(tmpdir(), `exolith-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+}
+
 describe('ConfigLoader', () => {
   describe('load', () => {
     it('finds exolith.json in cwd', async () => {
-      const testDir = join(tmpdir(), `exolith-test-${Date.now()}`);
-      await writeConfig(testDir, JSON.stringify({ maxSourceSize: 5000 }));
+      const dir = testDir();
+      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
 
-      const result = await makeLoader().load(testDir);
+      const result = await makeLoader().load(dir);
 
       expect(result.config).toEqual({ maxSourceSize: 5000 });
-      expect(result.rootDir).toBe(testDir);
+      expect(result.rootDir).toBe(dir);
     });
 
     it('parses an empty config file as empty object', async () => {
-      const testDir = join(tmpdir(), `exolith-test-${Date.now()}`);
-      await writeConfig(testDir, '');
+      const dir = testDir();
+      await writeConfig(dir, '');
 
-      const result = await makeLoader().load(testDir);
+      const result = await makeLoader().load(dir);
 
       expect(result.config).toEqual({});
-      expect(result.rootDir).toBe(testDir);
+      expect(result.rootDir).toBe(dir);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
-      const testDir = join(tmpdir(), `exolith-test-${Date.now()}`);
+      const dir = testDir();
       const json5Content = `{
         // This is a comment
         maxSourceSize: 10000,
         logFile: "exolith.log", // trailing comma
       }`;
-      await writeConfig(testDir, json5Content);
+      await writeConfig(dir, json5Content);
 
-      const result = await makeLoader().load(testDir);
+      const result = await makeLoader().load(dir);
 
       expect(result.config.maxSourceSize).toBe(10000);
       expect(result.config.logFile).toBe('exolith.log');
     });
 
     it('bubbles up from a subdirectory to find exolith.json', async () => {
-      const rootDir = join(tmpdir(), `exolith-test-${Date.now()}`);
+      const rootDir = testDir();
       await writeConfig(rootDir, JSON.stringify({ logLevel: 'debug' }));
 
       const cwd = join(rootDir, 'deep', 'nested', 'dir');
@@ -67,7 +71,7 @@ describe('ConfigLoader', () => {
     });
 
     it('throws when exolith.json cannot be found up to filesystem root', async () => {
-      const emptyDir = join(tmpdir(), `exolith-test-${Date.now()}`);
+      const emptyDir = testDir();
       await mkdir(emptyDir, { recursive: true });
 
       await expect(makeLoader().load(emptyDir)).rejects.toThrow(
@@ -76,10 +80,71 @@ describe('ConfigLoader', () => {
     });
 
     it('throws when found config file has malformed JSON5', async () => {
-      const testDir = join(tmpdir(), `exolith-test-${Date.now()}`);
-      await writeConfig(testDir, '{ invalid: }');
+      const dir = testDir();
+      await writeConfig(dir, '{ invalid: }');
 
-      await expect(makeLoader().load(testDir)).rejects.toThrow(/Malformed configuration/);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/Malformed configuration/);
+    });
+  });
+
+  describe('loadAt', () => {
+    it('loads exolith.json from the specified directory', async () => {
+      const dir = testDir();
+      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
+
+      const result = await makeLoader().loadAt(dir);
+
+      expect(result.config).toEqual({ maxSourceSize: 5000 });
+      expect(result.rootDir).toBe(dir);
+    });
+
+    it('parses an empty config file as empty object', async () => {
+      const dir = testDir();
+      await writeConfig(dir, '');
+
+      const result = await makeLoader().loadAt(dir);
+
+      expect(result.config).toEqual({});
+      expect(result.rootDir).toBe(dir);
+    });
+
+    it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
+      const dir = testDir();
+      const json5Content = `{
+        // This is a comment
+        maxSourceSize: 10000,
+        logFile: "exolith.log", // trailing comma
+      }`;
+      await writeConfig(dir, json5Content);
+
+      const result = await makeLoader().loadAt(dir);
+
+      expect(result.config.maxSourceSize).toBe(10000);
+      expect(result.config.logFile).toBe('exolith.log');
+    });
+
+    it('throws when exolith.json does not exist at the specified directory', async () => {
+      const emptyDir = testDir();
+      await mkdir(emptyDir, { recursive: true });
+
+      await expect(makeLoader().loadAt(emptyDir)).rejects.toThrow(`${CONFIG_FILE_NAME} not found`);
+    });
+
+    it('does not bubble up — throws even if exolith.json exists in a parent', async () => {
+      const rootDir = testDir();
+      await writeConfig(rootDir, JSON.stringify({ logLevel: 'debug' }));
+
+      const childDir = join(rootDir, 'subdir');
+      await mkdir(childDir, { recursive: true });
+
+      await expect(makeLoader().loadAt(childDir)).rejects.toThrow(`${CONFIG_FILE_NAME} not found`);
+    });
+
+    it('throws when config file has malformed JSON5', async () => {
+      const dir = testDir();
+      await writeConfig(dir, '{ invalid: }');
+
+      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/Malformed configuration/);
     });
   });
 });

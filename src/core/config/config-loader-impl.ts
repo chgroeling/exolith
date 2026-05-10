@@ -46,6 +46,40 @@ export class ConfigLoaderServiceImpl implements ConfigLoaderService {
     }
   }
 
+  /**
+   * Loads configuration from an explicit directory without bubble-up search.
+   * @param dir Absolute or relative path to the vault directory.
+   * @returns The parsed configuration and the resolved root directory.
+   * @throws If {@link CONFIG_FILE_NAME} does not exist at `dir`.
+   */
+  async loadAt(dir: string): Promise<ConfigLoadResult> {
+    const rootDir = resolve(dir);
+    const candidate = join(rootDir, CONFIG_FILE_NAME);
+
+    let raw: string;
+
+    try {
+      raw = await readFile(candidate, 'utf-8');
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(
+          `${CONFIG_FILE_NAME} not found at ${rootDir}.` +
+            ` Place ${CONFIG_FILE_NAME} at the specified vault directory.`,
+        );
+      }
+      throw err;
+    }
+
+    const config = this.parseConfig(candidate, raw);
+
+    this.logger?.info(
+      { configPath: candidate, rootDir },
+      'Configuration loaded from explicit path',
+    );
+
+    return { config, rootDir };
+  }
+
   private parseConfig(path: string, raw: string): ExolithConfig {
     try {
       return JSON5.parse(raw.trim() || '{}');
