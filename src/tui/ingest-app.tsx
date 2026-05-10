@@ -1,11 +1,11 @@
-import { Box, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   IngestPresentation,
   IngestServiceFactory,
   IngestStep,
 } from '../operations/ingest/ingest-service';
-import { INGEST_STEP_LABELS } from '../operations/ingest/ingest-service';
+import { INGEST_STEP_LABELS, INGEST_STEP_ORDER } from '../operations/ingest/ingest-service';
 import { Header } from './components/header';
 import { InputBox } from './components/input-box';
 import { MessageList } from './components/message-list';
@@ -22,8 +22,23 @@ export interface IngestAppProps {
   onDone: () => void;
 }
 
+type StepStatus = 'pending' | 'active' | 'completed' | 'error';
+
 function makeMessage(role: Message['role'], content: string): Message {
   return { id: String(nextId++), role, content };
+}
+
+function stepSymbol(status: StepStatus): string {
+  switch (status) {
+    case 'completed':
+      return '✓';
+    case 'active':
+      return '●';
+    case 'error':
+      return '✗';
+    default:
+      return '○';
+  }
 }
 
 export function IngestApp({
@@ -36,7 +51,13 @@ export function IngestApp({
   const [phase, setPhase] = useState<
     'loading' | 'streaming' | 'waiting' | 'summarizing' | 'done' | 'error'
   >('loading');
-  const [currentStep, setCurrentStep] = useState<IngestStep | null>(null);
+  const [stepStatus, setStepStatus] = useState<Record<IngestStep, StepStatus>>(() => {
+    const status: Record<string, StepStatus> = {};
+    for (const step of INGEST_STEP_ORDER) {
+      status[step] = 'pending';
+    }
+    return status as Record<IngestStep, StepStatus>;
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const resolveRef = useRef<((value: string) => void) | null>(null);
 
@@ -58,7 +79,11 @@ export function IngestApp({
   }, []);
 
   const onStep = useCallback((step: IngestStep) => {
-    setCurrentStep(step);
+    setStepStatus((prev) => ({ ...prev, [step]: 'active' }));
+  }, []);
+
+  const onStepComplete = useCallback((step: IngestStep) => {
+    setStepStatus((prev) => ({ ...prev, [step]: 'completed' }));
   }, []);
 
   const handleSubmit = useCallback((input: string) => {
@@ -77,7 +102,7 @@ export function IngestApp({
   });
 
   useEffect(() => {
-    const presentation: IngestPresentation = { onChunk, readInput, onStep };
+    const presentation: IngestPresentation = { onChunk, readInput, onStep, onStepComplete };
     const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, presentation);
 
     ingest
@@ -89,11 +114,41 @@ export function IngestApp({
         setMessages((prev) => [...prev, makeMessage('error', err.message)]);
         setPhase('error');
       });
-  }, [filePath, ingestFactory, maxSourceSize, vaultPath, onChunk, readInput, onStep]);
+  }, [
+    filePath,
+    ingestFactory,
+    maxSourceSize,
+    vaultPath,
+    onChunk,
+    readInput,
+    onStep,
+    onStepComplete,
+  ]);
 
   return (
     <Box flexDirection="column">
       <Header title={`Ingest: ${filePath}`} />
+      <Box flexDirection="column" marginBottom={1} paddingLeft={1} paddingRight={1}>
+        {INGEST_STEP_ORDER.map((step) => {
+          const status = stepStatus[step];
+          const label = INGEST_STEP_LABELS[step];
+          const color =
+            status === 'active'
+              ? 'yellow'
+              : status === 'completed'
+                ? 'green'
+                : status === 'error'
+                  ? 'red'
+                  : undefined;
+          const dimmed = status === 'pending';
+
+          return (
+            <Text key={step} color={color} dimColor={dimmed}>
+              {stepSymbol(status)} {label}
+            </Text>
+          );
+        })}
+      </Box>
       <MessageList messages={messages} />
       {phase === 'waiting' && (
         <InputBox
@@ -104,9 +159,6 @@ export function IngestApp({
       {phase === 'loading' && <StatusBar text="Loading source file..." />}
       {phase === 'streaming' && <StatusBar text="Receiving response..." />}
       {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
-      {currentStep && phase !== 'done' && phase !== 'error' && (
-        <StatusBar text={`Step: ${INGEST_STEP_LABELS[currentStep]}`} />
-      )}
       {phase === 'done' && <StatusBar text="Ingest complete. Press Enter to return to menu." />}
       {phase === 'error' && <StatusBar text="An error occurred. Press Enter to return to menu." />}
     </Box>

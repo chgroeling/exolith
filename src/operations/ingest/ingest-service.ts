@@ -19,6 +19,17 @@ export const INGEST_STEP_LABELS: Record<IngestStep, string> = {
   logging: 'Writing log entry…',
 };
 
+/** Ordered list of all ingest steps. */
+export const INGEST_STEP_ORDER: IngestStep[] = [
+  'reading',
+  'discussing',
+  'writing-source',
+  'extracting',
+  'updating',
+  'compiling',
+  'logging',
+];
+
 /** Presentation callbacks required by the ingest pipeline. */
 export interface IngestPresentation {
   /** Invoked for each token chunk during LLM streaming. */
@@ -27,6 +38,8 @@ export interface IngestPresentation {
   readInput(): Promise<string>;
   /** Invoked when the pipeline enters a new step. */
   onStep(step: IngestStep): void;
+  /** Invoked when a step completes successfully. */
+  onStepComplete(step: IngestStep): void;
 }
 
 /** Configuration for an ingest pipeline run. */

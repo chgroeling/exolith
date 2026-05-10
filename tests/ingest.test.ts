@@ -86,6 +86,7 @@ function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPr
     onChunk: () => {},
     readInput: () => Promise.resolve(''),
     onStep: () => {},
+    onStepComplete: () => {},
     ...overrides,
   };
 }
@@ -544,6 +545,67 @@ describe('Ingest', () => {
       await expect(ingest.process(filePath)).rejects.toThrow();
 
       expect(steps).toEqual(['reading']);
+    });
+
+    it('calls onStepComplete for each completed step in order', async () => {
+      const completed: string[] = [];
+
+      const config = makeConfig();
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Content', 'utf-8');
+
+      const presentation = makeMockPresentation({
+        readInput: () => Promise.resolve(''),
+        onStepComplete: (step) => {
+          completed.push(step);
+        },
+      });
+      const ingest = new Ingest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await ingest.process(filePath);
+
+      expect(completed).toEqual([
+        'reading',
+        'discussing',
+        'writing-source',
+        'extracting',
+        'updating',
+        'compiling',
+        'logging',
+      ]);
+    });
+
+    it('does not call onStepComplete for failed steps', async () => {
+      const completed: string[] = [];
+
+      const config = makeConfig({ maxSourceSize: 1 });
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'big.md');
+      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
+
+      const presentation = makeMockPresentation({
+        onStepComplete: (step) => {
+          completed.push(step);
+        },
+      });
+      const ingest = new Ingest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await expect(ingest.process(filePath)).rejects.toThrow();
+
+      expect(completed).toEqual([]);
     });
   });
 
