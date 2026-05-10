@@ -1,7 +1,7 @@
 import pino from 'pino';
 import type { Logger } from 'pino';
-import type { LlmProvider } from '../llm-provider';
-import type { LlmService, LlmStructuredRequest } from '../llm-service';
+import type { LlmProvider } from './llm-provider';
+import type { LlmService, LlmSession, LlmStructuredRequest } from './llm-service';
 import { LlmSessionImpl } from './llm-session-impl';
 
 export class LlmServiceImpl implements LlmService {
@@ -28,7 +28,7 @@ export class LlmServiceImpl implements LlmService {
     return text;
   }
 
-  createSession(systemPrompt: string): LlmSessionImpl {
+  createSession(systemPrompt: string): LlmSession {
     this.logger.debug('createSession');
     return new LlmSessionImpl(this.provider, systemPrompt, this.logger);
   }

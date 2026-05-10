@@ -1,6 +1,6 @@
 import { Box, useInput } from 'ink';
 import { useState } from 'react';
-import type { IngestServiceFactory } from '../ingest-service';
+import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { Header } from './components/header';
 import { InputBox } from './components/input-box';
 import { Menu } from './components/menu';

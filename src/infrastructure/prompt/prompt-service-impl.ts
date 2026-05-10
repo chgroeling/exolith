@@ -1,8 +1,9 @@
 import { Environment, FileSystemLoader } from 'nunjucks';
 import pino from 'pino';
 import type { Logger } from 'pino';
+import type { PromptService } from './prompt-service';
 
-export class PromptServiceImpl {
+export class PromptServiceImpl implements PromptService {
   private env: Environment;
   private logger: Logger;
 

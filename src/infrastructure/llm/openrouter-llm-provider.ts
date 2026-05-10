@@ -1,8 +1,8 @@
 import { generateObject, streamText } from 'ai';
 import type { LanguageModel, ModelMessage } from 'ai';
-import type { LlmObjectParams, LlmProvider, LlmStreamParams } from '../llm-provider';
+import type { LlmObjectParams, LlmProvider, LlmStreamParams } from './llm-provider';
 
-export class VercelLlmService implements LlmProvider {
+export class OpenRouterLlmProvider implements LlmProvider {
   constructor(private model: LanguageModel) {}
 
   streamText(params: LlmStreamParams): { textStream: AsyncIterable<string> } {

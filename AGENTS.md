@@ -21,8 +21,16 @@ An LLM-maintained wiki — compile knowledge once, query it forever.
 ```
 exolith/
 ├── src/
-├── tests/
-├── docs/
+│   ├── index.ts                  Entry point — delegates to cli/
+│   ├── core/                     Domain model, cross-cutting primitives
+│   ├── infrastructure/           External dependency adapters (LLM, templates)
+│   ├── operations/               Business operations (ingest, compile, lint, …)
+│   ├── composition/              DI composition root — wires the object graph
+│   ├── cli/                      CLI parsing and bootstrap
+│   └── tui/                      Terminal UI (Ink / React)
+├── tests/                        Flat test files, one per module
+├── docs/                         Specifications (tech-free)
+├── templates/                    Nunjucks prompt templates
 ├── dist/
 ├── package.json
 ├── tsconfig.json
@@ -79,17 +87,73 @@ The consumer owns the interface. The implementation module conforms structurally
 
 ### Test Strategy
 
-One test file per source module. Mock dependencies at module boundaries. Assert only the module's own logic, never the behavior of its dependencies.
+One test file per source module. Tests live in the flat `tests/` directory — never mirror the `src/` directory structure. Mock dependencies at module boundaries. Assert only the module's own logic, never the behavior of its dependencies.
+
+**Rationale:** Nesting test directories under the same names as source directories causes module resolution conflicts in Vite/Vitest. Flat naming avoids this entirely. Example: `tests/slugger.test.ts` tests `src/core/slugger-service-impl.ts`.
 
 ### Constructor Options, Not Per-Call
 
 Set configuration once at construction. No options arguments on methods.
 
+**Presentation callbacks are NOT configuration.** Separate pure configuration (limits, paths) from presentation adapters (streaming output, user input) into distinct interfaces injected at construction time. This keeps business logic free of UI concerns.
+
+### Module Layout — Vertical by Domain
+
+Source modules are organized vertically by domain concept, not horizontally by technical layer. Each module directory contains its interface, implementation(s), and all related files co-located:
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/core/` | Domain model, cross-cutting primitives (types, identifier, slug) |
+| `src/infrastructure/` | External dependency adapters — one sub-directory per dependency (currently `llm/`, `prompt/`) |
+| `src/operations/` | Business operations — one sub-directory per operation (currently `ingest/`, future `compile/`, `lint/`, …) |
+| `src/composition/` | DI composition root — wires the full object graph |
+| `src/cli/` | CLI parsing and entry point |
+| `src/tui/` | Terminal UI presentation layer |
+
+**Rationale:** Co-location makes the module self-contained — all code for one concept lives together. New operations add directories without bloating a flat root.
+
+### Interface Contracts
+
+Every implementation class must use the `implements` keyword to formally declare the interface it satisfies. This documents the contract, produces precise compiler errors when the interface changes, and makes the architecture visible in code.
+
+```typescript
+// Correct
+export class IdentifierServiceImpl implements IdentifierService { … }
+
+// Incorrect — structural conformance only, invisible contract
+export class IdentifierServiceImpl { … }
+```
+
+### Return Types
+
+Public methods of implementation classes must declare their return type as the **interface**, never the concrete class. This prevents consumers from depending on implementation details.
+
+```typescript
+// Correct
+createSession(systemPrompt: string): LlmSession { … }
+
+// Incorrect — leaks concrete type
+createSession(systemPrompt: string): LlmSessionImpl { … }
+```
+
+### Provider Naming
+
+Provider implementations go in `src/infrastructure/<domain>/`. They implement `*Provider` interfaces and are named `*Provider` (not `*Service`). The directory name matches the infrastructure domain, not the vendor.
+
+```
+src/infrastructure/llm/
+├── llm-provider.ts              # LlmProvider interface
+├── openrouter-llm-provider.ts   # OpenRouterLlmProvider
+├── llm-service.ts               # LlmService interface (consumer-facing)
+├── llm-service-impl.ts          # LlmServiceImpl (adapter)
+└── llm-session-impl.ts          # LlmSessionImpl
+```
+
 ### Service Layer
 
-Services are abstracted behind interfaces living in `src/` root (`*-service.ts`). Implementations live in `src/services/` as `*-service-impl.ts`, classes suffixed `*ServiceImpl`. Providers live in `src/providers/`.
+Services are abstracted behind interfaces. The interface lives in the same module directory as its implementation — not scattered across a flat `src/` root. Implementations are suffixed `*Impl`.
 
-When a service wraps an external dependency (e.g., an AI SDK), introduce a provider interface (`*-provider.ts` in `src/` root) and use an adapter `*ServiceImpl` to translate between the two interfaces. This keeps the consumer decoupled from any specific provider implementation.
+When a service wraps an external dependency (e.g., an AI SDK), introduce a provider interface (`*-provider.ts`) and use an adapter `*ServiceImpl` to translate between the two interfaces. This keeps the consumer decoupled from any specific provider implementation.
 
 ## Git Workflow
 

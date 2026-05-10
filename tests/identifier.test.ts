@@ -1,8 +1,8 @@
 // Specification: docs/cross-cutting/identifier-spec.md
 
 import { describe, expect, it } from 'vitest';
-import { IdentifierServiceImpl } from '../../src/services/identifier-service-impl';
-import type { SluggerService } from '../../src/slugger-service';
+import { IdentifierServiceImpl } from '../src/core/identifier-service-impl';
+import type { SluggerService } from '../src/core/slugger-service';
 
 const mockSlugger: SluggerService = {
   slugify(_text: string) {

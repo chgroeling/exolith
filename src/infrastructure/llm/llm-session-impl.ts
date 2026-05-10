@@ -1,9 +1,9 @@
 import pino from 'pino';
 import type { Logger } from 'pino';
-import type { LlmProvider } from '../llm-provider';
-import type { LlmMessage } from '../llm-service';
+import type { LlmProvider } from './llm-provider';
+import type { LlmMessage, LlmSession } from './llm-service';
 
-export class LlmSessionImpl {
+export class LlmSessionImpl implements LlmSession {
   private logger: Logger;
 
   private messages: LlmMessage[];

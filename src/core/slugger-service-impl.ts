@@ -1,6 +1,7 @@
 // Specification: docs/cross-cutting/slug-spec.md
 
 import slug from 'slug';
+import type { SluggerService } from './slugger-service';
 
 export interface SlugOptions {
   /** Locale for non-Latin script transliteration (e.g. 'bg' for Bulgarian Cyrillic) */
@@ -18,7 +19,7 @@ function slugify(text: string, options?: SlugOptions): string {
   });
 }
 
-export class SluggerServiceImpl {
+export class SluggerServiceImpl implements SluggerService {
   constructor(private options?: SlugOptions) {}
 
   slugify(text: string): string {

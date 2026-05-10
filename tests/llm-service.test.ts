@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { LlmProvider } from '../../src/llm-provider';
-import { LlmServiceImpl } from '../../src/services/llm-service-impl';
+import type { LlmProvider } from '../src/infrastructure/llm/llm-provider';
+import { LlmServiceImpl } from '../src/infrastructure/llm/llm-service-impl';
 
 function makeMockProvider(opts?: {
   streamChunks?: string[];
@@ -9,7 +9,6 @@ function makeMockProvider(opts?: {
   return {
     streamText(_params) {
       const chunks = opts?.streamChunks ?? ['mock'];
-      const index = 0;
       return {
         textStream: (async function* () {
           for (const chunk of chunks) {

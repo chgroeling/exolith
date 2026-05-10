@@ -1,6 +1,6 @@
 import { Box, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { IngestServiceFactory } from '../ingest-service';
+import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { Header } from './components/header';
 import { InputBox } from './components/input-box';
 import { MessageList } from './components/message-list';
@@ -65,7 +65,7 @@ export function IngestApp({
   });
 
   useEffect(() => {
-    const ingest = ingestFactory.create({ maxSourceSize, vaultPath, onChunk, readInput });
+    const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, { onChunk, readInput });
 
     ingest
       .process(filePath)

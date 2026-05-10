@@ -4,14 +4,14 @@ import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/prom
 import { basename, extname } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
-import type { IdentifierService } from '../identifier-service';
-import type { IngestConfig } from '../ingest-service';
-import type { LlmService } from '../llm-service';
-import type { PromptService } from '../prompt-service';
+import type { IdentifierService } from '../../core/identifier-service';
+import type { LlmService } from '../../infrastructure/llm/llm-service';
+import type { PromptService } from '../../infrastructure/prompt/prompt-service';
+import type { IngestConfig, IngestPresentation, IngestService } from './ingest-service';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
 
-export class Ingest {
+export class Ingest implements IngestService {
   private rawContent = '';
   private filePath = '';
   private enrichedSourcePath = '';
@@ -22,6 +22,7 @@ export class Ingest {
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
+    private presentation: IngestPresentation,
     parentLogger?: Logger,
   ) {
     this.logger = parentLogger?.child({ name: 'ingest' }) ?? pino({ enabled: false });
@@ -107,18 +108,18 @@ export class Ingest {
     session.addUserMessage(initialPrompt);
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
-    await session.stream(this.config.onChunk ?? (() => {}));
+    await session.stream(this.presentation.onChunk);
 
     let turn = 1;
-    while (this.config.readInput) {
-      const input = await this.config.readInput();
+    while (true) {
+      const input = await this.presentation.readInput();
       if (!input) break;
 
       turn++;
       this.logger.trace({ turn, input }, 'Discussion: received user input');
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
-      await session.stream(this.config.onChunk ?? (() => {}));
+      await session.stream(this.presentation.onChunk);
     }
 
     this.logger.info(
