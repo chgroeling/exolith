@@ -29,22 +29,39 @@ export function createCliPreIngestPresentation(
   opts: { skipDiscuss?: boolean } = {},
 ): PreIngestPresentation {
   let spin: SpinnerResult | null = null;
-  let buffer = '';
-  let pendingDisplay: Promise<void> | null = null;
+  let chunkQueue: string[] | null = null;
+  let queueResolve: (() => void) | null = null;
+  let queueDone = false;
+  let streamPromise: Promise<void> | null = null;
 
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const label = STATE_LABELS[state];
 
       if (state === 'streaming') {
+        chunkQueue = [];
+        queueDone = false;
+        streamPromise = stream.message({
+          async *[Symbol.asyncIterator]() {
+            while (true) {
+              while (chunkQueue && chunkQueue.length > 0) {
+                const item = chunkQueue.shift();
+                if (item !== undefined) yield item;
+              }
+              if (queueDone) return;
+              await new Promise<void>((r) => {
+                queueResolve = r;
+              });
+            }
+          },
+        });
         return;
       }
 
       if (state === 'waiting-for-input') {
-        pendingDisplay = stream.message([buffer]).then(() => {
-          pendingDisplay = null;
-        });
-        buffer = '';
+        queueDone = true;
+        queueResolve?.();
+        queueResolve = null;
         return;
       }
 
@@ -77,11 +94,20 @@ export function createCliPreIngestPresentation(
     onChunk(chunk: string): void {
       spin?.stop();
       spin = null;
-      buffer += chunk;
+
+      if (chunkQueue) {
+        chunkQueue.push(chunk);
+        queueResolve?.();
+        queueResolve = null;
+      }
     },
 
     async readInput(): Promise<string> {
-      if (pendingDisplay) await pendingDisplay;
+      if (streamPromise) {
+        await streamPromise;
+        streamPromise = null;
+        chunkQueue = null;
+      }
 
       const result = await text({
         message: 'Your response (press Enter on empty to finish)',
