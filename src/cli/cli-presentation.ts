@@ -39,6 +39,8 @@ export function createCliPreIngestPresentation(
       const label = STATE_LABELS[state];
 
       if (state === 'streaming') {
+        spin?.stop(`${label}`);
+        spin = null;
         chunkQueue = [];
         queueDone = false;
         streamPromise = stream.message({
@@ -92,9 +94,6 @@ export function createCliPreIngestPresentation(
     },
 
     onChunk(chunk: string): void {
-      spin?.stop();
-      spin = null;
-
       if (chunkQueue) {
         chunkQueue.push(chunk);
         queueResolve?.();
