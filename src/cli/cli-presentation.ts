@@ -29,18 +29,29 @@ export function createCliPreIngestPresentation(
   opts: { skipDiscuss?: boolean } = {},
 ): PreIngestPresentation {
   let spin: SpinnerResult | null = null;
+  let spinLabel = '';
   let chunkQueue: string[] | null = null;
   let queueResolve: (() => void) | null = null;
   let queueDone = false;
   let streamPromise: Promise<void> | null = null;
+
+  function startSpin(msg: string) {
+    spin = spinner();
+    spin.start(msg);
+    spinLabel = msg;
+  }
+
+  function stopSpin() {
+    spin?.stop(spinLabel);
+    spin = null;
+    spinLabel = '';
+  }
 
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const label = STATE_LABELS[state];
 
       if (state === 'streaming') {
-        spin?.stop(`${label}`);
-        spin = null;
         chunkQueue = [];
         queueDone = false;
         streamPromise = stream.message({
@@ -68,8 +79,7 @@ export function createCliPreIngestPresentation(
       }
 
       if (state === 'source-page-written') {
-        spin?.stop(`${label}`);
-        spin = null;
+        stopSpin();
         log.success(`${data.sourcePath}`);
         return;
       }
@@ -77,16 +87,15 @@ export function createCliPreIngestPresentation(
       if (state === 'extracting-source-page') {
         if (spin) {
           spin.message(`${label} …`);
+          spinLabel = `${label} …`;
         } else {
-          spin = spinner();
-          spin.start(`${label} …`);
+          startSpin(`${label} …`);
         }
         return;
       }
 
       if (state === 'discussion-summary') {
-        spin = spinner();
-        spin.start(`${label} …`);
+        startSpin(`${label} …`);
         return;
       }
 
@@ -94,6 +103,8 @@ export function createCliPreIngestPresentation(
     },
 
     onChunk(chunk: string): void {
+      stopSpin();
+
       if (chunkQueue) {
         chunkQueue.push(chunk);
         queueResolve?.();
@@ -117,8 +128,7 @@ export function createCliPreIngestPresentation(
 
       const trimmed = result.trim();
       if (trimmed) {
-        spin = spinner();
-        spin.start('Thinking …');
+        startSpin('Thinking …');
       }
       return trimmed;
     },
@@ -137,8 +147,7 @@ export function createCliPreIngestPresentation(
       if (isCancel(result)) return false;
 
       if (result) {
-        spin = spinner();
-        spin.start('Thinking …');
+        startSpin('Thinking …');
       }
       return result;
     },
