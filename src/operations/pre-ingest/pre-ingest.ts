@@ -136,6 +136,7 @@ export class PreIngest implements PreIngestService {
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
     let response = '';
+    this.presentation.onStateChange('streaming', { fileName: basename(this.filePath) });
     await session.stream((chunk) => {
       response += chunk;
       this.presentation.onChunk(chunk);
@@ -144,6 +145,7 @@ export class PreIngest implements PreIngestService {
 
     let turn = 1;
     while (true) {
+      this.presentation.onStateChange('waiting-for-input', { fileName: basename(this.filePath) });
       const input = await this.presentation.readInput();
       if (!input) break;
 
@@ -152,6 +154,7 @@ export class PreIngest implements PreIngestService {
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
       response = '';
+      this.presentation.onStateChange('streaming', { fileName: basename(this.filePath) });
       await session.stream((chunk) => {
         response += chunk;
         this.presentation.onChunk(chunk);

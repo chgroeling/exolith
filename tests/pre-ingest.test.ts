@@ -575,6 +575,8 @@ describe('PreIngest', () => {
       expect(states).toEqual([
         'reading',
         'discussing',
+        'streaming',
+        'waiting-for-input',
         'discussion-summary',
         'extracting-source-page',
         'source-page-written',
@@ -605,7 +607,15 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(fileNames).toEqual(['source.md', 'source.md', 'source.md', 'source.md', 'source.md']);
+      expect(fileNames).toEqual([
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+      ]);
     });
 
     it('includes sourcePath in state data for source-page-written', async () => {

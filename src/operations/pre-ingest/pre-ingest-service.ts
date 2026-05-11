@@ -2,6 +2,8 @@
 export type PreIngestState =
   | 'reading'
   | 'discussing'
+  | 'streaming'
+  | 'waiting-for-input'
   | 'discussion-summary'
   | 'extracting-source-page'
   | 'source-page-written';

@@ -10,6 +10,8 @@ import type {
 const STATE_LABELS: Record<PreIngestState, string> = {
   reading: 'Reading',
   discussing: 'Discussing',
+  streaming: 'Streaming',
+  'waiting-for-input': 'Waiting for input',
   'discussion-summary': 'Summarizing discussion',
   'extracting-source-page': 'Extracting source page',
   'source-page-written': 'Source page written',
@@ -28,10 +30,23 @@ export function createCliPreIngestPresentation(
 ): PreIngestPresentation {
   let spin: SpinnerResult | null = null;
   let buffer = '';
+  let pendingDisplay: Promise<void> | null = null;
 
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const label = STATE_LABELS[state];
+
+      if (state === 'streaming') {
+        return;
+      }
+
+      if (state === 'waiting-for-input') {
+        pendingDisplay = stream.message([buffer]).then(() => {
+          pendingDisplay = null;
+        });
+        buffer = '';
+        return;
+      }
 
       if (state === 'source-page-written') {
         spin?.stop(`${label}`);
@@ -66,8 +81,7 @@ export function createCliPreIngestPresentation(
     },
 
     async readInput(): Promise<string> {
-      await stream.message([buffer]);
-      buffer = '';
+      if (pendingDisplay) await pendingDisplay;
 
       const result = await text({
         message: 'Your response (press Enter on empty to finish)',
