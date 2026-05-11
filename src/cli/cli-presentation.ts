@@ -47,6 +47,23 @@ export function createCliPreIngestPresentation(
     spinLabel = '';
   }
 
+  function startStream() {
+    streamPromise = stream.message({
+      async *[Symbol.asyncIterator]() {
+        while (true) {
+          while (chunkQueue && chunkQueue.length > 0) {
+            const item = chunkQueue.shift();
+            if (item !== undefined) yield item;
+          }
+          if (queueDone) return;
+          await new Promise<void>((r) => {
+            queueResolve = r;
+          });
+        }
+      },
+    });
+  }
+
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const label = STATE_LABELS[state];
@@ -54,20 +71,7 @@ export function createCliPreIngestPresentation(
       if (state === 'streaming') {
         chunkQueue = [];
         queueDone = false;
-        streamPromise = stream.message({
-          async *[Symbol.asyncIterator]() {
-            while (true) {
-              while (chunkQueue && chunkQueue.length > 0) {
-                const item = chunkQueue.shift();
-                if (item !== undefined) yield item;
-              }
-              if (queueDone) return;
-              await new Promise<void>((r) => {
-                queueResolve = r;
-              });
-            }
-          },
-        });
+        streamPromise = null;
         return;
       }
 
@@ -106,6 +110,7 @@ export function createCliPreIngestPresentation(
       stopSpin();
 
       if (chunkQueue) {
+        if (!streamPromise) startStream();
         chunkQueue.push(chunk);
         queueResolve?.();
         queueResolve = null;
