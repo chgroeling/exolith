@@ -90,16 +90,16 @@ export function createCliPreIngestPresentation(
 
       if (state === 'extracting-source-page') {
         if (spin) {
-          spin.message(`${label} …`);
-          spinLabel = `${label} …`;
+          spin.message(`${label}`);
+          spinLabel = `${label}`;
         } else {
-          startSpin(`${label} …`);
+          startSpin(`${label}`);
         }
         return;
       }
 
       if (state === 'discussion-summary') {
-        startSpin(`${label} …`);
+        startSpin(`${label}`);
         return;
       }
 
@@ -133,7 +133,7 @@ export function createCliPreIngestPresentation(
 
       const trimmed = result.trim();
       if (trimmed) {
-        startSpin('Thinking …');
+        startSpin('Thinking');
       }
       return trimmed;
     },
@@ -152,7 +152,7 @@ export function createCliPreIngestPresentation(
       if (isCancel(result)) return false;
 
       if (result) {
-        startSpin('Thinking …');
+        startSpin('Thinking');
       }
       return result;
     },

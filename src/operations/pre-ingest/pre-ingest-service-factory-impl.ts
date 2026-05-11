@@ -15,7 +15,7 @@ export class PreIngestServiceFactoryImpl implements PreIngestServiceFactory {
     private identifier: IdentifierService,
     private promptService: PromptService,
     private parentLogger?: import('pino').Logger,
-  ) {}
+  ) { }
 
   /** Creates a {@link PreIngestService} wired to this factory's dependencies. */
   create(config: PreIngestConfig, presentation: PreIngestPresentation): PreIngestService {
