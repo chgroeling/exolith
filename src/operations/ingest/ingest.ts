@@ -318,14 +318,14 @@ export class Ingest implements IngestService {
   }
 
   /** Step 4: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
-  private async extract(): Promise<void> { }
+  private async extract(): Promise<void> {}
 
   /** Step 5: Updates all wiki pages touched by the extracted knowledge. */
-  private async updateWikiPages(): Promise<void> { }
+  private async updateWikiPages(): Promise<void> {}
 
   /** Step 6: Triggers compilation of index, backlinks, and dashboards. */
-  private async triggerCompile(): Promise<void> { }
+  private async triggerCompile(): Promise<void> {}
 
   /** Step 7: Writes a summary entry to the vault log. */
-  private async writeLogEntry(): Promise<void> { }
+  private async writeLogEntry(): Promise<void> {}
 }

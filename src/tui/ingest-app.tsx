@@ -136,11 +136,13 @@ export function IngestApp({
     onStepComplete,
   ]);
 
+  const visibleSteps = INGEST_STEP_ORDER.filter((step) => stepStatus[step] !== 'pending');
+
   return (
     <Box flexDirection="column">
       <Header title={`Ingest: ${filePath}`} />
-      <Box flexDirection="column" marginBottom={1} paddingLeft={1} paddingRight={1}>
-        {INGEST_STEP_ORDER.map((step) => {
+      <Box flexDirection="column" paddingLeft={1} paddingRight={1}>
+        {visibleSteps.map((step) => {
           const status = stepStatus[step];
           const label = INGEST_STEP_LABELS[step];
           const color =
@@ -154,21 +156,27 @@ export function IngestApp({
           const dimmed = status === 'pending';
 
           return (
-            <Text key={step} color={color} dimColor={dimmed}>
-              {stepSymbol(status)} {label}
-            </Text>
+            <Box key={step} flexDirection="column">
+              <Text color={color} dimColor={dimmed}>
+                {stepSymbol(status)} {label}
+              </Text>
+              {step === 'discussing' && (
+                <Box flexDirection="column" paddingLeft={2}>
+                  <MessageList messages={messages} />
+                  {phase === 'waiting' && (
+                    <InputBox
+                      placeholder="Type your response (Enter to send, empty to finish)..."
+                      onSubmit={handleSubmit}
+                    />
+                  )}
+                  {phase === 'streaming' && <StatusBar text="Receiving response..." />}
+                  {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
+                </Box>
+              )}
+            </Box>
           );
         })}
       </Box>
-      <MessageList messages={messages} />
-      {phase === 'waiting' && (
-        <InputBox
-          placeholder="Type your response (Enter to send, empty to finish)..."
-          onSubmit={handleSubmit}
-        />
-      )}
-      {phase === 'streaming' && <StatusBar text="Receiving response..." />}
-      {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
       {phase === 'done' && <StatusBar text="Ingest complete. Press Enter to return to menu." />}
       {phase === 'error' && <StatusBar text="An error occurred. Press Enter to return to menu." />}
     </Box>
