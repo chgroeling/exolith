@@ -11,7 +11,7 @@ export class PromptServiceImpl implements PromptService {
     this.env = new Environment(new FileSystemLoader(templateDir), {
       autoescape: false,
     });
-    this.logger = parentLogger?.child({ name: 'prompt-service-impl' }) ?? pino({ enabled: false });
+    this.logger = parentLogger?.child({ logger: 'prompt-service-impl' }) ?? pino({ enabled: false });
     this.logger.info({ templateDir }, 'PromptService initialized');
   }
 

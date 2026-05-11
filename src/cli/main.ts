@@ -45,7 +45,7 @@ export function run(): void {
       const maxSourceSize = options.maxSourceSize ?? config.maxSourceSize ?? 10485760;
 
       const logStream = createWriteStream(logFilePath, { flags: 'w' });
-      const logger = pino({ name: 'exolith', level: logLevel }, logStream);
+      const logger = pino({ level: logLevel, base: undefined }, logStream);
 
       logger.info({ rootDir }, 'CLI started');
 

@@ -13,7 +13,7 @@ export class LlmSessionImpl implements LlmSession {
     systemPrompt: string,
     parentLogger?: Logger,
   ) {
-    this.logger = parentLogger?.child({ name: 'llm-session-impl' }) ?? pino({ enabled: false });
+    this.logger = parentLogger?.child({ logger: 'llm-session-impl' }) ?? pino({ enabled: false });
     this.messages = [{ role: 'system', content: systemPrompt }];
   }
 

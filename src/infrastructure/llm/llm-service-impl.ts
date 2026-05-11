@@ -11,7 +11,7 @@ export class LlmServiceImpl implements LlmService {
     private provider: LlmProvider,
     parentLogger?: Logger,
   ) {
-    this.logger = parentLogger?.child({ name: 'llm-service-impl' }) ?? pino({ enabled: false });
+    this.logger = parentLogger?.child({ logger: 'llm-service-impl' }) ?? pino({ enabled: false });
   }
 
   async complete(prompt: string, systemPrompt: string): Promise<string> {
