@@ -8,6 +8,8 @@ export type PreIngestState =
   | 'extracting-source-page'
   | 'source-page-written';
 
+import type { PipelinePresentation } from '../pipeline-presentation';
+
 /** Context data passed with each state change. */
 export interface PreIngestStateData {
   /** Name of the source file being processed. */
@@ -17,7 +19,7 @@ export interface PreIngestStateData {
 }
 
 /** Presentation callbacks required by the pre-ingest pipeline. */
-export interface PreIngestPresentation {
+export interface PreIngestPresentation extends PipelinePresentation {
   /** Invoked for each token chunk during LLM streaming. */
   onChunk(chunk: string): void;
   /** Invoked to read a single line of user input during interactive discussion. */

@@ -80,6 +80,7 @@ export class PreIngest implements PreIngestService {
       // 5. Write source page to disk
       const sourcePath = await this.writeSourcePageToDisk(sourcePage);
     } catch (err) {
+      this.presentation.onError(err as Error);
       this.logger.error({ filePath, err }, 'Pre-ingest process failed');
       throw err;
     }

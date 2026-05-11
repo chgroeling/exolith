@@ -67,6 +67,7 @@ function makeMockPrompt(): PromptService {
 function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPresentation {
   return {
     onStep: (_step, _data) => {},
+    onError: () => {},
     ...overrides,
   };
 }

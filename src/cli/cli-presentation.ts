@@ -50,6 +50,18 @@ const INGEST_STEP_DISPLAY: Record<IngestStep, { label: string }> = {
   compiling: { label: 'Compiling' },
 };
 
+const INGEST_STEP_LABELS: Record<IngestStep, string> = {
+  extracting: 'Extracting knowledge…',
+  updating: 'Updating wiki pages…',
+  logging: 'Writing log entry…',
+  compiling: 'Compiling…',
+};
+
+/** Shared error display for both pipeline presentations. */
+function makeErrorHandler(): (error: Error) => void {
+  return (error: Error) => log(`Error: ${error.message}\n`);
+}
+
 /**
  * Creates a {@link PreIngestPresentation} that writes step progress to stderr,
  * streams LLM chunks to stdout, and reads user input with {@link https://clack.cc @clack/prompts}.
@@ -98,6 +110,7 @@ export function createCliPreIngestPresentation(
   }
 
   return {
+    /** Writes the current state and file name to stderr. Uses the output path when available. */
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const config = STATE_DISPLAY[state];
       switch (config.action) {
@@ -134,6 +147,7 @@ export function createCliPreIngestPresentation(
       }
     },
 
+    /** Streams a single LLM token chunk to stdout. */
     onChunk(chunk: string): void {
       stopSpin();
 
@@ -184,6 +198,8 @@ export function createCliPreIngestPresentation(
       }
       return result;
     },
+
+    onError: makeErrorHandler(),
   };
 }
 
@@ -200,5 +216,7 @@ export function createCliIngestPresentation(): IngestPresentation {
       const { label } = INGEST_STEP_DISPLAY[step];
       log.step(`${label}: ${data.sourceFilePath}`);
     },
+
+    onError: makeErrorHandler(),
   };
 }

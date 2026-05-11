@@ -42,6 +42,7 @@ export class Ingest implements IngestService {
       this.presentation.onStep('compiling', { sourceFilePath });
       await this.triggerCompile();
     } catch (err) {
+      this.presentation.onError(err as Error);
       this.logger.error({ sourceFilePath, err }, 'Ingest process failed');
       throw err;
     }

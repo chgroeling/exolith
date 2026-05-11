@@ -89,6 +89,7 @@ function makeMockPresentation(overrides?: Partial<PreIngestPresentation>): PreIn
     readInput: () => Promise.resolve(''),
     shouldDiscuss: () => Promise.resolve(true),
     onStateChange: () => {},
+    onError: () => {},
     ...overrides,
   };
 }

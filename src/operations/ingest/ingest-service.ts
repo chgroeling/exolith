@@ -7,8 +7,10 @@ export interface IngestStepData {
   sourceFilePath: string;
 }
 
+import type { PipelinePresentation } from '../pipeline-presentation';
+
 /** Presentation callbacks required by the ingest pipeline. */
-export interface IngestPresentation {
+export interface IngestPresentation extends PipelinePresentation {
   /** Invoked when the pipeline enters a new step. */
   onStep(step: IngestStep, data: IngestStepData): void;
 }
