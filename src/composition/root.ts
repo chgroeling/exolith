@@ -9,6 +9,8 @@ import { OpenRouterLlmProvider } from '../infrastructure/llm/openrouter-llm-prov
 import { PromptServiceImpl } from '../infrastructure/prompt/prompt-service-impl';
 import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-factory-impl';
+import type { PreIngestServiceFactory } from '../operations/pre-ingest/pre-ingest-service';
+import { PreIngestServiceFactoryImpl } from '../operations/pre-ingest/pre-ingest-service-factory-impl';
 
 /** Resolves the template directory for both dev and bundled modes. */
 export function resolveTemplateDir(importMetaUrl: string): string {
@@ -17,8 +19,8 @@ export function resolveTemplateDir(importMetaUrl: string): string {
   return existsSync(bundledDir) ? bundledDir : devDir;
 }
 
-/** Builds and wires the full dependency graph. */
-export function buildIngestFactory(logger: Logger): IngestServiceFactory {
+/** Shared wiring helpers used by both factories. */
+function wireServices(logger: Logger) {
   const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY,
   });
@@ -30,5 +32,17 @@ export function buildIngestFactory(logger: Logger): IngestServiceFactory {
   const llmService = new LlmServiceImpl(provider, logger);
   const promptService = new PromptServiceImpl(resolveTemplateDir(import.meta.url), logger);
 
+  return { llmService, identifier, promptService };
+}
+
+/** Builds the pre-ingest factory wired with all dependencies. */
+export function buildPreIngestFactory(logger: Logger): PreIngestServiceFactory {
+  const { llmService, identifier, promptService } = wireServices(logger);
+  return new PreIngestServiceFactoryImpl(llmService, identifier, promptService, logger);
+}
+
+/** Builds the ingest factory wired with all dependencies. */
+export function buildIngestFactory(logger: Logger): IngestServiceFactory {
+  const { llmService, identifier, promptService } = wireServices(logger);
   return new IngestServiceFactoryImpl(llmService, identifier, promptService, logger);
 }

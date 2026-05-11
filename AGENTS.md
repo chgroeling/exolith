@@ -24,7 +24,7 @@ exolith/
 │   ├── index.ts                  Entry point — delegates to cli/
 │   ├── core/                     Domain model, cross-cutting primitives
 │   ├── infrastructure/           External dependency adapters (LLM, templates)
-│   ├── operations/               Business operations (ingest, compile, lint, …)
+│   ├── operations/               Business operations (pre-ingest, ingest, compile, lint, …)
 │   ├── composition/              DI composition root — wires the object graph
 │   ├── cli/                      CLI parsing and bootstrap
 │   └── tui/                      Terminal UI (Ink / React)
@@ -105,7 +105,7 @@ Source modules are organized vertically by domain concept, not horizontally by t
 |-----------|---------|
 | `src/core/` | Domain model, cross-cutting primitives (types, identifier, slug) |
 | `src/infrastructure/` | External dependency adapters — one sub-directory per dependency (currently `llm/`, `prompt/`) |
-| `src/operations/` | Business operations — one sub-directory per operation (currently `ingest/`, future `compile/`, `lint/`, …) |
+| `src/operations/` | Business operations — one sub-directory per operation (currently `pre-ingest/`, `ingest/`, future `compile/`, `lint/`, …) |
 | `src/composition/` | DI composition root — wires the full object graph |
 | `src/cli/` | CLI parsing and entry point |
 | `src/tui/` | Terminal UI presentation layer |

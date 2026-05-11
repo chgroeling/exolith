@@ -1,63 +1,23 @@
 # Ingest
 
-The core workflow. A source is not just indexed, but **actively integrated into the wiki**. This is the decisive difference from RAG: not storing chunks and searching later, but weaving the knowledge into the existing structure immediately.
+The core workflow. A **source page** from `sources/` is not just indexed, but **actively integrated into the wiki**. This is the decisive difference from RAG: not storing chunks and searching later, but weaving the knowledge into the existing structure immediately.
 
-## The Seven Steps of Ingest
+Source pages are created by the [Pre-Ingest](pre-ingest.md) operation (or placed manually in `sources/`).
 
-1. Read and validate the raw source file (no LLM)
-2. Discuss key takeaways with the human (interactive, calibration-focused)
-3. Writes a source page in `sources/` — the processed knowledge base
-4. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
-5. **Updates all affected wiki pages** — a single source can touch 10-15 pages
-6. Triggers the **compile** step: index.md, backlinks, dashboards
-7. Writes an entry in `log.md`
+## The Four Steps of Ingest
 
----
-
-## Step 1 — Read Raw Source Completely
-
-The first step reads and validates the raw source file without involving the LLM. The file is checked for existence, type (`.md`, `.txt`, `.textile`), size (under the configured limit), and binary content (null bytes rejected). Once validated, the full content is read into memory.
-
-New sources land in `inbox/`. After processing (step 3), the raw source is moved to `raw-sources/` — that is the archive. `raw-sources/` is not processed further by the LLM; it serves exclusively as a reference for the human. The sources in `sources/` link to the corresponding raw source in `raw-sources/` via wikilink (`*Originaldatei:*`).
-
-The raw content is held in memory for the subsequent discussion and extraction steps — the LLM will receive the entire source at once, not chunk-by-chunk. This is the fundamental difference from RAG: the LLM understands the full context, recognizes implicit connections, and can establish cross-references within the source that chunk-based systems miss.
+1. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
+2. **Updates all affected wiki pages** — a single source can touch 10-15 pages
+3. Triggers the **compile** step: index.md, backlinks, dashboards
+4. Writes an entry in `log.md`
 
 ---
 
-## Step 2 — Discuss Key Takeaways & Main Points
+## Step 1 — Extraction
 
-Before the LLM creates the source and extracts knowledge, the human engages in an interactive discussion. The LLM reads the raw source content and summarizes it conversationally, then asks the human for opinionated judgment to calibrate the upcoming extraction step.
+Step 1 is the heart of ingest — here the curated source becomes machine-readable knowledge.
 
-The human is asked to weigh in on:
-- Which claims are central and which are peripheral?
-- How credible is the source — should claims carry high or low confidence?
-- Which entities, concepts, or relationships deserve priority extraction?
-- What should be ignored or deprioritized?
-- Are there nuances the source hints at but doesn't fully unpack?
-
-The discussion is a back-and-forth: the LLM responds, the human provides feedback, and the loop continues until the human signals completion (empty input).
-
-### Discussion Summary and Archiving
-
-After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `# Discussion Summary` chapter, preceded by a `---` separator.
-
-This enriched file in `raw-sources/` becomes the canonical source for all subsequent steps — it contains both the original content and the human's calibration signals. The full discussion transcript is discarded; only the extracted summary is preserved. This ensures the wiki can be rebuilt without losing the critical decisions that emerged from the human interaction.
-
----
-
-## Step 3 — Write Source Page
-
-The source page in `sources/` is the **processed knowledge base** of the wiki. It is created from the raw source (read in step 1), enriched by the human feedback from the discussion (step 2).
-
-The source links to the raw source in `raw-sources/` — but exclusively for the human. For the LLM, the source is the sole working object from this point on. The raw source is not read again after step 3. All further processing (extraction in step 4, updates in step 5) is based exclusively on the source.
-
----
-
-## Step 4 — Extraction
-
-Step 4 is the heart of ingest — here the curated source becomes machine-readable knowledge.
-
-**Important context switch:** From this step on, the LLM works **exclusively with the source** from step 3. The raw text from step 1 is no longer used — the LLM context is cleaned. Only what is in the source exists for extraction.
+**Important:** The LLM works **exclusively with the source page** from `sources/`. The raw text is never used — the LLM context contains only what is in the source.
 
 **Concrete Example — Output (Extraction):**
 
@@ -84,9 +44,9 @@ Does the cortisol reduction persist after discontinuing the exercises? | only ac
 
 ---
 
-## Step 5 — Update
+## Step 2 — Update
 
-Step 5 is the actual wiki work — here the LLM decides for each extracted knowledge element *where* it belongs and *how* it is integrated.
+Step 2 is the actual wiki work — here the LLM decides for each extracted knowledge element *where* it belongs and *how* it is integrated.
 
 ### Process — Index-First with Two-Phase Lookup
 
@@ -102,16 +62,16 @@ The update step does not begin with a filesystem scan, but with a **two-phase in
    │    "praemeditatio-malorum" → HIT ✓
    │  "Dr. Maria Schneider" ↔ slug "maria-schneider"
    │    → NO slug hit → continue to Phase 2
-   │  "Cortisol reduction" ↔ slugs → NO hit → continue to Phase 2
+   │  "Cortisol reduction" → slugs → NO hit → continue to Phase 2
    │
    └─ PHASE 2: Semantic Summary Match (LLM-based)
 
-      Only for elements without a Phase 1 hit:
-      LLM receives all summaries of the matching category
-      and checks semantic similarity.
-      "Dr. Maria Schneider" → all entity summaries → "none"
-      "Cortisol reduction" → all concept summaries →
-        "cortisol-senkung-durch-meditation" → HIT ✓
+       Only for elements without a Phase 1 hit:
+       LLM receives all summaries of the matching category
+       and checks semantic similarity.
+       "Dr. Maria Schneider" → all entity summaries → "none"
+       "Cortisol reduction" → all concept summaries →
+         "cortisol-senkung-durch-meditation" → HIT ✓
    ↓
 3. Only on HITS: load the corresponding page and update
    On NO HIT: generate a new page from template
@@ -265,9 +225,18 @@ Meditations — less cryptic, more directly applicable.
 
 In total, a single source touched **8-10 pages** — exactly Karpathy's "a single source might touch 10-15 wiki pages."
 
+## Step 3 — Compile
+
+Triggers the compile step: regenerates index.md, backlinks, dashboards, and machine-readable digests from the updated vault.
+
+## Step 4 — Log
+
+Writes a summary entry to `log.md` documenting what was processed and which pages were created or modified.
+
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [../pages/source-spec.md](../pages/source-spec.md) — source page specification (created in step 3)
-* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification (extracted in step 4)
-* [compile.md](compile.md) — compile step (triggered in step 6)
+* [pre-ingest.md](pre-ingest.md) — the pre-ingest operation (creates source pages in `sources/`)
+* [../pages/source-spec.md](../pages/source-spec.md) — source page specification
+* [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification
+* [compile.md](compile.md) — compile step (triggered in step 3)

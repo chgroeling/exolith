@@ -178,18 +178,19 @@ Claims are structured assertions in the `## Claims` chapter with unique identifi
 
 ## 5. The Operations
 
-The wiki is maintained through six first-class operations:
+The wiki is maintained through seven first-class operations:
 
 | Operation | Spec | Description |
 | --- | --- | --- |
-| **Ingest** | [operations/ingest.md](operations/ingest.md) | Integrate a Raw Source into the wiki: read → discuss → source page → extract → update → compile → log |
+| **Pre-Ingest** | [operations/pre-ingest.md](operations/pre-ingest.md) | Read raw → (optional) Discuss → Write source page to `sources/` |
+| **Ingest** | [operations/ingest.md](operations/ingest.md) | Process a source page: extract → update wiki → compile → log |
 | **Compile** | [operations/compile.md](operations/compile.md) | Read entire vault, regenerate index, backlinks, dashboards, machine-readable digests |
 | **Lint** | [operations/lint.md](operations/lint.md) | Health check: structural errors, missing evidence, broken links, contradictions, stale claims. Generates a research agenda. |
 | **Query** | [operations/query.md](operations/query.md) | Ask questions against compiled knowledge. Four phases: index scan → progressive deep-dive (L1-L4) → synthesis → query filing. |
 | **Validate** | [operations/validate.md](operations/validate.md) | Provenance check. Spot-checks 5% of new claims against their sources with a stronger model to combat hallucination. |
 | **Resolve** | [operations/resolution.md](operations/resolution.md) | Formally resolve contested claims. Resolution rules (confidence delta, source age, methodological quality). Automatic or human decision with cascading check on dependent claims. |
 
-The core maintenance loop is **Ingest → Compile → Lint**, with **Query** as the read-side operation, **Validate** as the integrity check, and **Resolve** as the conflict resolution workflow.
+The core maintenance loop is **Pre-Ingest → Ingest → Compile → Lint**, with **Query** as the read-side operation, **Validate** as the integrity check, and **Resolve** as the conflict resolution workflow.
 
 ---
 
@@ -408,10 +409,10 @@ These dashboards are themselves wiki pages — the LLM can read them, the human 
 The pattern is astonishingly simple:
 
 1. **Collect Raw Sources** (immutable in `raw-sources/`)
-2. **Create Sources** (processed, human-reviewed knowledge base in `sources/`)
-3. **LLM builds and maintains a wiki from it** (interlinked Markdown, structured claims with IDs, based on Sources)
+2. **Pre-Ingest: Create Source Pages** (processed, optionally discussed, human-reviewed knowledge base in `sources/`)
+3. **Ingest: LLM builds and maintains a wiki from source pages** (interlinked Markdown, structured claims with IDs, based on Sources)
 4. **Schema defines the rules** (AGENTS.md, wiki-schema.md)
-5. **Ingest → Compile → Lint** as the maintenance loop
+5. **Pre-Ingest → Ingest → Compile → Lint** as the maintenance loop
 6. **Query** accesses compiled knowledge, not raw chunks
 
 The decisive shift: knowledge is **compiled once** and then kept current — not re-assembled for each question. And the critical second shift: Sources are not just provenance records, but the **curated knowledge base** through which all raw knowledge flows and on which all further processing builds. The wiki is a growing, compounding artifact. The LLM does the bookkeeping no human wants to do. The human thinks, curates sources, asks the right questions.

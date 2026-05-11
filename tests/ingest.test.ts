@@ -1,9 +1,9 @@
 // Specification: docs/operations/ingest.md
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { IdentifierService } from '../src/core/identifier-service';
 import type { IdentifierType } from '../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../src/infrastructure/llm/llm-service';
@@ -11,14 +11,10 @@ import type { PromptService } from '../src/infrastructure/prompt/prompt-service'
 import { Ingest } from '../src/operations/ingest/ingest';
 import type { IngestConfig, IngestPresentation } from '../src/operations/ingest/ingest-service';
 
-function makeMockLlm(opts?: {
-  streamDelay?: () => Promise<void>;
-  completeResponse?: string;
-  structuredResponse?: Record<string, unknown>;
-}): LlmService {
+function makeMockLlm(): LlmService {
   return {
     async complete(_prompt, _systemPrompt) {
-      return opts?.completeResponse ?? 'mock summary';
+      return 'mock summary';
     },
     createSession(_systemPrompt) {
       const messages: { role: string; content: string }[] = [];
@@ -30,11 +26,10 @@ function makeMockLlm(opts?: {
           messages.push({ role: 'assistant', content });
         },
         async stream(onChunk: (chunk: string) => void) {
-          if (opts?.streamDelay) await opts.streamDelay();
           onChunk('mock-chunk');
         },
         async complete() {
-          return opts?.completeResponse ?? 'mock summary';
+          return 'mock summary';
         },
         getMessages() {
           return Object.freeze([...messages]);
@@ -42,22 +37,10 @@ function makeMockLlm(opts?: {
       };
     },
     async generateStructured<T>(_request: LlmStructuredRequest): Promise<T> {
-      return (opts?.structuredResponse ?? defaultSourcePage) as unknown as T;
+      return {} as unknown as T;
     },
   };
 }
-
-const defaultSourcePage = {
-  title: 'Test Page',
-  type: 'article',
-  authors: 'Test Author',
-  date: '2026-01-01',
-  urlOrReference: '-',
-  summary: 'Test summary paragraph.',
-  mainPoints: ['Main point 1', 'Main point 2'],
-  keyTakeaways: ['Takeaway 1', 'Takeaway 2'],
-  tags: ['test', 'example'],
-};
 
 function makeMockIdentifier(): IdentifierService {
   return {
@@ -83,8 +66,6 @@ function makeMockPrompt(): PromptService {
 
 function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPresentation {
   return {
-    onChunk: () => {},
-    readInput: () => Promise.resolve(''),
     onStep: () => {},
     onStepComplete: () => {},
     ...overrides,
@@ -93,19 +74,18 @@ function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPr
 
 function makeConfig(overrides?: Partial<IngestConfig>): IngestConfig {
   return {
-    maxSourceSize: 1024 * 1024,
     vaultPath: join(tmpdir(), `exolith-test-${Date.now()}`),
     ...overrides,
   };
 }
 
 describe('Ingest', () => {
-  describe('readRawSource', () => {
-    it('reads a valid .md file', async () => {
+  describe('process', () => {
+    it('runs the full pipeline without throwing', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'test.md');
-      await writeFile(filePath, '# Hello\n\nWorld', 'utf-8');
+      const filePath = join(config.vaultPath, 'source-page.md');
+      await writeFile(filePath, '# Source Page', 'utf-8');
 
       const presentation = makeMockPresentation();
       const ingest = new Ingest(
@@ -117,371 +97,6 @@ describe('Ingest', () => {
       );
 
       await expect(ingest.process(filePath)).resolves.not.toThrow();
-    });
-
-    it('rejects unsupported file extensions', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'test.pdf');
-      await writeFile(filePath, 'not a pdf', 'utf-8');
-
-      const presentation = makeMockPresentation();
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).rejects.toThrow('Unsupported file type');
-    });
-
-    it('rejects files exceeding maxSourceSize', async () => {
-      const config = makeConfig({ maxSourceSize: 10 });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'big.md');
-      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
-
-      const presentation = makeMockPresentation();
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).rejects.toThrow('Source file exceeds maximum size');
-    });
-
-    it('rejects binary files', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'bin.txt');
-      const buf = Buffer.alloc(50);
-      buf[20] = 0;
-      await writeFile(filePath, buf);
-
-      const presentation = makeMockPresentation();
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).rejects.toThrow('Source file appears to be binary');
-    });
-  });
-
-  describe('discussKeyTakeaways', () => {
-    it('completes discussion with no human input (empty loop)', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nSome content', 'utf-8');
-
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).resolves.not.toThrow();
-    });
-
-    it('handles multiple human inputs in the discussion loop', async () => {
-      const inputs = ['This is central', 'Ignore that part', ''];
-      let callCount = 0;
-      const presentation = makeMockPresentation({
-        readInput: () => {
-          const val = inputs[callCount] ?? '';
-          callCount++;
-          return Promise.resolve(val);
-        },
-      });
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nMulti-turn content', 'utf-8');
-
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).resolves.not.toThrow();
-    });
-
-    it('archives enriched source with discussion summary', async () => {
-      const summary = '## Summary\n- Claim X is central\n- Source is credible';
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nContent', 'utf-8');
-
-      const llm = makeMockLlm({ completeResponse: summary });
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
-      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config, presentation);
-
-      await ingest.process(filePath);
-
-      const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
-      const archived = await readFile(archivedPath, 'utf-8');
-      expect(archived).toContain('# Test');
-      expect(archived).toContain('# Discussion Summary');
-      expect(archived).toContain(summary);
-    });
-  });
-
-  describe('summarizeDiscussion', () => {
-    it('passes human messages to complete and returns the result', async () => {
-      let calls = 0;
-      const presentation = makeMockPresentation({
-        readInput: () => {
-          calls++;
-          return Promise.resolve(calls === 1 ? 'My feedback' : '');
-        },
-      });
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Test\n\nContent', 'utf-8');
-
-      const llm = makeMockLlm({ completeResponse: 'expected-summary' });
-      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config, presentation);
-
-      await ingest.process(filePath);
-
-      const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
-      const archived = await readFile(archivedPath, 'utf-8');
-      expect(archived).toContain('expected-summary');
-    });
-  });
-
-  describe('writeSourcePage', () => {
-    it('writes a source page to sources/{slug}.md', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'test.md');
-      await writeFile(filePath, '# Test\n\nSource content', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const expectedPath = join(config.vaultPath, 'sources', 'test-page.md');
-      const pageContent = await readFile(expectedPath, 'utf-8');
-      expect(pageContent).toBeTruthy();
-    });
-
-    it('includes correct YAML frontmatter with id and tags', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Content', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('id: source.test-page');
-      expect(pageContent).toContain('title: Test Page');
-      expect(pageContent).toContain('status: active');
-      expect(pageContent).toContain('tags:');
-      expect(pageContent).toContain('  - test');
-      expect(pageContent).toContain('  - example');
-      const today = new Date().toISOString().slice(0, 10);
-      expect(pageContent).toContain(`created: ${today}`);
-    });
-
-    it('includes wikilink to raw source in raw-sources/', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'my-article.md');
-      await writeFile(filePath, '# Article', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('*Original File:* [[raw-sources/my-article.md]]');
-    });
-
-    it('includes summary, main points, and key takeaways sections', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'article.txt');
-      await writeFile(filePath, '# Article\n\nBody', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('## Summary');
-      expect(pageContent).toContain('Test summary paragraph.');
-      expect(pageContent).toContain('## Main Points');
-      expect(pageContent).toContain('- Main point 1');
-      expect(pageContent).toContain('- Main point 2');
-      expect(pageContent).toContain('## Key Takeaways');
-      expect(pageContent).toContain('- Takeaway 1');
-      expect(pageContent).toContain('- Takeaway 2');
-    });
-
-    it('includes Linked Wiki Pages section (empty — maintained by compile)', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'src.txt');
-      await writeFile(filePath, '# Src', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('## Linked Wiki Pages');
-    });
-
-    it('uses source page type metadata in the body', async () => {
-      const structuredResponse = {
-        title: 'Specific Article',
-        type: 'paper',
-        authors: 'Jane Doe',
-        date: '2025-07-15',
-        urlOrReference: 'https://example.org/paper',
-        summary: 'A summary.',
-        mainPoints: ['Point A'],
-        keyTakeaways: ['Takeaway A'],
-        tags: ['science'],
-      };
-
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'paper.md');
-      await writeFile(filePath, '# Paper content', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const ingest = new Ingest(
-        makeMockLlm({ structuredResponse }),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'sources', 'specific-article.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('*Type:* paper');
-      expect(pageContent).toContain('*Author(s):* Jane Doe');
-      expect(pageContent).toContain('*Date:* 2025-07-15');
-      expect(pageContent).toContain('*URL/Reference:* https://example.org/paper');
-    });
-
-    it('passes the enriched source context to the LLM', async () => {
-      let capturedRequest: LlmStructuredRequest | undefined;
-
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'context-test.md');
-      const rawContent = '# Unique Content\n\nSpecific text for testing context.';
-      await writeFile(filePath, rawContent, 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
-      const llm = makeMockLlm();
-      llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
-        capturedRequest = req;
-        return defaultSourcePage as unknown as T;
-      };
-      const ingest = new Ingest(llm, makeMockIdentifier(), makeMockPrompt(), config, presentation);
-
-      await ingest.process(filePath);
-
-      expect(capturedRequest).toBeDefined();
-      const userContent = capturedRequest?.messages[0].content;
-      expect(userContent).toContain(rawContent);
-      expect(userContent).toContain('discussionSummary: mock summary');
-      expect(capturedRequest?.schemaName).toBe('SourcePage');
-      expect(capturedRequest?.schema.required).toEqual([
-        'title',
-        'type',
-        'authors',
-        'date',
-        'summary',
-        'mainPoints',
-        'keyTakeaways',
-        'tags',
-      ]);
     });
   });
 
@@ -495,7 +110,6 @@ describe('Ingest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
         onStep: (step) => {
           steps.push(step);
         },
@@ -510,41 +124,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(steps).toEqual([
-        'reading',
-        'discussing',
-        'writing-source',
-        'extracting',
-        'updating',
-        'compiling',
-        'logging',
-      ]);
-    });
-
-    it('does not call onStep for later steps if an early step throws', async () => {
-      const steps: string[] = [];
-
-      const config = makeConfig({ maxSourceSize: 1 });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'big.md');
-      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
-
-      const presentation = makeMockPresentation({
-        onStep: (step) => {
-          steps.push(step);
-        },
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).rejects.toThrow();
-
-      expect(steps).toEqual(['reading']);
+      expect(steps).toEqual(['extracting', 'updating', 'compiling', 'logging']);
     });
 
     it('calls onStepComplete for each completed step in order', async () => {
@@ -556,7 +136,6 @@ describe('Ingest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
         onStepComplete: (step) => {
           completed.push(step);
         },
@@ -571,61 +150,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(completed).toEqual([
-        'reading',
-        'discussing',
-        'writing-source',
-        'extracting',
-        'updating',
-        'compiling',
-        'logging',
-      ]);
-    });
-
-    it('does not call onStepComplete for failed steps', async () => {
-      const completed: string[] = [];
-
-      const config = makeConfig({ maxSourceSize: 1 });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'big.md');
-      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
-
-      const presentation = makeMockPresentation({
-        onStepComplete: (step) => {
-          completed.push(step);
-        },
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).rejects.toThrow();
-
-      expect(completed).toEqual([]);
-    });
-  });
-
-  describe('process', () => {
-    it('runs the full pipeline without throwing', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.txt');
-      await writeFile(filePath, '# Full pipeline test', 'utf-8');
-
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(ingest.process(filePath)).resolves.not.toThrow();
+      expect(completed).toEqual(['extracting', 'updating', 'compiling', 'logging']);
     });
   });
 });

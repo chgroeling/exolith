@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type {
   IngestPresentation,
   IngestServiceFactory,
@@ -7,26 +7,17 @@ import type {
 } from '../operations/ingest/ingest-service';
 import { INGEST_STEP_LABELS, INGEST_STEP_ORDER } from '../operations/ingest/ingest-service';
 import { Header } from './components/header';
-import { InputBox } from './components/input-box';
-import { MessageList } from './components/message-list';
 import { StatusBar } from './components/status-bar';
-import type { Message } from './types';
-
-let nextId = 0;
+import type { IngestPhase } from './types';
 
 export interface IngestAppProps {
   filePath: string;
   ingestFactory: IngestServiceFactory;
-  maxSourceSize: number;
   vaultPath: string;
   onDone: () => void;
 }
 
 type StepStatus = 'pending' | 'active' | 'completed' | 'error';
-
-function makeMessage(role: Message['role'], content: string): Message {
-  return { id: String(nextId++), role, content };
-}
 
 function stepSymbol(status: StepStatus): string {
   switch (status) {
@@ -41,24 +32,8 @@ function stepSymbol(status: StepStatus): string {
   }
 }
 
-export function IngestApp({
-  filePath,
-  ingestFactory,
-  maxSourceSize,
-  vaultPath,
-  onDone,
-}: IngestAppProps) {
-  const [phase, setPhase] = useState<
-    | 'starting'
-    | 'pending'
-    | 'completed'
-    | 'streaming'
-    | 'waiting'
-    | 'summarizing'
-    | 'done'
-    | 'error'
-    | null
-  >(null);
+export function IngestApp({ filePath, ingestFactory, vaultPath, onDone }: IngestAppProps) {
+  const [phase, setPhase] = useState<IngestPhase | null>(null);
   const [stepStatus, setStepStatus] = useState<Record<IngestStep, StepStatus>>(() => {
     const status: Record<string, StepStatus> = {};
     for (const step of INGEST_STEP_ORDER) {
@@ -66,25 +41,6 @@ export function IngestApp({
     }
     return status as Record<IngestStep, StepStatus>;
   });
-  const [messages, setMessages] = useState<Message[]>([]);
-  const resolveRef = useRef<((value: string) => void) | null>(null);
-
-  const onChunk = useCallback((chunk: string) => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.role === 'assistant') {
-        return [...prev.slice(0, -1), { ...last, content: last.content + chunk }];
-      }
-      return [...prev, makeMessage('assistant', chunk)];
-    });
-  }, []);
-
-  const readInput = useCallback((): Promise<string> => {
-    setPhase('waiting');
-    return new Promise((resolve) => {
-      resolveRef.current = resolve;
-    });
-  }, []);
 
   const onStep = useCallback((step: IngestStep) => {
     setStepStatus((prev) => ({ ...prev, [step]: 'active' }));
@@ -96,15 +52,6 @@ export function IngestApp({
     setPhase('completed');
   }, []);
 
-  const handleSubmit = useCallback((input: string) => {
-    if (input) {
-      setMessages((prev) => [...prev, makeMessage('user', input)]);
-    }
-    setPhase(input ? 'streaming' : 'summarizing');
-    resolveRef.current?.(input);
-    resolveRef.current = null;
-  }, []);
-
   useInput((_input, key) => {
     if (key.return && (phase === 'done' || phase === 'error')) {
       onDone();
@@ -112,8 +59,8 @@ export function IngestApp({
   });
 
   useEffect(() => {
-    const presentation: IngestPresentation = { onChunk, readInput, onStep, onStepComplete };
-    const ingest = ingestFactory.create({ maxSourceSize, vaultPath }, presentation);
+    const presentation: IngestPresentation = { onStep, onStepComplete };
+    const ingest = ingestFactory.create({ vaultPath }, presentation);
 
     setPhase('starting');
     ingest
@@ -121,20 +68,10 @@ export function IngestApp({
       .then(() => {
         setPhase('done');
       })
-      .catch((err: Error) => {
-        setMessages((prev) => [...prev, makeMessage('error', err.message)]);
+      .catch(() => {
         setPhase('error');
       });
-  }, [
-    filePath,
-    ingestFactory,
-    maxSourceSize,
-    vaultPath,
-    onChunk,
-    readInput,
-    onStep,
-    onStepComplete,
-  ]);
+  }, [filePath, ingestFactory, vaultPath, onStep, onStepComplete]);
 
   const visibleSteps = INGEST_STEP_ORDER.filter((step) => stepStatus[step] !== 'pending');
 
@@ -160,19 +97,6 @@ export function IngestApp({
               <Text color={color} dimColor={dimmed}>
                 {stepSymbol(status)} {label}
               </Text>
-              {step === 'discussing' && (
-                <Box flexDirection="column" paddingLeft={2}>
-                  <MessageList messages={messages} />
-                  {phase === 'waiting' && (
-                    <InputBox
-                      placeholder="Type your response (Enter to send, empty to finish)..."
-                      onSubmit={handleSubmit}
-                    />
-                  )}
-                  {phase === 'streaming' && <StatusBar text="Receiving response..." />}
-                  {phase === 'summarizing' && <StatusBar text="Summarizing discussion..." />}
-                </Box>
-              )}
             </Box>
           );
         })}

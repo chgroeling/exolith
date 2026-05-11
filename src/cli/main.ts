@@ -4,7 +4,7 @@ import { program } from 'commander';
 import { render } from 'ink';
 import pino from 'pino';
 import { createElement } from 'react';
-import { buildIngestFactory } from '../composition/root';
+import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import type { ConfigLoadResult } from '../core/config/config-types';
 import { App } from '../tui/app';
@@ -49,10 +49,12 @@ export function run(): void {
 
       logger.info({ rootDir }, 'CLI started');
 
+      const preIngestFactory = buildPreIngestFactory(logger);
       const ingestFactory = buildIngestFactory(logger);
 
       const { waitUntilExit } = render(
         createElement(App, {
+          preIngestFactory,
           ingestFactory,
           maxSourceSize: Number(maxSourceSize),
           vaultPath,
