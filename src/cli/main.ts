@@ -1,11 +1,12 @@
 import { createWriteStream } from 'node:fs';
-import { isAbsolute, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { program } from 'commander';
 import pino from 'pino';
 import pkg from '../../package.json' with { type: 'json' };
 import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import type { ConfigLoadResult } from '../core/config/config-types';
+import { FileListServiceImpl } from '../core/file-list-service-impl';
 import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
 
 (globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
@@ -63,21 +64,78 @@ program
   .option('--log-level <level>', 'log level')
   .option('-v, --vault-dir <path>', 'path to the vault directory containing exolith.json');
 
-program
+const preIngestCmd = program
   .command('pre-ingest')
-  .description('Run the pre-ingest pipeline on a raw source file')
-  .argument('<file>', 'path to the raw source file')
+  .description('Manage and process raw source files in the inbox');
+
+preIngestCmd
+  .command('list')
+  .description('List files in the inbox with their content-based IDs')
+  .action(async () => {
+    const { vaultPath, logger } = await bootstrap(program.opts());
+
+    const inboxDir = join(vaultPath, 'inbox');
+    const fileListService = new FileListServiceImpl();
+    const files = await fileListService.listFiles(inboxDir);
+
+    if (files.length === 0) {
+      process.stderr.write(`Inbox is empty (${inboxDir})\n`);
+      logger.info('pre-ingest list: inbox empty');
+      return;
+    }
+
+    process.stderr.write(`\nInbox (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`);
+
+    for (const file of files) {
+      process.stdout.write(`  ${file.id}  ${file.fileName}\n`);
+    }
+
+    process.stderr.write(`\nRun "exolith pre-ingest process <id>" to start the pipeline.\n`);
+
+    logger.info({ count: files.length }, 'pre-ingest list');
+  });
+
+preIngestCmd
+  .command('process')
+  .description('Run the pre-ingest pipeline on a file from the inbox')
+  .argument('<id>', 'ID (or prefix) of the file from "pre-ingest list"')
   .option('--max-source-size <bytes>', 'maximum source file size in bytes')
   .option('--skip-discuss', 'skip the interactive discussion step')
-  .action(async (file, options) => {
+  .action(async (id, options) => {
     const { vaultPath, maxSourceSize, logger, config } = await bootstrap(program.opts(), options);
+
+    const inboxDir = join(vaultPath, 'inbox');
+    const fileListService = new FileListServiceImpl();
+    const files = await fileListService.listFiles(inboxDir);
+
+    const matches = files.filter((f) => f.id.startsWith(id));
+
+    if (matches.length === 0) {
+      process.stderr.write(`Error: No file found with ID prefix "${id}" in ${inboxDir}\n`);
+      logger.warn({ id }, 'pre-ingest process: no match');
+      process.exit(1);
+    }
+
+    if (matches.length > 1) {
+      const maxIdWidth = Math.max(...matches.map((m) => m.id.length));
+      process.stderr.write(`Error: ID prefix "${id}" matches multiple files:\n`);
+      for (const m of matches) {
+        process.stderr.write(`  ${m.id.padEnd(maxIdWidth)}  ${m.fileName}\n`);
+      }
+      process.stderr.write('Provide a longer ID prefix to disambiguate.\n');
+      logger.warn({ id, matches: matches.length }, 'pre-ingest process: ambiguous ID');
+      process.exit(1);
+    }
+
+    const target = matches[0];
+    logger.info({ id, file: target.fullPath }, 'pre-ingest process: starting pipeline');
 
     const factory = buildPreIngestFactory(logger, config);
     const presentation = createCliPreIngestPresentation({ skipDiscuss: options.skipDiscuss });
     const service = factory.create({ maxSourceSize, vaultPath }, presentation);
 
     try {
-      await service.process(file);
+      await service.process(target.fullPath);
     } catch (err) {
       logger.error({ err }, 'pre-ingest failed');
       process.stderr.write(`Error: ${(err as Error).message}\n`);
