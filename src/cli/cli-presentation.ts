@@ -1,4 +1,5 @@
-import * as readline from 'node:readline';
+import { stream, confirm, isCancel, log, spinner, text } from '@clack/prompts';
+import type { SpinnerResult } from '@clack/prompts';
 import type { IngestPresentation, IngestStep } from '../operations/ingest/ingest-service';
 import type {
   PreIngestPresentation,
@@ -16,59 +17,91 @@ const STATE_LABELS: Record<PreIngestState, string> = {
 
 /**
  * Creates a {@link PreIngestPresentation} that writes step progress to stderr,
- * streams LLM chunks to stdout, and reads user input from stdin.
+ * streams LLM chunks to stdout, and reads user input with {@link https://clack.cc @clack/prompts}.
+ *
+ * @remarks
+ * Progress indicators are managed autonomously by the presentation layer —
+ * the operation itself is never aware of spinners or display framing.
  */
 export function createCliPreIngestPresentation(
   opts: { skipDiscuss?: boolean } = {},
 ): PreIngestPresentation {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stderr,
-  });
+  let spin: SpinnerResult | null = null;
+  let buffer = '';
 
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const label = STATE_LABELS[state];
-      if (state === 'source-page-written' && data.sourcePath) {
-        process.stderr.write(`${label}: ${data.sourcePath}\n`);
-      } else {
-        process.stderr.write(`${label}: ${data.fileName}\n`);
+
+      if (state === 'source-page-written') {
+        spin?.stop(`${label}`);
+        spin = null;
+        log.success(`${data.sourcePath}`);
+        return;
       }
+
+      if (state === 'extracting-source-page') {
+        if (spin) {
+          spin.message(`${label} …`);
+        } else {
+          spin = spinner();
+          spin.start(`${label} …`);
+        }
+        return;
+      }
+
+      if (state === 'discussion-summary') {
+        spin = spinner();
+        spin.start(`${label} …`);
+        return;
+      }
+
+      log.step(`${label}: ${data.fileName}`);
     },
 
     onChunk(chunk: string): void {
-      process.stdout.write(chunk);
+      spin?.stop();
+      spin = null;
+      buffer += chunk;
     },
 
-    readInput(): Promise<string> {
-      return new Promise((resolve) => {
-        process.stdout.write('\n');
-        rl.question('> ', (answer) => {
-          const trimmed = answer.trim();
-          if (!trimmed) {
-            rl.close();
-          }
-          resolve(trimmed);
-        });
+    async readInput(): Promise<string> {
+      await stream.message([buffer]);
+      buffer = '';
+
+      const result = await text({
+        message: 'Your response (press Enter on empty to finish)',
+        placeholder: 'Type your feedback here...',
       });
+
+      if (isCancel(result)) return '';
+
+      const trimmed = result.trim();
+      if (trimmed) {
+        spin = spinner();
+        spin.start('Thinking …');
+      }
+      return trimmed;
     },
 
-    shouldDiscuss(): Promise<boolean> {
-      return new Promise((resolve) => {
-        if (opts.skipDiscuss) {
-          process.stderr.write('Skipping discussion.\n');
-          rl.close();
-          resolve(false);
-          return;
-        }
-        rl.question('Discuss key takeaways? [Y/n] ', (answer) => {
-          const result = !answer.toLowerCase().startsWith('n');
-          if (!result) {
-            rl.close();
-          }
-          resolve(result);
-        });
+    async shouldDiscuss(): Promise<boolean> {
+      if (opts.skipDiscuss) {
+        log.info('Skipping discussion (--skip-discuss).');
+        return false;
+      }
+
+      const result = await confirm({
+        message: 'Would you like to discuss the key takeaways with the LLM?',
+        initialValue: true,
       });
+
+      if (isCancel(result)) return false;
+
+      if (result) {
+        spin = spinner();
+        spin.start('Thinking …');
+      }
+      return result;
     },
   };
 }
@@ -79,7 +112,7 @@ export function createCliPreIngestPresentation(
 export function createCliIngestPresentation(): IngestPresentation {
   return {
     onStep(step: IngestStep): void {
-      process.stderr.write(`[${step}]\n`);
+      log.step(`[${step}]`);
     },
   };
 }
