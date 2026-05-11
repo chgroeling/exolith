@@ -8,8 +8,8 @@ Source pages are created by the [Pre-Ingest](pre-ingest.md) operation (or placed
 
 1. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
 2. **Updates all affected wiki pages** — a single source can touch 10-15 pages
-3. Triggers the **compile** step: index.md, backlinks, dashboards
-4. Writes an entry in `log.md`
+3. **Writes an entry** in `log.md`
+4. **Triggers the [compile](compile.md) operation** — a separate operation that regenerates index.md, backlinks, and dashboards
 
 ---
 
@@ -225,13 +225,13 @@ Meditations — less cryptic, more directly applicable.
 
 In total, a single source touched **8-10 pages** — exactly Karpathy's "a single source might touch 10-15 wiki pages."
 
-## Step 3 — Compile
-
-Triggers the compile step: regenerates index.md, backlinks, dashboards, and machine-readable digests from the updated vault.
-
-## Step 4 — Log
+## Step 3 — Log
 
 Writes a summary entry to `log.md` documenting what was processed and which pages were created or modified.
+
+## Step 4 — Compile
+
+Triggers the [compile](compile.md) operation — a separate operation that regenerates index.md, backlinks, dashboards, and machine-readable digests from the updated vault.
 
 ## See Also
 
@@ -239,4 +239,4 @@ Writes a summary entry to `log.md` documenting what was processed and which page
 * [pre-ingest.md](pre-ingest.md) — the pre-ingest operation (creates source pages in `sources/`)
 * [../pages/source-spec.md](../pages/source-spec.md) — source page specification
 * [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification
-* [compile.md](compile.md) — compile step (triggered in step 3)
+* [compile.md](compile.md) — compile operation (triggered in step 4)

@@ -39,15 +39,15 @@ export class Ingest implements IngestService {
       await this.updateWikiPages();
       this.presentation.onStepComplete('updating');
 
-      // 3. Trigger compile step
-      this.presentation.onStep('compiling');
-      await this.triggerCompile();
-      this.presentation.onStepComplete('compiling');
-
-      // 4. Write log entry
+      // 3. Write log entry
       this.presentation.onStep('logging');
       await this.writeLogEntry();
       this.presentation.onStepComplete('logging');
+
+      // 4. Trigger compile step
+      this.presentation.onStep('compiling');
+      await this.triggerCompile();
+      this.presentation.onStepComplete('compiling');
     } catch (err) {
       this.logger.error({ sourceFilePath, err }, 'Ingest process failed');
       throw err;
@@ -60,9 +60,9 @@ export class Ingest implements IngestService {
   /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {}
 
-  /** Step 3: Triggers compilation of index, backlinks, and dashboards. */
-  private async triggerCompile(): Promise<void> {}
-
-  /** Step 4: Writes a summary entry to the vault log. */
+  /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {}
+
+  /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
+  private async triggerCompile(): Promise<void> {}
 }

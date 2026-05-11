@@ -5,12 +5,12 @@ export type IngestStep = 'extracting' | 'updating' | 'compiling' | 'logging';
 export const INGEST_STEP_LABELS: Record<IngestStep, string> = {
   extracting: 'Extracting knowledge…',
   updating: 'Updating wiki pages…',
-  compiling: 'Compiling…',
   logging: 'Writing log entry…',
+  compiling: 'Compiling…',
 };
 
 /** Ordered list of all ingest steps. */
-export const INGEST_STEP_ORDER: IngestStep[] = ['extracting', 'updating', 'compiling', 'logging'];
+export const INGEST_STEP_ORDER: IngestStep[] = ['extracting', 'updating', 'logging', 'compiling'];
 
 /** Presentation callbacks required by the ingest pipeline. */
 export interface IngestPresentation {

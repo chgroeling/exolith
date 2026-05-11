@@ -124,7 +124,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(steps).toEqual(['extracting', 'updating', 'compiling', 'logging']);
+      expect(steps).toEqual(['extracting', 'updating', 'logging', 'compiling']);
     });
 
     it('calls onStepComplete for each completed step in order', async () => {
@@ -150,7 +150,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(completed).toEqual(['extracting', 'updating', 'compiling', 'logging']);
+      expect(completed).toEqual(['extracting', 'updating', 'logging', 'compiling']);
     });
   });
 });
