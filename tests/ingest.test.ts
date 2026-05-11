@@ -67,7 +67,6 @@ function makeMockPrompt(): PromptService {
 function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPresentation {
   return {
     onStep: () => {},
-    onStepComplete: () => {},
     ...overrides,
   };
 }
@@ -125,32 +124,6 @@ describe('Ingest', () => {
       await ingest.process(filePath);
 
       expect(steps).toEqual(['extracting', 'updating', 'logging', 'compiling']);
-    });
-
-    it('calls onStepComplete for each completed step in order', async () => {
-      const completed: string[] = [];
-
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Content', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        onStepComplete: (step) => {
-          completed.push(step);
-        },
-      });
-      const ingest = new Ingest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await ingest.process(filePath);
-
-      expect(completed).toEqual(['extracting', 'updating', 'logging', 'compiling']);
     });
   });
 });

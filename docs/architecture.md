@@ -42,7 +42,7 @@ An unprocessed source document: article, paper, transcript, podcast note, chat e
 
 ### Source
 
-A processed wiki page of type `source`. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge foundation**: key takeaways are prioritized, ambiguities are flagged, context is framed. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
+A processed wiki page of type `source`. The Source is created from a Raw Source in the ingest step — prepared by the LLM, reviewed and possibly corrected by the human. The Source is the **curated knowledge foundation**: ambiguities are flagged, context is framed. All further processing (extraction, claims, updates) is based exclusively on Sources — never directly on Raw Sources.
 
 > Full specification: [pages/source-spec.md](pages/source-spec.md)
 

@@ -1,5 +1,5 @@
-Extract the human's key feedback and calibration decisions from the following discussion. Focus on what is important for rebuilding the wiki later: confidence judgments, priority signals, nuance flags, and decisions about what to include or ignore. Output only the summary as a concise Markdown list. Do not include the original source content.
+Extract the human's key feedback and calibration decisions from the following discussion. Focus on what is important for rebuilding the wiki later: confidence judgments, priority signals, nuance flags, and decisions about what to include or ignore. Output only the summary in the same language as the discussion. Write the summary as a concise Markdown list. Do not include the original source content.
 
-{% for msg in messages %}
-{{ msg.role }}: {{ msg.content }}
-{% endfor %}
+The discussion is formatted as JSONL. Each line is a JSON object with a "role" and "content" field.
+
+{{ messages }}

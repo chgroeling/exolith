@@ -1,12 +1,14 @@
 # Pre-Ingest
 
-Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, and writes a processed source page to `sources/`. The discussion step is skippable — sources can be written without human calibration.
+Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `sources/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
 
-## The Three Steps of Pre-Ingest
+## The Five Steps of Pre-Ingest
 
 1. Read and validate the raw source file (no LLM)
 2. Discuss key takeaways with the human (interactive, **skippable**)
-3. Write a source page in `sources/` — the processed knowledge base
+3. Summarize the discussion feedback (LLM, **skippable** — only when discussion occurred)
+4. Extract structured source page data (LLM)
+5. Write the source page to `sources/`
 
 ---
 
@@ -18,9 +20,9 @@ New sources land in `inbox/`. The raw content is held in memory for the subseque
 
 ---
 
-## Step 2 — Discuss Key Takeaways & Main Points (Skippable)
+## Step 2 — Interactive Discussion (Skippable)
 
-Before the LLM creates the source page, the human may engage in an interactive discussion. The human can **skip this step entirely** — the source page will be created from the raw content alone.
+Before the LLM creates the source page, the human may engage in an interactive discussion. The human can **skip this step entirely** — the source page will be created from the raw content alone, and no summarization or archiving takes place.
 
 If the human chooses to discuss, the LLM reads the raw source content and summarizes it conversationally, then asks the human for opinionated judgment to calibrate the upcoming extraction step.
 
@@ -33,23 +35,27 @@ The human is asked to weigh in on:
 
 The discussion is a back-and-forth: the LLM responds, the human provides feedback, and the loop continues until the human signals completion (empty input).
 
-### Discussion Summary and Archiving
+---
+
+## Step 3 — Summarize Discussion (Skippable)
 
 After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `# Discussion Summary` chapter, preceded by a `---` separator.
 
 This enriched file in `raw-sources/` becomes the canonical reference — it contains both the original content and the human's calibration signals. The full discussion transcript is discarded; only the extracted summary is preserved.
 
-### Skipping the Discussion
-
-When the discussion is skipped, no archive is written to `raw-sources/` and no discussion summary is generated. The source page is created from the raw content alone.
+This step only executes when the human accepted the discussion in step 2. When skipped, no archive is written to `raw-sources/` and no discussion summary is generated.
 
 ---
 
-## Step 3 — Write Source Page
+## Step 4 — Extract Source Page
 
-The source page in `sources/` is the **processed knowledge base** of the wiki. It is created from the raw source (read in step 1), optionally enriched by the human feedback from the discussion (step 2).
+The LLM analyzes the raw source content (and discussion summary, if available) to produce structured metadata: title, type, authors, date, summary, main points, and tags. This structured data is generated with a strict JSON schema and forms the foundation of the source page.
 
-The source links to the raw source in `raw-sources/` — but exclusively for the human. For the LLM, the source is the sole working object from ingest onward. The raw source is not read again after this step.
+---
+
+## Step 5 — Write Source Page
+
+The structured source page data is formatted as a markdown file with YAML frontmatter and written to `sources/{slug}.md`. The file includes an identifier, metadata, and interlinked sections for summary, main points, and wiki page links.
 
 ---
 

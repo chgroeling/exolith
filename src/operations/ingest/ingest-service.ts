@@ -16,8 +16,6 @@ export const INGEST_STEP_ORDER: IngestStep[] = ['extracting', 'updating', 'loggi
 export interface IngestPresentation {
   /** Invoked when the pipeline enters a new step. */
   onStep(step: IngestStep): void;
-  /** Invoked when a step completes successfully. */
-  onStepComplete(step: IngestStep): void;
 }
 
 /** Configuration for an ingest pipeline run. */

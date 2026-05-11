@@ -32,22 +32,15 @@ export class Ingest implements IngestService {
       // 1. Extract entities, concepts, claims, relationships
       this.presentation.onStep('extracting');
       await this.extract(sourceFilePath);
-      this.presentation.onStepComplete('extracting');
 
-      // 2. Update all affected wiki pages
       this.presentation.onStep('updating');
       await this.updateWikiPages();
-      this.presentation.onStepComplete('updating');
 
-      // 3. Write log entry
       this.presentation.onStep('logging');
       await this.writeLogEntry();
-      this.presentation.onStepComplete('logging');
 
-      // 4. Trigger compile step
       this.presentation.onStep('compiling');
       await this.triggerCompile();
-      this.presentation.onStepComplete('compiling');
     } catch (err) {
       this.logger.error({ sourceFilePath, err }, 'Ingest process failed');
       throw err;

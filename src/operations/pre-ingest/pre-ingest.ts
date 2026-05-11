@@ -22,7 +22,6 @@ interface SourcePage {
   urlOrReference: string;
   summary: string;
   mainPoints: string[];
-  keyTakeaways: string[];
   tags: string[];
 }
 
@@ -56,22 +55,30 @@ export class PreIngest implements PreIngestService {
 
     try {
       // 1. Read raw source completely
-      this.presentation.onStep('reading');
+      this.presentation.onStateChange('reading', { fileName: basename(this.filePath) });
       await this.readRawSource();
-      this.presentation.onStepComplete('reading');
 
       // 2. Discuss key takeaways with the human (skippable)
-      this.presentation.onStep('discussing');
+      this.presentation.onStateChange('discussing', { fileName: basename(this.filePath) });
       const shouldDiscuss = await this.presentation.shouldDiscuss();
       if (shouldDiscuss) {
-        await this.discussKeyTakeaways();
-      }
-      this.presentation.onStepComplete('discussing');
+        const messages = await this.discussKeyTakeaways();
 
-      // 3. Write source page
-      this.presentation.onStep('writing-source');
-      await this.writeSourcePage();
-      this.presentation.onStepComplete('writing-source');
+        // 3. Summarize the discussion
+        this.presentation.onStateChange('discussion-summary', {
+          fileName: basename(this.filePath),
+        });
+        await this.summarizeAndArchive(messages);
+      }
+
+      // 4. Extract structured source page from LLM
+      this.presentation.onStateChange('extracting-source-page', {
+        fileName: basename(this.filePath),
+      });
+      const sourcePage = await this.extractSourcePage();
+
+      // 5. Write source page to disk
+      const sourcePath = await this.writeSourcePageToDisk(sourcePage);
     } catch (err) {
       this.logger.error({ filePath, err }, 'Pre-ingest process failed');
       throw err;
@@ -112,9 +119,9 @@ export class PreIngest implements PreIngestService {
 
   /**
    * Interactive discussion loop with the human.
-   * After the discussion, summarizes the human's feedback and archives the enriched source.
+   * Returns the full session messages for later summarization.
    */
-  private async discussKeyTakeaways(): Promise<void> {
+  private async discussKeyTakeaways(): Promise<readonly { role: string; content: string }[]> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
 
     const systemPrompt = this.promptService.render('system-prompt', {});
@@ -152,17 +159,24 @@ export class PreIngest implements PreIngestService {
       session.addAssistantMessage(response);
     }
 
-    this.logger.info(
-      { filePath: this.filePath, turns: turn },
-      'Discussion ended, summarizing feedback',
-    );
-    const summary = await this.summarizeDiscussion(session.getMessages());
+    this.logger.info({ filePath: this.filePath, turns: turn }, 'Discussion ended');
+    return session.getMessages();
+  }
+
+  /**
+   * Summarizes the discussion feedback and archives the enriched source to raw-sources/.
+   */
+  private async summarizeAndArchive(
+    messages: readonly { role: string; content: string }[],
+  ): Promise<void> {
+    this.logger.info({ filePath: this.filePath }, 'Summarizing discussion feedback');
+    const summary = await this.summarizeDiscussion(messages);
     this.discussionSummary = summary;
     await this.archiveToRawSources(summary);
 
     this.logger.info(
       { filePath: this.filePath, enrichedPath: this.enrichedSourcePath },
-      'Discussion step completed',
+      'Discussion summarization complete',
     );
   }
 
@@ -183,12 +197,17 @@ export class PreIngest implements PreIngestService {
     this.logger.trace({ discussionMessages }, 'Summarization input');
 
     const prompt = this.promptService.render('summarize-discussion', {
-      messages: discussionMessages.map((m) => ({
-        role: m.role === 'assistant' ? 'Assistant' : 'User',
-        content: m.content,
-      })),
+      messages: discussionMessages
+        .map((m) =>
+          JSON.stringify({
+            role: m.role === 'assistant' ? 'Assistant' : 'User',
+            content: m.content,
+          }),
+        )
+        .join('\n'),
     });
 
+    this.logger.trace({ prompt: prompt }, 'Summarization prompt rendered');
     this.logger.debug('Summarizing discussion feedback');
     const result = await this.llmService.complete(prompt, systemPrompt);
     this.logger.trace({ summary: result }, 'Discussion summary generated');
@@ -213,8 +232,8 @@ export class PreIngest implements PreIngestService {
     this.enrichedSourcePath = destPath;
   }
 
-  /** Step 3: Writes a processed source page to the vault. */
-  private async writeSourcePage(): Promise<void> {
+  /** Calls the LLM to extract structured source page data from the raw content. */
+  private async extractSourcePage(): Promise<SourcePage> {
     const systemPrompt = this.promptService.render('system-prompt', {});
     const fileName = basename(this.filePath);
 
@@ -240,25 +259,21 @@ export class PreIngest implements PreIngestService {
           urlOrReference: { type: 'string' },
           summary: { type: 'string' },
           mainPoints: { type: 'array', items: { type: 'string' } },
-          keyTakeaways: { type: 'array', items: { type: 'string' } },
           tags: { type: 'array', items: { type: 'string' } },
         },
-        required: [
-          'title',
-          'type',
-          'authors',
-          'date',
-          'summary',
-          'mainPoints',
-          'keyTakeaways',
-          'tags',
-        ],
+        required: ['title', 'type', 'authors', 'date', 'summary', 'mainPoints', 'tags'],
         additionalProperties: false,
       },
       schemaName: 'SourcePage',
       schemaDescription: 'A processed source page for the wiki vault.',
     });
 
+    return sourcePage;
+  }
+
+  /** Formats and writes the extracted source page to the vault. */
+  private async writeSourcePageToDisk(sourcePage: SourcePage): Promise<string> {
+    const fileName = basename(this.filePath);
     const sourceId = this.identifier.createId('source', sourcePage.title);
     const slug = this.identifier.decomposeId(sourceId).slug;
     const sourceDir = join(this.config.vaultPath, 'sources');
@@ -292,9 +307,6 @@ export class PreIngest implements PreIngestService {
       '## Main Points',
       ...sourcePage.mainPoints.map((p) => `- ${p}`),
       '',
-      '## Key Takeaways',
-      ...sourcePage.keyTakeaways.map((k) => `- ${k}`),
-      '',
       '## Linked Wiki Pages',
       '',
     ].join('\n');
@@ -302,5 +314,11 @@ export class PreIngest implements PreIngestService {
     const sourcePath = join(sourceDir, `${slug}.md`);
     await writeFile(sourcePath, content, 'utf-8');
     this.logger.info({ sourcePath }, 'Source page written');
+
+    this.presentation.onStateChange('source-page-written', {
+      fileName: basename(this.filePath),
+      sourcePath,
+    });
+    return sourcePath;
   }
 }

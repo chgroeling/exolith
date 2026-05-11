@@ -1,15 +1,18 @@
-/** The three pipeline steps of a pre-ingest run. */
-export type PreIngestStep = 'reading' | 'discussing' | 'writing-source';
+/** Pipeline states for pre-ingest. */
+export type PreIngestState =
+  | 'reading'
+  | 'discussing'
+  | 'discussion-summary'
+  | 'extracting-source-page'
+  | 'source-page-written';
 
-/** Human-readable labels for each pre-ingest step. */
-export const PRE_INGEST_STEP_LABELS: Record<PreIngestStep, string> = {
-  reading: 'Reading raw source…',
-  discussing: 'Discussing key takeaways…',
-  'writing-source': 'Writing source page…',
-};
-
-/** Ordered list of all pre-ingest steps. */
-export const PRE_INGEST_STEP_ORDER: PreIngestStep[] = ['reading', 'discussing', 'writing-source'];
+/** Context data passed with each state change. */
+export interface PreIngestStateData {
+  /** Name of the source file being processed. */
+  fileName: string;
+  /** Path to the written source page file. Only present in 'source-page-written' state. */
+  sourcePath?: string;
+}
 
 /** Presentation callbacks required by the pre-ingest pipeline. */
 export interface PreIngestPresentation {
@@ -19,10 +22,8 @@ export interface PreIngestPresentation {
   readInput(): Promise<string>;
   /** Invoked to ask whether the user wants to enter the discussion step. */
   shouldDiscuss(): Promise<boolean>;
-  /** Invoked when the pipeline enters a new step. */
-  onStep(step: PreIngestStep): void;
-  /** Invoked when a step completes successfully. */
-  onStepComplete(step: PreIngestStep): void;
+  /** Invoked when the pipeline transitions to a new state. */
+  onStateChange(state: PreIngestState, data: PreIngestStateData): void;
 }
 
 /** Configuration for a pre-ingest pipeline run. */

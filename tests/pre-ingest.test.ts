@@ -58,7 +58,6 @@ const defaultSourcePage = {
   urlOrReference: '-',
   summary: 'Test summary paragraph.',
   mainPoints: ['Main point 1', 'Main point 2'],
-  keyTakeaways: ['Takeaway 1', 'Takeaway 2'],
   tags: ['test', 'example'],
 };
 
@@ -89,8 +88,7 @@ function makeMockPresentation(overrides?: Partial<PreIngestPresentation>): PreIn
     onChunk: () => {},
     readInput: () => Promise.resolve(''),
     shouldDiscuss: () => Promise.resolve(true),
-    onStep: () => {},
-    onStepComplete: () => {},
+    onStateChange: () => {},
     ...overrides,
   };
 }
@@ -439,9 +437,6 @@ describe('PreIngest', () => {
       expect(pageContent).toContain('## Main Points');
       expect(pageContent).toContain('- Main point 1');
       expect(pageContent).toContain('- Main point 2');
-      expect(pageContent).toContain('## Key Takeaways');
-      expect(pageContent).toContain('- Takeaway 1');
-      expect(pageContent).toContain('- Takeaway 2');
     });
 
     it('includes Linked Wiki Pages section (empty — maintained by compile)', async () => {
@@ -478,7 +473,6 @@ describe('PreIngest', () => {
         urlOrReference: 'https://example.org/paper',
         summary: 'A summary.',
         mainPoints: ['Point A'],
-        keyTakeaways: ['Takeaway A'],
         tags: ['science'],
       };
 
@@ -548,15 +542,14 @@ describe('PreIngest', () => {
         'date',
         'summary',
         'mainPoints',
-        'keyTakeaways',
         'tags',
       ]);
     });
   });
 
-  describe('onStep', () => {
-    it('calls onStep with each pipeline step in order', async () => {
-      const steps: string[] = [];
+  describe('onStateChange', () => {
+    it('transitions through all states in order', async () => {
+      const states: string[] = [];
 
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
@@ -565,8 +558,8 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         readInput: () => Promise.resolve(''),
-        onStep: (step) => {
-          steps.push(step);
+        onStateChange: (state) => {
+          states.push(state);
         },
       });
       const preIngest = new PreIngest(
@@ -579,11 +572,74 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(steps).toEqual(['reading', 'discussing', 'writing-source']);
+      expect(states).toEqual([
+        'reading',
+        'discussing',
+        'discussion-summary',
+        'extracting-source-page',
+        'source-page-written',
+      ]);
     });
 
-    it('calls onStep even when discussion is skipped', async () => {
-      const steps: string[] = [];
+    it('includes fileName in state data for all states', async () => {
+      const fileNames: string[] = [];
+
+      const config = makeConfig();
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Content', 'utf-8');
+
+      const presentation = makeMockPresentation({
+        readInput: () => Promise.resolve(''),
+        onStateChange: (_state, data) => {
+          fileNames.push(data.fileName);
+        },
+      });
+      const preIngest = new PreIngest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await preIngest.process(filePath);
+
+      expect(fileNames).toEqual(['source.md', 'source.md', 'source.md', 'source.md', 'source.md']);
+    });
+
+    it('includes sourcePath in state data for source-page-written', async () => {
+      let finalData: { fileName: string; sourcePath?: string } | null = null;
+
+      const config = makeConfig();
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Content', 'utf-8');
+
+      const presentation = makeMockPresentation({
+        readInput: () => Promise.resolve(''),
+        onStateChange: (state, data) => {
+          if (state === 'source-page-written') {
+            finalData = data;
+          }
+        },
+      });
+      const preIngest = new PreIngest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+      );
+
+      await preIngest.process(filePath);
+
+      expect(finalData?.fileName).toBe('source.md');
+      expect(finalData?.sourcePath).toContain('sources/');
+    });
+
+    it('skips discussion-summary when discussion is declined', async () => {
+      const states: string[] = [];
 
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
@@ -592,8 +648,8 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         shouldDiscuss: () => Promise.resolve(false),
-        onStep: (step) => {
-          steps.push(step);
+        onStateChange: (state) => {
+          states.push(state);
         },
       });
       const preIngest = new PreIngest(
@@ -606,11 +662,16 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(steps).toEqual(['reading', 'discussing', 'writing-source']);
+      expect(states).toEqual([
+        'reading',
+        'discussing',
+        'extracting-source-page',
+        'source-page-written',
+      ]);
     });
 
-    it('does not call onStep for later steps if an early step throws', async () => {
-      const steps: string[] = [];
+    it('stops at reading when reading throws', async () => {
+      const states: string[] = [];
 
       const config = makeConfig({ maxSourceSize: 1 });
       await mkdir(config.vaultPath, { recursive: true });
@@ -618,8 +679,8 @@ describe('PreIngest', () => {
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
       const presentation = makeMockPresentation({
-        onStep: (step) => {
-          steps.push(step);
+        onStateChange: (state) => {
+          states.push(state);
         },
       });
       const preIngest = new PreIngest(
@@ -632,60 +693,7 @@ describe('PreIngest', () => {
 
       await expect(preIngest.process(filePath)).rejects.toThrow();
 
-      expect(steps).toEqual(['reading']);
-    });
-
-    it('calls onStepComplete for each completed step in order', async () => {
-      const completed: string[] = [];
-
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'source.md');
-      await writeFile(filePath, '# Content', 'utf-8');
-
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-        onStepComplete: (step) => {
-          completed.push(step);
-        },
-      });
-      const preIngest = new PreIngest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await preIngest.process(filePath);
-
-      expect(completed).toEqual(['reading', 'discussing', 'writing-source']);
-    });
-
-    it('does not call onStepComplete for failed steps', async () => {
-      const completed: string[] = [];
-
-      const config = makeConfig({ maxSourceSize: 1 });
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'big.md');
-      await writeFile(filePath, 'x'.repeat(100), 'utf-8');
-
-      const presentation = makeMockPresentation({
-        onStepComplete: (step) => {
-          completed.push(step);
-        },
-      });
-      const preIngest = new PreIngest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        presentation,
-      );
-
-      await expect(preIngest.process(filePath)).rejects.toThrow();
-
-      expect(completed).toEqual([]);
+      expect(states).toEqual(['reading']);
     });
   });
 
