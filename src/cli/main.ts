@@ -191,14 +191,80 @@ preIngestCmd
     logger.info('pre-ingest complete');
   });
 
-program
-  .command('ingest')
-  .description('Run the ingest pipeline on a source page')
-  .argument('<file>', 'path to the source page in sources/')
-  .action(async (file, options) => {
+const ingestCmd = program.command('ingest').description('Process source pages from the vault');
+
+ingestCmd
+  .command('list')
+  .description('List source pages in the vault with their content-based IDs')
+  .action(async () => {
+    const { vaultPath, logger } = await bootstrap(program.opts());
+
+    const sourcesDir = join(vaultPath, 'sources');
+    const fileListService = new FileListServiceImpl();
+    const files = await fileListService.listFiles(sourcesDir);
+
+    if (files.length === 0) {
+      process.stderr.write(`No source pages found (${sourcesDir})\n`);
+      logger.info('ingest list: no source pages');
+      return;
+    }
+
+    const maxIdWidth = Math.max(...files.map((f) => f.id.length));
+
+    process.stderr.write(
+      `\nSource pages (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`,
+    );
+
+    for (const file of files) {
+      process.stdout.write(`  ${file.id.padEnd(maxIdWidth)}  ${file.fileName}\n`);
+    }
+
+    process.stderr.write(`\nRun "exolith ingest process <id>" to start the pipeline.\n`);
+
+    logger.info({ count: files.length }, 'ingest list');
+  });
+
+ingestCmd
+  .command('process')
+  .description('Run the ingest pipeline on a source page from the vault')
+  .argument('<id>', 'ID (or prefix) of the file from "ingest list"')
+  .action(async (id, options) => {
     const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
 
-    intro(`Ingesting ${file}`);
+ingestCmd
+  .command('process')
+  .description('Run the ingest pipeline on a source page from the vault')
+  .argument('<id>', 'ID (or prefix) of the file from "ingest list"')
+  .action(async (id, options) => {
+    const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
+
+    const sourcesDir = join(vaultPath, 'sources');
+    const fileListService = new FileListServiceImpl();
+    const files = await fileListService.listFiles(sourcesDir);
+
+    const matches = files.filter((f) => f.id.startsWith(id));
+
+    if (matches.length === 0) {
+      process.stderr.write(`Error: No file found with ID prefix "${id}" in ${sourcesDir}\n`);
+      logger.warn({ id }, 'ingest process: no match');
+      process.exit(1);
+    }
+
+    if (matches.length > 1) {
+      const maxIdWidth = Math.max(...matches.map((m) => m.id.length));
+      process.stderr.write(`Error: ID prefix "${id}" matches multiple files:\n`);
+      for (const m of matches) {
+        process.stderr.write(`  ${m.id.padEnd(maxIdWidth)}  ${m.fileName}\n`);
+      }
+      process.stderr.write('Provide a longer ID prefix to disambiguate.\n');
+      logger.warn({ id, matches: matches.length }, 'ingest process: ambiguous ID');
+      process.exit(1);
+    }
+
+    const target = matches[0];
+    logger.info({ id, file: target.fullPath }, 'ingest process: starting pipeline');
+
+    intro(`Ingesting ${target.fileName}`);
     const sigintHandler = () => {
       cancel('Cancelled.');
       process.exit(0);
@@ -210,9 +276,9 @@ program
     const service = factory.create({ vaultPath }, presentation);
 
     try {
-      await service.process(file);
+      await service.process(target.fullPath);
       process.off('SIGINT', sigintHandler);
-      outro(`Ingested: ${file}`);
+      outro(`Ingested: ${target.fileName}`);
     } catch (err) {
       process.off('SIGINT', sigintHandler);
       logger.error({ err }, 'ingest failed');
