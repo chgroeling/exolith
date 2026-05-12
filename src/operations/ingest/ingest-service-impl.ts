@@ -9,7 +9,12 @@ import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompileService } from '../compile/compile-service';
-import type { IngestConfig, IngestPresentation, IngestService } from './ingest-service';
+import type {
+  IngestConfig,
+  IngestPresentation,
+  IngestService,
+  IngestSubStep,
+} from './ingest-service';
 
 /**
  * A distinct, identifiable thing extracted from a source page.
@@ -101,6 +106,7 @@ export class Ingest implements IngestService {
   private createdPages: string[] = [];
   private updatedPages: string[] = [];
   private sourceFileName = '';
+  private sourceFilePath = '';
   private sourceTitle = '';
 
   constructor(
@@ -123,6 +129,7 @@ export class Ingest implements IngestService {
     this.logger.info({ sourceFilePath }, 'Ingest process started');
     const vaultPath = this.config.vaultPath;
     this.sourceFileName = sourceFilePath.replace(`${vaultPath}/`, '').replace(/^sources\//, '');
+    this.sourceFilePath = sourceFilePath;
 
     try {
       this.presentation.onStep('Extracting', { sourceFilePath });
@@ -183,61 +190,90 @@ export class Ingest implements IngestService {
 
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
 
-    await this.updateEntities(indexEntries, sourceRelativePath);
-    await this.updateConcepts(indexEntries, sourceRelativePath);
+    await this.updatePages(
+      this.extractionResult.entities,
+      'entity',
+      indexEntries,
+      sourceRelativePath,
+      (item, slug, srcRelPath) => this.createEntityPage(item, slug, srcRelPath),
+      'EntityCreated',
+    );
+
+    await this.updatePages(
+      this.extractionResult.concepts,
+      'concept',
+      indexEntries,
+      sourceRelativePath,
+      (item, slug, srcRelPath) => this.createConceptPage(item, slug, srcRelPath),
+      'ConceptCreated',
+    );
   }
 
-  /** Updates entity pages: two-phase lookup, then update/create via LLM. */
-  private async updateEntities(
+  /** Updates or creates pages of the given type via two-phase lookup and LLM. */
+  private async updatePages<T extends { name: string }>(
+    items: T[],
+    pageType: string,
     indexEntries: Map<string, IndexEntry[]>,
     sourceRelativePath: string,
+    createPage: (item: T, slug: string, sourceRelativePath: string) => Promise<void>,
+    subStepType: IngestSubStep,
   ): Promise<void> {
-    const entries = indexEntries.get('entity') ?? [];
+    const entries = indexEntries.get(pageType) ?? [];
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
     const matches = await this.resolveMatches(
-      this.extractionResult.entities.map((e) => e.name),
+      items.map((i) => i.name),
       entries,
-      'entity',
+      pageType,
     );
-    const matchedNames = new Set(matches.keys());
 
-    for (const entity of this.extractionResult.entities) {
-      if (!matchedNames.has(entity.name)) continue;
-      const slug = matches.get(entity.name);
-      if (!slug) continue;
+    const pagesDir = join(this.config.vaultPath, `${pageType}s`);
 
-      const pagePath = join(this.config.vaultPath, 'entities', `${slug}.md`);
-      let currentContent = '';
-      try {
-        currentContent = await readFile(pagePath, 'utf-8');
-      } catch {
-        this.logger.warn({ pagePath }, 'Matched entity page not found on disk, treating as create');
-        await this.createEntityPage(entity, this.slugifyName(entity.name), sourceRelativePath);
-        continue;
+    for (const item of items) {
+      const matchedSlug = matches.get(item.name);
+
+      if (matchedSlug) {
+        const pagePath = join(pagesDir, `${matchedSlug}.md`);
+        let currentContent = '';
+        try {
+          currentContent = await readFile(pagePath, 'utf-8');
+        } catch {
+          this.logger.warn(
+            { pagePath },
+            `Matched ${pageType} page not found on disk, treating as create`,
+          );
+          const slug = this.slugifyName(item.name);
+          await createPage(item, slug, sourceRelativePath);
+          this.presentation.onStep('Updating', {
+            sourceFilePath: this.sourceFilePath,
+            subStep: { type: subStepType, name: item.name, slug },
+          });
+          continue;
+        }
+
+        const updatePrompt = this.promptService.render('update-page', {
+          currentPageContent: currentContent,
+          sourcePath: sourceRelativePath,
+          entities: this.extractionResult.entities,
+          concepts: this.extractionResult.concepts,
+          claims: this.extractionResult.claims,
+          relationships: this.extractionResult.relationships,
+          openQuestions: this.extractionResult.openQuestions,
+          today,
+        });
+
+        this.logger.info({ pagePath }, `Updating existing ${pageType} page`);
+        const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
+        await writeFile(pagePath, updatedContent, 'utf-8');
+        this.updatedPages.push(`${pageType}s/${matchedSlug}.md`);
+      } else {
+        const slug = this.slugifyName(item.name);
+        await createPage(item, slug, sourceRelativePath);
+        this.presentation.onStep('Updating', {
+          sourceFilePath: this.sourceFilePath,
+          subStep: { type: subStepType, name: item.name, slug },
+        });
       }
-
-      const updatePrompt = this.promptService.render('update-page', {
-        currentPageContent: currentContent,
-        sourcePath: sourceRelativePath,
-        entities: this.extractionResult.entities,
-        concepts: this.extractionResult.concepts,
-        claims: this.extractionResult.claims,
-        relationships: this.extractionResult.relationships,
-        openQuestions: this.extractionResult.openQuestions,
-        today,
-      });
-
-      this.logger.info({ pagePath }, 'Updating existing entity page');
-      const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
-      await writeFile(pagePath, updatedContent, 'utf-8');
-      this.updatedPages.push(`entities/${slug}.md`);
-    }
-
-    for (const entity of this.extractionResult.entities) {
-      if (matchedNames.has(entity.name)) continue;
-      const slug = this.slugifyName(entity.name);
-      await this.createEntityPage(entity, slug, sourceRelativePath);
     }
   }
 
@@ -270,63 +306,6 @@ export class Ingest implements IngestService {
     const pagePath = join(dir, `${slug}.md`);
     await writeFile(pagePath, pageContent, 'utf-8');
     this.createdPages.push(`entities/${slug}.md`);
-  }
-
-  /** Updates concept pages: two-phase lookup, then update/create via LLM. */
-  private async updateConcepts(
-    indexEntries: Map<string, IndexEntry[]>,
-    sourceRelativePath: string,
-  ): Promise<void> {
-    const entries = indexEntries.get('concept') ?? [];
-    const systemPrompt = this.promptService.render('system-prompt', {});
-    const today = new Date().toISOString().slice(0, 10);
-    const matches = await this.resolveMatches(
-      this.extractionResult.concepts.map((c) => c.name),
-      entries,
-      'concept',
-    );
-    const matchedNames = new Set(matches.keys());
-
-    for (const concept of this.extractionResult.concepts) {
-      if (!matchedNames.has(concept.name)) continue;
-      const slug = matches.get(concept.name);
-      if (!slug) continue;
-
-      const pagePath = join(this.config.vaultPath, 'concepts', `${slug}.md`);
-      let currentContent = '';
-      try {
-        currentContent = await readFile(pagePath, 'utf-8');
-      } catch {
-        this.logger.warn(
-          { pagePath },
-          'Matched concept page not found on disk, treating as create',
-        );
-        await this.createConceptPage(concept, this.slugifyName(concept.name), sourceRelativePath);
-        continue;
-      }
-
-      const updatePrompt = this.promptService.render('update-page', {
-        currentPageContent: currentContent,
-        sourcePath: sourceRelativePath,
-        entities: this.extractionResult.entities,
-        concepts: this.extractionResult.concepts,
-        claims: this.extractionResult.claims,
-        relationships: this.extractionResult.relationships,
-        openQuestions: this.extractionResult.openQuestions,
-        today,
-      });
-
-      this.logger.info({ pagePath }, 'Updating existing concept page');
-      const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
-      await writeFile(pagePath, updatedContent, 'utf-8');
-      this.updatedPages.push(`concepts/${slug}.md`);
-    }
-
-    for (const concept of this.extractionResult.concepts) {
-      if (matchedNames.has(concept.name)) continue;
-      const slug = this.slugifyName(concept.name);
-      await this.createConceptPage(concept, slug, sourceRelativePath);
-    }
   }
 
   /** Creates a new concept page via LLM and writes it to the vault. */

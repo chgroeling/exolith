@@ -4,6 +4,7 @@ import type {
   IngestPresentation,
   IngestStep,
   IngestStepData,
+  IngestSubStepPayload,
 } from '../operations/ingest/ingest-service';
 import type {
   PreIngestPresentation,
@@ -12,7 +13,13 @@ import type {
 } from '../operations/pre-ingest/pre-ingest-service';
 
 /** Display actions the presentation layer can perform for a state transition. */
-type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
+type DisplayAction =
+  | 'LogStep'
+  | 'StartSpin'
+  | 'StopSpin'
+  | 'PrepareStream'
+  | 'FinishStream'
+  | 'LogSubStep';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -39,12 +46,30 @@ const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
   },
 };
 
-/** Maps an ingest step to its display label. */
-const INGEST_STEP_DISPLAY: Record<IngestStep, { label: string }> = {
-  Extracting: { label: 'Extracting knowledge' },
-  Updating: { label: 'Updating wiki pages' },
-  Logging: { label: 'Writing log entry' },
-  Compiling: { label: 'Compiling' },
+/** Maps an ingest step to its display behaviour. */
+interface IngestStepDisplayConfig {
+  actions: ActionItem[];
+  subStepActions: ActionItem[];
+}
+
+/** Maps an ingest step to its display behaviour — actions for the step and for sub-steps within it. */
+const INGEST_STEP_DISPLAY: Record<IngestStep, IngestStepDisplayConfig> = {
+  Extracting: {
+    actions: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
+    subStepActions: [],
+  },
+  Updating: {
+    actions: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
+    subStepActions: [{ action: 'LogSubStep', label: '  Created {type}: {name} ({slug})' }],
+  },
+  Logging: {
+    actions: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Writing log entry' }],
+    subStepActions: [],
+  },
+  Compiling: {
+    actions: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Compiling' }],
+    subStepActions: [],
+  },
 };
 
 /** Shared error display for both pipeline presentations. */
@@ -191,10 +216,62 @@ export function createCliPreIngestPresentation(
  * the operation itself is never aware of display framing.
  */
 export function createCliIngestPresentation(): IngestPresentation {
+  let spin: SpinnerResult | null = null;
+  let spinLabel = '';
+  let lastStep: IngestStep | null = null;
+
+  function startSpin(msg: string) {
+    spin?.stop();
+    spin = spinner();
+    spin.start(msg);
+    spinLabel = msg;
+  }
+
+  function stopSpin() {
+    spin?.stop(spinLabel);
+    spin = null;
+    spinLabel = '';
+  }
+
+  function formatSubStepLabel(template: string, payload: IngestSubStepPayload): string {
+    return template
+      .replace('{type}', payload.type === 'EntityCreated' ? 'entity' : 'concept')
+      .replace('{name}', payload.name)
+      .replace('{slug}', payload.slug);
+  }
+
   return {
     onStep(step: IngestStep, data: IngestStepData): void {
-      const { label } = INGEST_STEP_DISPLAY[step];
-      log.step(`${label}: ${data.sourceFilePath}`);
+      const config = INGEST_STEP_DISPLAY[step];
+
+      if (step !== lastStep) {
+        for (const item of config.actions) {
+          switch (item.action) {
+            case 'StartSpin':
+              if (item.label) startSpin(item.label);
+              break;
+            case 'StopSpin':
+              stopSpin();
+              break;
+            case 'LogStep':
+              if (item.label) log.step(`${item.label}: ${data.sourceFilePath}`);
+              break;
+          }
+        }
+        lastStep = step;
+      }
+
+      if (data.subStep) {
+        for (const item of config.subStepActions) {
+          switch (item.action) {
+            case 'LogSubStep':
+              if (item.label) {
+                log.message(formatSubStepLabel(item.label, data.subStep));
+              }
+              break;
+          }
+        }
+      }
     },
 
     onError: makeErrorHandler(),

@@ -1,17 +1,31 @@
 /** The four pipeline steps of an ingest run. */
 export type IngestStep = 'Extracting' | 'Updating' | 'Compiling' | 'Logging';
 
+/** Granular progress notifications emitted within the Updating step. */
+export type IngestSubStep = 'EntityCreated' | 'ConceptCreated';
+
+/** Payload carried in an {@link IngestStepData} when a wiki page is created. */
+export interface IngestSubStepPayload {
+  type: IngestSubStep;
+  /** Human-readable name of the created page. */
+  name: string;
+  /** Slug identifier of the created page. */
+  slug: string;
+}
+
 /** Context data passed with each step transition. */
 export interface IngestStepData {
   /** Absolute path to the source page being processed. */
   sourceFilePath: string;
+  /** Present when a sub-step (page creation) occurs within the Updating step. */
+  subStep?: IngestSubStepPayload;
 }
 
 import type { PipelinePresentation } from '../pipeline-presentation';
 
 /** Presentation callbacks required by the ingest pipeline. */
 export interface IngestPresentation extends PipelinePresentation {
-  /** Invoked when the pipeline enters a new step. */
+  /** Invoked when the pipeline enters a new step or a sub-step occurs within it. */
   onStep(step: IngestStep, data: IngestStepData): void;
 }
 

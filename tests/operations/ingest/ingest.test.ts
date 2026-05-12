@@ -313,8 +313,10 @@ describe('Ingest', () => {
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const presentation = makeMockPresentation({
-        onStep: (step, _data) => {
-          steps.push(step);
+        onStep: (step, data) => {
+          if (!data.subStep) {
+            steps.push(step);
+          }
         },
       });
       const ingest = new Ingest(
@@ -329,6 +331,38 @@ describe('Ingest', () => {
       await ingest.process(filePath);
 
       expect(steps).toEqual(['Extracting', 'Updating', 'Logging', 'Compiling']);
+    });
+
+    it('calls onStep with subStep payload for each created page', async () => {
+      const subSteps: string[] = [];
+
+      const config = makeConfig();
+      const filePath = await createTestSourceFile(config.vaultPath);
+
+      const presentation = makeMockPresentation({
+        onStep: (_step, data) => {
+          if (data.subStep) {
+            subSteps.push(`${data.subStep.type}:${data.subStep.name}`);
+          }
+        },
+      });
+      const ingest = new Ingest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        presentation,
+        makeMockCompile(),
+      );
+
+      await ingest.process(filePath);
+
+      expect(subSteps).toEqual([
+        'EntityCreated:Seneca',
+        'EntityCreated:Dr. Maria Schneider',
+        'ConceptCreated:Praemeditatio Malorum',
+        'ConceptCreated:Cortisol Reduction Through Meditation',
+      ]);
     });
   });
 
