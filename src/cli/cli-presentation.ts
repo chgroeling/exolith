@@ -1,5 +1,4 @@
-import { stream, confirm, isCancel, log, spinner, text } from '@clack/prompts';
-import type { SpinnerResult } from '@clack/prompts';
+import { stream, confirm, isCancel, log, text } from '@clack/prompts';
 import type {
   IngestPresentation,
   IngestStep,
@@ -11,6 +10,7 @@ import type {
   PreIngestState,
   PreIngestStateData,
 } from '../operations/pre-ingest/pre-ingest-service';
+import { SpinnerManager } from './spinner-manager';
 
 /** Display actions the presentation layer can perform for a state transition. */
 type DisplayAction =
@@ -19,7 +19,7 @@ type DisplayAction =
   | 'StopSpin'
   | 'PrepareStream'
   | 'FinishStream'
-  | 'LogSubStep';
+  | 'SpinMessage';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -59,8 +59,8 @@ const INGEST_STEP_DISPLAY: Record<IngestStep, IngestStepDisplayConfig> = {
     subStepActions: [],
   },
   Updating: {
-    actions: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
-    subStepActions: [{ action: 'LogSubStep', label: '  Created {type}: {name} ({slug})' }],
+    actions: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Updating wiki pages' }],
+    subStepActions: [{ action: 'SpinMessage', label: '  Created {type}: {name} ({slug})' }],
   },
   Logging: {
     actions: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Writing log entry' }],
@@ -88,24 +88,11 @@ function makeErrorHandler(): (error: Error) => void {
 export function createCliPreIngestPresentation(
   opts: { skipDiscuss?: boolean } = {},
 ): PreIngestPresentation {
-  let spin: SpinnerResult | null = null;
-  let spinLabel = '';
+  const spin = new SpinnerManager();
   let chunkQueue: string[] | null = null;
   let queueResolve: (() => void) | null = null;
   let queueDone = false;
   let streamPromise: Promise<void> | null = null;
-
-  function startSpin(msg: string) {
-    spin = spinner();
-    spin.start(msg);
-    spinLabel = msg;
-  }
-
-  function stopSpin() {
-    spin?.stop(spinLabel);
-    spin = null;
-    spinLabel = '';
-  }
 
   function startStream() {
     streamPromise = stream.message({
@@ -133,10 +120,10 @@ export function createCliPreIngestPresentation(
             log.step(`${item.label}: ${data.fileName}`);
             break;
           case 'StartSpin':
-            if (item.label) startSpin(item.label);
+            if (item.label) spin.start(item.label);
             break;
           case 'StopSpin':
-            stopSpin();
+            spin.stop();
             break;
           case 'PrepareStream':
             chunkQueue = [];
@@ -154,7 +141,7 @@ export function createCliPreIngestPresentation(
 
     /** Streams a single LLM token chunk to stdout. */
     onChunk(chunk: string): void {
-      stopSpin();
+      spin.stop();
 
       if (chunkQueue) {
         if (!streamPromise) startStream();
@@ -180,7 +167,7 @@ export function createCliPreIngestPresentation(
 
       const trimmed = result.trim();
       if (trimmed) {
-        startSpin('Thinking');
+        spin.start('Thinking');
       }
       return trimmed;
     },
@@ -199,7 +186,7 @@ export function createCliPreIngestPresentation(
       if (isCancel(result)) return false;
 
       if (result) {
-        startSpin('Thinking');
+        spin.start('Thinking');
       }
       return result;
     },
@@ -216,22 +203,8 @@ export function createCliPreIngestPresentation(
  * the operation itself is never aware of display framing.
  */
 export function createCliIngestPresentation(): IngestPresentation {
-  let spin: SpinnerResult | null = null;
-  let spinLabel = '';
+  const spin = new SpinnerManager();
   let lastStep: IngestStep | null = null;
-
-  function startSpin(msg: string) {
-    spin?.stop();
-    spin = spinner();
-    spin.start(msg);
-    spinLabel = msg;
-  }
-
-  function stopSpin() {
-    spin?.stop(spinLabel);
-    spin = null;
-    spinLabel = '';
-  }
 
   function formatSubStepLabel(template: string, payload: IngestSubStepPayload): string {
     return template
@@ -248,10 +221,10 @@ export function createCliIngestPresentation(): IngestPresentation {
         for (const item of config.actions) {
           switch (item.action) {
             case 'StartSpin':
-              if (item.label) startSpin(item.label);
+              if (item.label) spin.start(item.label);
               break;
             case 'StopSpin':
-              stopSpin();
+              spin.stop();
               break;
             case 'LogStep':
               if (item.label) log.step(`${item.label}: ${data.sourceFilePath}`);
@@ -264,9 +237,9 @@ export function createCliIngestPresentation(): IngestPresentation {
       if (data.subStep) {
         for (const item of config.subStepActions) {
           switch (item.action) {
-            case 'LogSubStep':
-              if (item.label) {
-                log.message(formatSubStepLabel(item.label, data.subStep));
+            case 'SpinMessage':
+              if (item.label && data.subStep) {
+                spin.message(formatSubStepLabel(item.label, data.subStep));
               }
               break;
           }
