@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convert `Presentation` and `Operations` enum members to PascalCase
 - Replace imperative `validateConfig()` with `ExolithConfigSchema.safeParse()`
 - Extract shared `loadSchemaFile` helper for JSON5 schema resolution, with SourcePage schema externalized to `schemas/`
+- Rename `ingest`/`pre-ingest` implementation files to `-service-impl` suffix convention
 
 ### Deprecated
 
