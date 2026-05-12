@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import JSON5 from 'json5';
 import type { Logger } from 'pino';
 import type { ConfigLoaderService } from './config-loader';
+import { ExolithConfigSchema } from './config-schema';
 import { CONFIG_FILE_NAME } from './config-types';
 import type { ConfigLoadResult, ExolithConfig } from './config-types';
 
@@ -89,22 +90,15 @@ export class ConfigLoaderServiceImpl implements ConfigLoaderService {
       throw new Error(`Malformed configuration at ${path}: ${(err as Error).message}`);
     }
 
-    this.validateConfig(path, parsed);
+    const result = ExolithConfigSchema.safeParse(parsed);
 
-    return parsed as unknown as ExolithConfig;
-  }
-
-  private validateConfig(path: string, config: Record<string, unknown>): void {
-    if (!config.provider) {
-      throw new Error(
-        `Invalid configuration at ${path}: missing required field "provider". Must be "openrouter" or "deepseek".`,
-      );
+    if (!result.success) {
+      const issues = result.error.issues
+        .map((i) => `${i.path.length > 0 ? `${i.path.join('.')}: ` : ''}${i.message}`)
+        .join('; ');
+      throw new Error(`Invalid configuration at ${path}: ${issues}`);
     }
 
-    if (config.provider !== 'openrouter' && config.provider !== 'deepseek') {
-      throw new Error(
-        `Invalid configuration at ${path}: provider "${config.provider}" is not supported. Must be "openrouter" or "deepseek".`,
-      );
-    }
+    return result.data as unknown as ExolithConfig;
   }
 }

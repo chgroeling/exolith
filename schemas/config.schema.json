@@ -1,0 +1,15 @@
+{
+  // Exolith configuration schema descriptor.
+  // Defines the shape of exolith.json for runtime validation.
+  // Supports JSON5: comments, trailing commas, unquoted keys.
+  "properties": {
+    "provider": {
+      "type": "enum",
+      "values": ["openrouter", "deepseek"],
+    },
+    "model": { "type": "string", "optional": true },
+    "maxSourceSize": { "type": "number", "optional": true },
+    "logFile": { "type": "string", "optional": true },
+    "logLevel": { "type": "string", "optional": true },
+  },
+}

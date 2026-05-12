@@ -36,7 +36,7 @@ describe('ConfigLoader', () => {
       const dir = testDir();
       await writeConfig(dir, '');
 
-      await expect(makeLoader().load(dir)).rejects.toThrow(/missing required field "provider"/);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
@@ -89,14 +89,14 @@ describe('ConfigLoader', () => {
       const dir = testDir();
       await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
 
-      await expect(makeLoader().load(dir)).rejects.toThrow(/missing required field "provider"/);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
     });
 
     it('throws when provider has an unsupported value', async () => {
       const dir = testDir();
       await writeConfig(dir, JSON.stringify({ provider: 'anthropic' }));
 
-      await expect(makeLoader().load(dir)).rejects.toThrow(/provider "anthropic" is not supported/);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
     });
 
     it('accepts deepseek as a valid provider', async () => {
@@ -126,7 +126,7 @@ describe('ConfigLoader', () => {
       const dir = testDir();
       await writeConfig(dir, '');
 
-      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/missing required field "provider"/);
+      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/provider: Invalid option/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {

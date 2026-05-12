@@ -8,5 +8,6 @@ export default defineConfig({
   treeshake: true,
   async onSuccess() {
     await cp('templates', 'dist/templates', { recursive: true });
+    await cp('schemas', 'dist/schemas', { recursive: true });
   },
 });

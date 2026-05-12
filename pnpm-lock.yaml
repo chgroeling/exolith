@@ -38,6 +38,9 @@ importers:
       slug:
         specifier: ^11.0.1
         version: 11.0.1
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.9.4
