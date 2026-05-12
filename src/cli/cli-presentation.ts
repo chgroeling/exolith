@@ -12,20 +12,12 @@ import type {
 } from '../operations/pre-ingest/pre-ingest-service';
 
 /** Display actions the presentation layer can perform for a state transition. */
-type DisplayAction =
-  | 'LogStep'
-  | 'StartSpin'
-  | 'StopSpin'
-  | 'LogSuccess'
-  | 'PrepareStream'
-  | 'FinishStream';
+type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
 
 /** A single display action with its parameters. */
 interface ActionItem {
   action: DisplayAction;
   label?: string;
-  /** Only relevant for {@link LogSuccess}. */
-  successField?: keyof PreIngestStateData;
 }
 
 /** Maps a pre-ingest state to its display behaviour — one or more actions executed in order. */
@@ -43,10 +35,7 @@ const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
     actions: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Extracting source page' }],
   },
   SourcePageWritten: {
-    actions: [
-      { action: 'StopSpin' },
-      { action: 'LogSuccess', label: 'Source page written', successField: 'sourcePath' },
-    ],
+    actions: [{ action: 'StopSpin' }],
   },
 };
 
@@ -124,13 +113,6 @@ export function createCliPreIngestPresentation(
           case 'StopSpin':
             stopSpin();
             break;
-          case 'LogSuccess': {
-            const msg = item.successField
-              ? `${item.label}: ${data[item.successField]}`
-              : item.label;
-            if (msg) log.success(msg);
-            break;
-          }
           case 'PrepareStream':
             chunkQueue = [];
             queueDone = false;
