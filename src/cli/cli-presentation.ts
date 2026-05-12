@@ -59,7 +59,7 @@ const INGEST_STEP_LABELS: Record<IngestStep, string> = {
 
 /** Shared error display for both pipeline presentations. */
 function makeErrorHandler(): (error: Error) => void {
-  return (error: Error) => log(`Error: ${error.message}\n`);
+  return (error: Error) => log.error(`Error: ${error.message}\n`);
 }
 
 /**
