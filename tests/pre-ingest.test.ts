@@ -8,11 +8,11 @@ import type { IdentifierService } from '../src/core/identifier-service';
 import type { IdentifierType } from '../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../src/infrastructure/llm/llm-service';
 import type { PromptService } from '../src/infrastructure/prompt/prompt-service';
-import { PreIngest } from '../src/operations/pre-ingest/pre-ingest';
 import type {
   PreIngestConfig,
   PreIngestPresentation,
 } from '../src/operations/pre-ingest/pre-ingest-service';
+import { PreIngest } from '../src/operations/pre-ingest/pre-ingest-service-impl';
 
 function makeMockLlm(opts?: {
   streamDelay?: () => Promise<void>;
