@@ -6,8 +6,8 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Human-readable name of the entity (person, organization, project, tool, place, event)" },
-          "entityType": { "type": "string", "description": "Classification: person, organization, project, tool, place, event" },
+          "name": { "type": "string", "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, concept, work, dataset, event, system)" },
+          "entityType": { "type": "string", "description": "Category: person / organization / project / product / tool / place / concept / work / dataset / event / system" },
           "description": { "type": "string", "description": "1-2 sentence description of who/what this entity is" },
           "sourceContext": { "type": "string", "description": "Exact quote or context from the source that mentions this entity" }
         },

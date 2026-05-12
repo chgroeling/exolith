@@ -58,7 +58,7 @@ Every wiki entity — pages, claims, and any future type — has a unique, stabl
 
 ### Entity
 
-Describes an **identifiable thing**: person, organization, project, tool, location, or event. Entities are the "nouns" of the wiki — they are what is being talked *about*. An entity collects claims, has links to other pages, and can reference multiple sources. Example: `entity.seneca`, `entity.maria-schneider`.
+Describes a distinct, identifiable thing — the "nouns" of the wiki. Entities may be concrete or abstract, singular or collective (people, organizations, projects, products, tools, places, concepts, works, datasets, events, systems). Each entity persists independently of any single document, collects claims, links to related entities, aggregates references from multiple sources, and evolves over time. Entities provide the canonical layer of meaning: pages, claims, and evidence are ultimately about entities. Example: `entity.seneca`, `entity.openai`, `entity.apollo-11`, `entity.postgresql`.
 
 > Full specification: [pages/entity-spec.md](pages/entity-spec.md)
 
@@ -152,7 +152,7 @@ Every wiki page belongs to one of five types:
 | Type | Folder | Spec | Description |
 | --- | --- | --- | --- |
 | `source` | `sources/` | [source-spec.md](pages/source-spec.md) | Processed knowledge foundation from a Raw Source |
-| `entity` | `entities/` | [entity-spec.md](pages/entity-spec.md) | Identifiable things: person, project, tool, organization |
+| `entity` | `entities/` | [entity-spec.md](pages/entity-spec.md) | Distinct, identifiable things — the "nouns" of the wiki |
 | `concept` | `concepts/` | [concept-spec.md](pages/concept-spec.md) | Abstract ideas, theories, patterns, methods |
 | `synthesis` | `syntheses/` | [synthesis-spec.md](pages/synthesis-spec.md) | Cross-cutting analyses, comparisons, theses |
 | `report` | `reports/` | [report-spec.md](pages/report-spec.md) | Auto-generated dashboards |

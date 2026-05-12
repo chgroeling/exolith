@@ -11,7 +11,10 @@ import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompileService } from '../compile/compile-service';
 import type { IngestConfig, IngestPresentation, IngestService } from './ingest-service';
 
-/** Extracted entity from a source page. */
+/**
+ * A distinct, identifiable thing extracted from a source page.
+ * May be concrete or abstract, singular or collective.
+ */
 interface ExtractedEntity {
   name: string;
   entityType: string;

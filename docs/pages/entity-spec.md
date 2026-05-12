@@ -1,8 +1,23 @@
 # Entity — identifiable things
 
-The Page type `entity` describes an **identifiable thing**: person, organization, project, tool, place, or event. Entities are the "nouns" of the wiki — they are *what* is being talked about.
+An **entity** is a distinct, identifiable thing that can be described, referenced, and connected to other things within the system. Entities represent the primary subjects of knowledge — the "nouns" of the wiki.
 
-**When does an Entity come into existence?** During extraction (step 4 of ingest), when the LLM recognizes a new person, organization, etc. in the source text that does not yet exist in the wiki (two-phase lookup fails → CREATE).
+An entity may be concrete or abstract, singular or collective, and typically persists independently of any single document or claim. Examples include people, organizations, projects, products, tools, places, concepts, works, datasets, events, or systems.
+
+Each entity can:
+
+- hold structured or unstructured claims,
+- link to related entities,
+- aggregate references from multiple sources,
+- evolve over time as new information is added,
+- serve as a stable identity target across the knowledge graph.
+
+Entities provide the canonical layer of meaning in the wiki: pages, claims, discussions, and evidence are ultimately about entities.
+
+> Documents describe things.
+> Entities are the things being described.
+
+**When does an Entity come into existence?** During extraction (step 4 of ingest), when the LLM recognizes a distinct thing in the source text that does not yet exist in the wiki (two-phase lookup fails → CREATE).
 
 **Structure of an Entity (example):**
 
