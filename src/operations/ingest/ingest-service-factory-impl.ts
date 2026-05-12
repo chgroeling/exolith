@@ -1,13 +1,13 @@
 import type { IdentifierService } from '../../core/identifier-service';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
-import { Ingest } from './ingest';
 import type {
   IngestConfig,
   IngestPresentation,
   IngestService,
   IngestServiceFactory,
 } from './ingest-service';
+import { Ingest } from './ingest-service-impl';
 
 export class IngestServiceFactoryImpl implements IngestServiceFactory {
   constructor(
