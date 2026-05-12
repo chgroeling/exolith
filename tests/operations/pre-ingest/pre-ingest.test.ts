@@ -75,7 +75,37 @@ function makeMockIdentifier(): IdentifierService {
 
 function makeMockPrompt(): PromptService {
   return {
-    render(_templateName: string, context: Record<string, unknown>): string {
+    render(templateName: string, context: Record<string, unknown>): string {
+      if (templateName === 'source-page-output') {
+        return [
+          '---',
+          `id: ${context.id}`,
+          `title: ${context.title}`,
+          'status: active',
+          'tags:',
+          ...(context.tags as string[]).map((t: string) => `  - ${t}`),
+          `created: ${context.created}`,
+          `updated: ${context.updated}`,
+          '---',
+          '',
+          `# ${context.title}`,
+          '',
+          `*Type:* ${context.type}`,
+          `*Author(s):* ${context.authors}`,
+          `*Date:* ${context.date}`,
+          `*URL/Reference:* ${context.urlOrReference || '-'}`,
+          `*Original File:* [[raw-sources/${context.fileName}]]`,
+          '',
+          '## Summary',
+          context.summary as string,
+          '',
+          '## Main Points',
+          ...(context.mainPoints as string[]).map((p: string) => `- ${p}`),
+          '',
+          '## Linked Wiki Pages',
+          '',
+        ].join('\n');
+      }
       return Object.entries(context)
         .map(([k, v]) => `${k}: ${v}`)
         .join('\n');
@@ -179,7 +209,7 @@ describe('PreIngest', () => {
     });
   });
 
-  describe('discussKeyTakeaways', () => {
+  describe('runDiscussion', () => {
     it('skips discussion when shouldDiscuss returns false', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });

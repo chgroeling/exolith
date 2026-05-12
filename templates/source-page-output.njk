@@ -1,0 +1,29 @@
+---
+id: {{ id }}
+title: {{ title }}
+status: active
+tags:
+{%- for tag in tags %}
+  - {{ tag }}
+{%- endfor %}
+created: {{ created }}
+updated: {{ updated }}
+---
+
+# {{ title }}
+
+*Type:* {{ type }}
+*Author(s):* {{ authors }}
+*Date:* {{ date }}
+*URL/Reference:* {{ urlOrReference | default('-') }}
+*Original File:* [[raw-sources/{{ fileName }}]]
+
+## Summary
+{{ summary }}
+
+## Main Points
+{%- for point in mainPoints %}
+- {{ point }}
+{%- endfor %}
+
+## Linked Wiki Pages

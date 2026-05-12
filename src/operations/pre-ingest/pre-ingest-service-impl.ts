@@ -66,7 +66,7 @@ export class PreIngest implements PreIngestService {
       this.presentation.onStateChange('Discussing', { fileName: basename(this.filePath) });
       const shouldDiscuss = await this.presentation.shouldDiscuss();
       if (shouldDiscuss) {
-        const messages = await this.discussKeyTakeaways();
+        const messages = await this.runDiscussion();
 
         // 3. Summarize the discussion
         this.presentation.onStateChange('DiscussionSummary', {
@@ -127,7 +127,7 @@ export class PreIngest implements PreIngestService {
    * Interactive discussion loop with the human.
    * Returns the full session messages for later summarization.
    */
-  private async discussKeyTakeaways(): Promise<readonly { role: string; content: string }[]> {
+  private async runDiscussion(): Promise<readonly { role: string; content: string }[]> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
 
     const systemPrompt = this.promptService.render('system-prompt', {});
@@ -275,36 +275,21 @@ export class PreIngest implements PreIngestService {
     await mkdir(sourceDir, { recursive: true });
 
     const today = new Date().toISOString().slice(0, 10);
-    const tagLines = sourcePage.tags.map((t) => `  - ${t}`);
 
-    const content = [
-      '---',
-      `id: ${sourceId}`,
-      `title: ${sourcePage.title}`,
-      'status: active',
-      'tags:',
-      ...tagLines,
-      `created: ${today}`,
-      `updated: ${today}`,
-      '---',
-      '',
-      `# ${sourcePage.title}`,
-      '',
-      `*Type:* ${sourcePage.type}`,
-      `*Author(s):* ${sourcePage.authors}`,
-      `*Date:* ${sourcePage.date}`,
-      `*URL/Reference:* ${sourcePage.urlOrReference || '-'}`,
-      `*Original File:* [[raw-sources/${fileName}]]`,
-      '',
-      '## Summary',
-      sourcePage.summary,
-      '',
-      '## Main Points',
-      ...sourcePage.mainPoints.map((p) => `- ${p}`),
-      '',
-      '## Linked Wiki Pages',
-      '',
-    ].join('\n');
+    const content = this.promptService.render('source-page-output', {
+      id: sourceId,
+      title: sourcePage.title,
+      tags: sourcePage.tags,
+      created: today,
+      updated: today,
+      type: sourcePage.type,
+      authors: sourcePage.authors,
+      date: sourcePage.date,
+      urlOrReference: sourcePage.urlOrReference,
+      fileName,
+      summary: sourcePage.summary,
+      mainPoints: sourcePage.mainPoints,
+    });
 
     const sourcePath = join(sourceDir, `${slug}.md`);
     await writeFile(sourcePath, content, 'utf-8');
