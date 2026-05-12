@@ -1,21 +1,16 @@
 /** The four pipeline steps of an ingest run. */
 export type IngestStep = 'extracting' | 'updating' | 'compiling' | 'logging';
 
-/** Human-readable labels for each ingest step. */
-export const INGEST_STEP_LABELS: Record<IngestStep, string> = {
-  extracting: 'Extracting knowledge…',
-  updating: 'Updating wiki pages…',
-  logging: 'Writing log entry…',
-  compiling: 'Compiling…',
-};
-
-/** Ordered list of all ingest steps. */
-export const INGEST_STEP_ORDER: IngestStep[] = ['extracting', 'updating', 'logging', 'compiling'];
+/** Context data passed with each step transition. */
+export interface IngestStepData {
+  /** Absolute path to the source page being processed. */
+  sourceFilePath: string;
+}
 
 /** Presentation callbacks required by the ingest pipeline. */
 export interface IngestPresentation {
   /** Invoked when the pipeline enters a new step. */
-  onStep(step: IngestStep): void;
+  onStep(step: IngestStep, data: IngestStepData): void;
 }
 
 /** Configuration for an ingest pipeline run. */

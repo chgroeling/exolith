@@ -1,20 +1,53 @@
 import { stream, confirm, isCancel, log, spinner, text } from '@clack/prompts';
 import type { SpinnerResult } from '@clack/prompts';
-import type { IngestPresentation, IngestStep } from '../operations/ingest/ingest-service';
+import type {
+  IngestPresentation,
+  IngestStep,
+  IngestStepData,
+} from '../operations/ingest/ingest-service';
 import type {
   PreIngestPresentation,
   PreIngestState,
   PreIngestStateData,
 } from '../operations/pre-ingest/pre-ingest-service';
 
-const STATE_LABELS: Record<PreIngestState, string> = {
-  reading: 'Reading',
-  discussing: 'Discussing',
-  streaming: 'Streaming',
-  'waiting-for-input': 'Waiting for input',
-  'discussion-summary': 'Summarizing discussion',
-  'extracting-source-page': 'Extracting source page',
-  'source-page-written': 'Source page written',
+/** Display actions the presentation layer can perform for a state transition. */
+type DisplayAction =
+  | 'log-step'
+  | 'start-spin'
+  | 'update-spin-or-start'
+  | 'stop-spin-log-success'
+  | 'prepare-stream'
+  | 'finish-stream';
+
+/** Maps a pre-ingest state to its display behaviour. */
+interface StateDisplayConfig {
+  action: DisplayAction;
+  label: string;
+  /** The {@link PreIngestStateData} field to log after stopping the spinner. Only relevant for 'stop-spin-log-success'. */
+  successField?: keyof PreIngestStateData;
+}
+
+const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
+  reading: { action: 'log-step', label: 'Reading' },
+  discussing: { action: 'log-step', label: 'Discussing' },
+  streaming: { action: 'prepare-stream', label: 'Streaming' },
+  'waiting-for-input': { action: 'finish-stream', label: 'Waiting for input' },
+  'discussion-summary': { action: 'start-spin', label: 'Summarizing discussion' },
+  'extracting-source-page': { action: 'update-spin-or-start', label: 'Extracting source page' },
+  'source-page-written': {
+    action: 'stop-spin-log-success',
+    label: 'Source page written',
+    successField: 'sourcePath',
+  },
+};
+
+/** Maps an ingest step to its display label. */
+const INGEST_STEP_DISPLAY: Record<IngestStep, { label: string }> = {
+  extracting: { label: 'Extracting knowledge' },
+  updating: { label: 'Updating wiki pages' },
+  logging: { label: 'Writing log entry' },
+  compiling: { label: 'Compiling' },
 };
 
 /**
@@ -66,44 +99,39 @@ export function createCliPreIngestPresentation(
 
   return {
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
-      const label = STATE_LABELS[state];
-
-      if (state === 'streaming') {
-        chunkQueue = [];
-        queueDone = false;
-        streamPromise = null;
-        return;
-      }
-
-      if (state === 'waiting-for-input') {
-        queueDone = true;
-        queueResolve?.();
-        queueResolve = null;
-        return;
-      }
-
-      if (state === 'source-page-written') {
-        stopSpin();
-        log.success(`${data.sourcePath}`);
-        return;
-      }
-
-      if (state === 'extracting-source-page') {
-        if (spin) {
-          spin.message(`${label}`);
-          spinLabel = `${label}`;
-        } else {
-          startSpin(`${label}`);
+      const config = STATE_DISPLAY[state];
+      switch (config.action) {
+        case 'log-step':
+          log.step(`${config.label}: ${data.fileName}`);
+          break;
+        case 'start-spin':
+          startSpin(config.label);
+          break;
+        case 'update-spin-or-start':
+          if (spin) {
+            spin.message(config.label);
+            spinLabel = config.label;
+          } else {
+            startSpin(config.label);
+          }
+          break;
+        case 'stop-spin-log-success': {
+          stopSpin();
+          const field = config.successField;
+          log.success(field ? `${data[field]}` : '');
+          break;
         }
-        return;
+        case 'prepare-stream':
+          chunkQueue = [];
+          queueDone = false;
+          streamPromise = null;
+          break;
+        case 'finish-stream':
+          queueDone = true;
+          queueResolve?.();
+          queueResolve = null;
+          break;
       }
-
-      if (state === 'discussion-summary') {
-        startSpin(`${label}`);
-        return;
-      }
-
-      log.step(`${label}: ${data.fileName}`);
     },
 
     onChunk(chunk: string): void {
@@ -161,11 +189,16 @@ export function createCliPreIngestPresentation(
 
 /**
  * Creates an {@link IngestPresentation} that writes step progress to stderr.
+ *
+ * @remarks
+ * Progress indicators are managed autonomously by the presentation layer —
+ * the operation itself is never aware of display framing.
  */
 export function createCliIngestPresentation(): IngestPresentation {
   return {
-    onStep(step: IngestStep): void {
-      log.step(`[${step}]`);
+    onStep(step: IngestStep, data: IngestStepData): void {
+      const { label } = INGEST_STEP_DISPLAY[step];
+      log.step(`${label}: ${data.sourceFilePath}`);
     },
   };
 }

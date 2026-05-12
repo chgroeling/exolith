@@ -66,7 +66,7 @@ function makeMockPrompt(): PromptService {
 
 function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPresentation {
   return {
-    onStep: () => {},
+    onStep: (_step, _data) => {},
     ...overrides,
   };
 }
@@ -109,7 +109,7 @@ describe('Ingest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const presentation = makeMockPresentation({
-        onStep: (step) => {
+        onStep: (step, _data) => {
           steps.push(step);
         },
       });
