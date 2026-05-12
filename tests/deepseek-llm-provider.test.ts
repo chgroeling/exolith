@@ -16,10 +16,16 @@ function makeMockModel(): LanguageModel {
     supportsUrlCacheControl: false,
     supportsPromptCaching: false,
     doGenerate() {
-      throw new Error('not mocked');
+      return Promise.resolve({
+        text: '',
+        usage: { promptTokens: 0, completionTokens: 0 },
+        finishReason: 'stop',
+      });
     },
     doStream() {
-      throw new Error('not mocked');
+      return Promise.resolve({
+        stream: new ReadableStream(),
+      });
     },
   } as unknown as LanguageModel;
 }

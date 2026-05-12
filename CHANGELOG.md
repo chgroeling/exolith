@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cancel and SIGINT handling during pipeline execution
 - Remove duplicate error output on failure
 - Fix `LogSuccess` context in pre-ingest process
+- Fix DeepSeek provider test mocks to return valid stream/generate results instead of throwing
 
 ### Security
 
