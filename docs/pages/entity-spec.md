@@ -2,7 +2,9 @@
 
 An **entity** is a distinct, identifiable thing that can be described, referenced, and connected to other things within the system. Entities represent the primary subjects of knowledge — the "nouns" of the wiki.
 
-An entity may be concrete or abstract, singular or collective, and typically persists independently of any single document or claim. Examples include people, organizations, projects, products, tools, places, concepts, works, datasets, events, or systems.
+An entity may be concrete or abstract, singular or collective, and typically persists independently of any single document or claim. Examples include people, organizations, projects, products, tools, places, works, datasets, events, or systems.
+
+**Entities are NOT patterns, methods, or theories** — those belong under [Concepts](concept-spec.md). If something describes *how* things relate rather than being a thing itself, it is a Concept.
 
 Each entity can:
 

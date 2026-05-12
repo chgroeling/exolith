@@ -59,7 +59,7 @@ A Raw Source arrives in `inbox/`. During ingest step 3, the LLM creates a **Sour
 | Type | Folder | Slug Pattern | Description |
 | --- | --- | --- | --- |
 | `source` | `sources/` | `source.{slug}` | [Processed knowledge foundation](pages/source-spec.md) from a Raw Source — the basis of all further processing |
-| `entity` | `entities/` | `entity.{slug}` | [Distinct, identifiable things](pages/entity-spec.md) — the "nouns" of the wiki: people, organizations, projects, products, tools, places, concepts, works, datasets, events, systems |
+| `entity` | `entities/` | `entity.{slug}` | [Distinct, identifiable things](pages/entity-spec.md) — the "nouns" of the wiki: people, organizations, projects, products, tools, places, works, datasets, events, systems |
 | `concept` | `concepts/` | `concept.{slug}` | [Abstract ideas](pages/concept-spec.md), theories, patterns, methods, frameworks |
 | `synthesis` | `syntheses/` | `synthesis.{slug}` | [Cross-cutting analyses](pages/synthesis-spec.md), comparisons, theses |
 | `report` | `reports/` | `report.{slug}` | [Auto-generated dashboards](pages/report-spec.md) — read-only for humans |

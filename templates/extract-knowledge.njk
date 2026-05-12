@@ -6,12 +6,24 @@ Source page content:
 Extract all entities, concepts, claims, relationships, and open questions from this source. Follow these rules:
 
 ## Entities
-Identify distinct, self-standing things mentioned in the source — the "nouns" of the text. Entities may be concrete or abstract, singular or collective: people, organizations, projects, products, tools, places, concepts, works, datasets, events, or systems. An entity persists independently of any single document.
-For each: provide the name, entityType (descriptive category: person / organization / project / product / tool / place / concept / work / dataset / event / system), a concise description, and the exact source context (quote or context where it appears).
+Identify distinct, self-standing **things** mentioned in the source — the "nouns" of the text. An entity is a discrete, nameable, referable thing that exists independently of any single document: people, organizations, projects, products, tools, places, works, datasets, events, or systems.
+
+**Decisive test:** If you can point to it and say "this is a [X]" (person, organization, tool, place…), it is an Entity. Entities answer *what* is being described.
+
+**Entities are NOT patterns, methods, theories, frameworks, or abstract ideas — those are Concepts (see below).** If the item describes *how* something works, *why* something behaves a certain way, or *which* property something has, it belongs under Concepts, not Entities.
+
+For each: provide the name, entityType (descriptive category: Person / Organization / Project / Product / Tool / Place / Work / Dataset / Event / System), a concise description, and the exact source context (quote or context where it appears).
 
 ## Concepts
-Identify ideas, theories, patterns, methods, frameworks, or discoveries discussed in the source.
-For each: provide the name, domain (e.g. 'philosophy/psychology'), a concise description, and the source context.
+Identify abstract **ideas, theories, patterns, methods, frameworks, or discoveries** discussed in the source. Concepts are the "verbs and adjectives" of the wiki — they describe *how* things relate and *which* properties they have.
+
+**Decisive test:** If the item is a way of doing something, a way of thinking about something, a category that classifies things, or a relationship pattern between entities — it is a Concept. Concepts answer *how* or *why*, not *what*.
+
+**Concepts are NOT discrete, nameable things (persons, tools, places…) — those are Entities (see above).** Concepts are the connective tissue: they link entities together and explain their behavior.
+
+Examples of concepts: Stoicism, praemeditatio malorum, confirmation bias, agile methodology, double-entry bookkeeping, the MAP kinase pathway.
+
+For each: provide the name, domain (e.g. Philosophy/Psychology), a concise description, and the source context.
 
 ## Claims
 Extract verifiable assertions as structured claims. Each claim must have:

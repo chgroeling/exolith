@@ -58,7 +58,7 @@ Every wiki entity — pages, claims, and any future type — has a unique, stabl
 
 ### Entity
 
-Describes a distinct, identifiable thing — the "nouns" of the wiki. Entities may be concrete or abstract, singular or collective (people, organizations, projects, products, tools, places, concepts, works, datasets, events, systems). Each entity persists independently of any single document, collects claims, links to related entities, aggregates references from multiple sources, and evolves over time. Entities provide the canonical layer of meaning: pages, claims, and evidence are ultimately about entities. Example: `entity.seneca`, `entity.openai`, `entity.apollo-11`, `entity.postgresql`.
+Describes a distinct, identifiable thing — the "nouns" of the wiki. Entities may be concrete or abstract, singular or collective (people, organizations, projects, products, tools, places, works, datasets, events, systems). Each entity persists independently of any single document, collects claims, links to related entities, aggregates references from multiple sources, and evolves over time. Entities provide the canonical layer of meaning: pages, claims, and evidence are ultimately about entities. Example: `entity.seneca`, `entity.openai`, `entity.apollo-11`, `entity.postgresql`.
 
 > Full specification: [pages/entity-spec.md](pages/entity-spec.md)
 
