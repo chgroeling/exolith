@@ -5,6 +5,7 @@ import { basename, extname, join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
+import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type {
@@ -27,6 +28,8 @@ interface SourcePage {
 }
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
+
+const sourcePageSchema = loadSchemaFile<Record<string, unknown>>('source-page.schema.json');
 
 export class PreIngest implements PreIngestService {
   private rawContent = '';
@@ -255,21 +258,7 @@ export class PreIngest implements PreIngestService {
     const sourcePage = await this.llmService.generateStructured<SourcePage>({
       systemPrompt,
       messages: [{ role: 'user', content: prompt }],
-      schema: {
-        type: 'object',
-        properties: {
-          title: { type: 'string' },
-          type: { type: 'string', enum: ['article', 'paper', 'transcript', 'note', 'book'] },
-          authors: { type: 'string' },
-          date: { type: 'string' },
-          urlOrReference: { type: 'string' },
-          summary: { type: 'string' },
-          mainPoints: { type: 'array', items: { type: 'string' } },
-          tags: { type: 'array', items: { type: 'string' } },
-        },
-        required: ['title', 'type', 'authors', 'date', 'summary', 'mainPoints', 'tags'],
-        additionalProperties: false,
-      },
+      schema: sourcePageSchema,
       schemaName: 'SourcePage',
       schemaDescription: 'A processed source page for the wiki vault.',
     });

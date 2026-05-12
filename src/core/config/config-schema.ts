@@ -1,8 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import JSON5 from 'json5';
 import { z } from 'zod';
+import { loadSchemaFile } from '../schema-loader';
 
 /** Describes a single property in the schema descriptor file. */
 interface SchemaProperty {
@@ -14,22 +11,6 @@ interface SchemaProperty {
 /** Top-level shape of the schema descriptor file. */
 interface SchemaDescriptor {
   properties: Record<string, SchemaProperty>;
-}
-
-/** Path resolution following the same pattern as {@link resolveTemplateDir}. */
-function resolveSchemaPath(): string {
-  /* eslint-disable no-restricted-globals */
-  const candidates = [
-    fileURLToPath(new URL('./schemas/config.schema.json', import.meta.url)),
-    fileURLToPath(new URL('../../../../schemas/config.schema.json', import.meta.url)),
-    join(process.cwd(), 'schemas/config.schema.json'),
-  ];
-
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate;
-  }
-
-  throw new Error('Schema descriptor not found: schemas/config.schema.json');
 }
 
 /** Builds a Zod object schema from the JSON descriptor at runtime. */
@@ -61,7 +42,7 @@ function buildZodSchema(descriptor: SchemaDescriptor): z.ZodObject<Record<string
   return z.object(shape);
 }
 
-const descriptor = JSON5.parse(readFileSync(resolveSchemaPath(), 'utf-8')) as SchemaDescriptor;
+const descriptor = loadSchemaFile<SchemaDescriptor>('config.schema.json');
 
 /** Zod schema mirroring {@link ExolithConfig} for runtime validation. */
 export const ExolithConfigSchema = buildZodSchema(descriptor);

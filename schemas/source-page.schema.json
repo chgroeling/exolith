@@ -1,0 +1,18 @@
+{
+  // SourcePage structured output schema.
+  // Defines the expected JSON shape for LLM source page extraction.
+  // Supports JSON5: comments, trailing commas, unquoted keys.
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "type": { "type": "string", "enum": ["article", "paper", "transcript", "note", "book"] },
+    "authors": { "type": "string" },
+    "date": { "type": "string" },
+    "urlOrReference": { "type": "string" },
+    "summary": { "type": "string" },
+    "mainPoints": { "type": "array", "items": { "type": "string" } },
+    "tags": { "type": "array", "items": { "type": "string" } },
+  },
+  "required": ["title", "type", "authors", "date", "summary", "mainPoints", "tags"],
+  "additionalProperties": false,
+}
