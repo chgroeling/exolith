@@ -13,30 +13,30 @@ import type {
 
 /** Display actions the presentation layer can perform for a state transition. */
 type DisplayAction =
-  | 'log-step'
-  | 'start-spin'
-  | 'update-spin-or-start'
-  | 'stop-spin-log-success'
-  | 'prepare-stream'
-  | 'finish-stream';
+  | 'LogStep'
+  | 'StartSpin'
+  | 'UpdateSpinOrStart'
+  | 'StopSpinLogSuccess'
+  | 'PrepareStream'
+  | 'FinishStream';
 
 /** Maps a pre-ingest state to its display behaviour. */
 interface StateDisplayConfig {
   action: DisplayAction;
   label: string;
-  /** The {@link PreIngestStateData} field to log after stopping the spinner. Only relevant for 'stop-spin-log-success'. */
+  /** The {@link PreIngestStateData} field to log after stopping the spinner. Only relevant for 'StopSpinLogSuccess'. */
   successField?: keyof PreIngestStateData;
 }
 
 const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
-  reading: { action: 'log-step', label: 'Reading' },
-  discussing: { action: 'log-step', label: 'Discussing' },
-  streaming: { action: 'prepare-stream', label: 'Streaming' },
-  'waiting-for-input': { action: 'finish-stream', label: 'Waiting for input' },
-  'discussion-summary': { action: 'start-spin', label: 'Summarizing discussion' },
-  'extracting-source-page': { action: 'update-spin-or-start', label: 'Extracting source page' },
-  'source-page-written': {
-    action: 'stop-spin-log-success',
+  Reading: { action: 'LogStep', label: 'Reading' },
+  Discussing: { action: 'LogStep', label: 'Discussing' },
+  Streaming: { action: 'PrepareStream', label: 'Streaming' },
+  WaitingForInput: { action: 'FinishStream', label: 'Waiting for input' },
+  DiscussionSummary: { action: 'StartSpin', label: 'Summarizing discussion' },
+  ExtractingSourcePage: { action: 'UpdateSpinOrStart', label: 'Extracting source page' },
+  SourcePageWritten: {
+    action: 'StopSpinLogSuccess',
     label: 'Source page written',
     successField: 'sourcePath',
   },
@@ -44,17 +44,17 @@ const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
 
 /** Maps an ingest step to its display label. */
 const INGEST_STEP_DISPLAY: Record<IngestStep, { label: string }> = {
-  extracting: { label: 'Extracting knowledge' },
-  updating: { label: 'Updating wiki pages' },
-  logging: { label: 'Writing log entry' },
-  compiling: { label: 'Compiling' },
+  Extracting: { label: 'Extracting knowledge' },
+  Updating: { label: 'Updating wiki pages' },
+  Logging: { label: 'Writing log entry' },
+  Compiling: { label: 'Compiling' },
 };
 
 const INGEST_STEP_LABELS: Record<IngestStep, string> = {
-  extracting: 'Extracting knowledge…',
-  updating: 'Updating wiki pages…',
-  logging: 'Writing log entry…',
-  compiling: 'Compiling…',
+  Extracting: 'Extracting knowledge…',
+  Updating: 'Updating wiki pages…',
+  Logging: 'Writing log entry…',
+  Compiling: 'Compiling…',
 };
 
 /** Shared error display for both pipeline presentations. */
@@ -114,13 +114,13 @@ export function createCliPreIngestPresentation(
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
       const config = STATE_DISPLAY[state];
       switch (config.action) {
-        case 'log-step':
+        case 'LogStep':
           log.step(`${config.label}: ${data.fileName}`);
           break;
-        case 'start-spin':
+        case 'StartSpin':
           startSpin(config.label);
           break;
-        case 'update-spin-or-start':
+        case 'UpdateSpinOrStart':
           if (spin) {
             spin.message(config.label);
             spinLabel = config.label;
@@ -128,18 +128,18 @@ export function createCliPreIngestPresentation(
             startSpin(config.label);
           }
           break;
-        case 'stop-spin-log-success': {
+        case 'StopSpinLogSuccess': {
           stopSpin();
           const field = config.successField;
           log.success(field ? `${data[field]}` : '');
           break;
         }
-        case 'prepare-stream':
+        case 'PrepareStream':
           chunkQueue = [];
           queueDone = false;
           streamPromise = null;
           break;
-        case 'finish-stream':
+        case 'FinishStream':
           queueDone = true;
           queueResolve?.();
           queueResolve = null;

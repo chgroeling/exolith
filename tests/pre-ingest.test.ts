@@ -574,13 +574,13 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(states).toEqual([
-        'reading',
-        'discussing',
-        'streaming',
-        'waiting-for-input',
-        'discussion-summary',
-        'extracting-source-page',
-        'source-page-written',
+        'Reading',
+        'Discussing',
+        'Streaming',
+        'WaitingForInput',
+        'DiscussionSummary',
+        'ExtractingSourcePage',
+        'SourcePageWritten',
       ]);
     });
 
@@ -630,7 +630,7 @@ describe('PreIngest', () => {
       const presentation = makeMockPresentation({
         readInput: () => Promise.resolve(''),
         onStateChange: (state, data) => {
-          if (state === 'source-page-written') {
+          if (state === 'SourcePageWritten') {
             finalData = data;
           }
         },
@@ -674,10 +674,10 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(states).toEqual([
-        'reading',
-        'discussing',
-        'extracting-source-page',
-        'source-page-written',
+        'Reading',
+        'Discussing',
+        'ExtractingSourcePage',
+        'SourcePageWritten',
       ]);
     });
 
@@ -704,7 +704,7 @@ describe('PreIngest', () => {
 
       await expect(preIngest.process(filePath)).rejects.toThrow();
 
-      expect(states).toEqual(['reading']);
+      expect(states).toEqual(['Reading']);
     });
   });
 

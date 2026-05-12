@@ -70,6 +70,7 @@ Pino — default to `pino({ name: '<module>' })`.
 - Spaces for indentation (2 spaces)
 - Single quotes, semicolons, trailing commas
 - Use descriptive variable/function names
+- Enum (union type) members must use PascalCase — `'ExtractingSourcePage'`, never `'extracting-source-page'` or `'extracting_source_page'`
 
 ## Design Principles
 

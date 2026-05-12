@@ -1,12 +1,12 @@
 /** Pipeline states for pre-ingest. */
 export type PreIngestState =
-  | 'reading'
-  | 'discussing'
-  | 'streaming'
-  | 'waiting-for-input'
-  | 'discussion-summary'
-  | 'extracting-source-page'
-  | 'source-page-written';
+  | 'Reading'
+  | 'Discussing'
+  | 'Streaming'
+  | 'WaitingForInput'
+  | 'DiscussionSummary'
+  | 'ExtractingSourcePage'
+  | 'SourcePageWritten';
 
 import type { PipelinePresentation } from '../pipeline-presentation';
 
@@ -14,7 +14,7 @@ import type { PipelinePresentation } from '../pipeline-presentation';
 export interface PreIngestStateData {
   /** Name of the source file being processed. */
   fileName: string;
-  /** Path to the written source page file. Only present in 'source-page-written' state. */
+  /** Path to the written source page file. Only present in 'SourcePageWritten' state. */
   sourcePath?: string;
 }
 

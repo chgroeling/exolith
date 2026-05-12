@@ -55,24 +55,24 @@ export class PreIngest implements PreIngestService {
 
     try {
       // 1. Read raw source completely
-      this.presentation.onStateChange('reading', { fileName: basename(this.filePath) });
+      this.presentation.onStateChange('Reading', { fileName: basename(this.filePath) });
       await this.readRawSource();
 
       // 2. Discuss key takeaways with the human (skippable)
-      this.presentation.onStateChange('discussing', { fileName: basename(this.filePath) });
+      this.presentation.onStateChange('Discussing', { fileName: basename(this.filePath) });
       const shouldDiscuss = await this.presentation.shouldDiscuss();
       if (shouldDiscuss) {
         const messages = await this.discussKeyTakeaways();
 
         // 3. Summarize the discussion
-        this.presentation.onStateChange('discussion-summary', {
+        this.presentation.onStateChange('DiscussionSummary', {
           fileName: basename(this.filePath),
         });
         await this.summarizeAndArchive(messages);
       }
 
       // 4. Extract structured source page from LLM
-      this.presentation.onStateChange('extracting-source-page', {
+      this.presentation.onStateChange('ExtractingSourcePage', {
         fileName: basename(this.filePath),
       });
       const sourcePage = await this.extractSourcePage();
@@ -137,7 +137,7 @@ export class PreIngest implements PreIngestService {
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
     let response = '';
-    this.presentation.onStateChange('streaming', { fileName: basename(this.filePath) });
+    this.presentation.onStateChange('Streaming', { fileName: basename(this.filePath) });
     await session.stream((chunk) => {
       response += chunk;
       this.presentation.onChunk(chunk);
@@ -146,7 +146,7 @@ export class PreIngest implements PreIngestService {
 
     let turn = 1;
     while (true) {
-      this.presentation.onStateChange('waiting-for-input', { fileName: basename(this.filePath) });
+      this.presentation.onStateChange('WaitingForInput', { fileName: basename(this.filePath) });
       const input = await this.presentation.readInput();
       if (!input) break;
 
@@ -155,7 +155,7 @@ export class PreIngest implements PreIngestService {
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
       response = '';
-      this.presentation.onStateChange('streaming', { fileName: basename(this.filePath) });
+      this.presentation.onStateChange('Streaming', { fileName: basename(this.filePath) });
       await session.stream((chunk) => {
         response += chunk;
         this.presentation.onChunk(chunk);
@@ -319,7 +319,7 @@ export class PreIngest implements PreIngestService {
     await writeFile(sourcePath, content, 'utf-8');
     this.logger.info({ sourcePath }, 'Source page written');
 
-    this.presentation.onStateChange('source-page-written', {
+    this.presentation.onStateChange('SourcePageWritten', {
       fileName: basename(this.filePath),
       sourcePath,
     });

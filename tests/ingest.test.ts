@@ -124,7 +124,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(steps).toEqual(['extracting', 'updating', 'logging', 'compiling']);
+      expect(steps).toEqual(['Extracting', 'Updating', 'Logging', 'Compiling']);
     });
   });
 });
