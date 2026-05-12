@@ -32,10 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `ingest`/`pre-ingest` implementation files to `-service-impl` suffix convention
 - Extract table output to `TableFormatter` interface and implementation in `core/`
 - Restructure test files to mirror `src/` directory layout
+- Extract source page output formatting to `templates/source-page-output.njk`
+- Rename `discussKeyTakeaways` to `runDiscussion` for clarity
+- Derive template context from `source-page.schema.json` properties instead of manual enumeration
 
 ### Deprecated
 
 ### Removed
+
+- `LogSuccess` display action — superfluous, covered by outro
 
 ### Fixed
 
