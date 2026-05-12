@@ -8,10 +8,8 @@ import type { IdentifierService } from '../../../src/core/identifier-service';
 import type { IdentifierType } from '../../../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../../../src/infrastructure/llm/llm-service';
 import type { PromptService } from '../../../src/infrastructure/prompt/prompt-service';
-import type {
-  PreIngestConfig,
-  PreIngestPresentation,
-} from '../../../src/operations/pre-ingest/pre-ingest-service';
+import type { PipelinePresentation } from '../../../src/operations/pipeline-presentation';
+import type { PreIngestConfig } from '../../../src/operations/pre-ingest/pre-ingest-service';
 import { PreIngest } from '../../../src/operations/pre-ingest/pre-ingest-service-impl';
 
 function makeMockLlm(opts?: {
@@ -113,12 +111,13 @@ function makeMockPrompt(): PromptService {
   };
 }
 
-function makeMockPresentation(overrides?: Partial<PreIngestPresentation>): PreIngestPresentation {
+function makeMockPresentation(overrides?: Partial<PipelinePresentation>): PipelinePresentation {
   return {
+    onStep: () => {},
+    onSubStep: () => {},
     onChunk: () => {},
     readInput: () => Promise.resolve(''),
     shouldDiscuss: () => Promise.resolve(true),
-    onStateChange: () => {},
     onError: () => {},
     ...overrides,
   };
@@ -578,7 +577,7 @@ describe('PreIngest', () => {
     });
   });
 
-  describe('onStateChange', () => {
+  describe('onStep', () => {
     it('transitions through all states in order', async () => {
       const states: string[] = [];
 
@@ -589,7 +588,7 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         readInput: () => Promise.resolve(''),
-        onStateChange: (state) => {
+        onStep: (state) => {
           states.push(state);
         },
       });
@@ -624,7 +623,7 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         readInput: () => Promise.resolve(''),
-        onStateChange: (_state, data) => {
+        onStep: (_state, data) => {
           fileNames.push(data.fileName);
         },
       });
@@ -659,7 +658,7 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         readInput: () => Promise.resolve(''),
-        onStateChange: (state, data) => {
+        onStep: (state, data) => {
           if (state === 'SourcePageWritten') {
             finalData = data;
           }
@@ -689,7 +688,7 @@ describe('PreIngest', () => {
 
       const presentation = makeMockPresentation({
         shouldDiscuss: () => Promise.resolve(false),
-        onStateChange: (state) => {
+        onStep: (state) => {
           states.push(state);
         },
       });
@@ -720,7 +719,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
       const presentation = makeMockPresentation({
-        onStateChange: (state) => {
+        onStep: (state) => {
           states.push(state);
         },
       });

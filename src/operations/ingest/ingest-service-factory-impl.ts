@@ -2,16 +2,17 @@ import type { IdentifierService } from '../../core/identifier-service';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompilePresentation, CompileServiceFactory } from '../compile/compile-service';
-import type {
-  IngestConfig,
-  IngestPresentation,
-  IngestService,
-  IngestServiceFactory,
-} from './ingest-service';
+import type { PipelinePresentation } from '../pipeline-presentation';
+import type { IngestConfig, IngestService, IngestServiceFactory } from './ingest-service';
 import { Ingest } from './ingest-service-impl';
 
 /** Compile presentation that absorbs all callbacks into no-ops — used when the compile step is a stub. */
 const noopCompilePresentation: CompilePresentation = {
+  onStep: () => {},
+  onSubStep: () => {},
+  onChunk: () => {},
+  readInput: () => Promise.resolve(''),
+  shouldDiscuss: () => Promise.resolve(true),
   onError: () => {},
 };
 
@@ -25,7 +26,7 @@ export class IngestServiceFactoryImpl implements IngestServiceFactory {
   ) {}
 
   /** Creates an {@link IngestService} wired to this factory's dependencies. */
-  create(config: IngestConfig, presentation: IngestPresentation): IngestService {
+  create(config: IngestConfig, presentation: PipelinePresentation): IngestService {
     const compileService = this.compileServiceFactory.create(
       { vaultPath: config.vaultPath },
       noopCompilePresentation,

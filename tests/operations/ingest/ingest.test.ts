@@ -9,11 +9,9 @@ import type { IdentifierType } from '../../../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../../../src/infrastructure/llm/llm-service';
 import type { PromptService } from '../../../src/infrastructure/prompt/prompt-service';
 import type { CompileService } from '../../../src/operations/compile/compile-service';
-import type {
-  IngestConfig,
-  IngestPresentation,
-} from '../../../src/operations/ingest/ingest-service';
+import type { IngestConfig } from '../../../src/operations/ingest/ingest-service';
 import { Ingest } from '../../../src/operations/ingest/ingest-service-impl';
+import type { PipelinePresentation } from '../../../src/operations/pipeline-presentation';
 
 const defaultExtractionResult = {
   entities: [
@@ -186,9 +184,13 @@ function makeMockCompile(): CompileService {
   };
 }
 
-function makeMockPresentation(overrides?: Partial<IngestPresentation>): IngestPresentation {
+function makeMockPresentation(overrides?: Partial<PipelinePresentation>): PipelinePresentation {
   return {
     onStep: (_step, _data) => {},
+    onSubStep: (_message) => {},
+    onChunk: (_chunk) => {},
+    readInput: () => Promise.resolve(''),
+    shouldDiscuss: () => Promise.resolve(true),
     onError: () => {},
     ...overrides,
   };
@@ -313,10 +315,8 @@ describe('Ingest', () => {
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const presentation = makeMockPresentation({
-        onStep: (step, data) => {
-          if (!data.subStep) {
-            steps.push(step);
-          }
+        onStep: (step) => {
+          steps.push(step);
         },
       });
       const ingest = new Ingest(
@@ -333,17 +333,15 @@ describe('Ingest', () => {
       expect(steps).toEqual(['Extracting', 'Updating', 'Logging', 'Compiling']);
     });
 
-    it('calls onStep with subStep payload for each created page', async () => {
+    it('calls onSubStep for each created page', async () => {
       const subSteps: string[] = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const presentation = makeMockPresentation({
-        onStep: (_step, data) => {
-          if (data.subStep) {
-            subSteps.push(`${data.subStep.type}:${data.subStep.name}`);
-          }
+        onSubStep: (message) => {
+          subSteps.push(message);
         },
       });
       const ingest = new Ingest(
@@ -358,10 +356,10 @@ describe('Ingest', () => {
       await ingest.process(filePath);
 
       expect(subSteps).toEqual([
-        'EntityCreated:Seneca',
-        'EntityCreated:Dr. Maria Schneider',
-        'ConceptCreated:Praemeditatio Malorum',
-        'ConceptCreated:Cortisol Reduction Through Meditation',
+        'Created entity: Seneca (seneca)',
+        'Created entity: Dr. Maria Schneider (dr.-maria-schneider)',
+        'Created concept: Praemeditatio Malorum (praemeditatio-malorum)',
+        'Created concept: Cortisol Reduction Through Meditation (cortisol-reduction-through-meditation)',
       ]);
     });
   });

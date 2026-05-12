@@ -18,18 +18,6 @@ export interface PreIngestStateData {
   sourcePath?: string;
 }
 
-/** Presentation callbacks required by the pre-ingest pipeline. */
-export interface PreIngestPresentation extends PipelinePresentation {
-  /** Invoked for each token chunk during LLM streaming. */
-  onChunk(chunk: string): void;
-  /** Invoked to read a single line of user input during interactive discussion. */
-  readInput(): Promise<string>;
-  /** Invoked to ask whether the user wants to enter the discussion step. */
-  shouldDiscuss(): Promise<boolean>;
-  /** Invoked when the pipeline transitions to a new state. */
-  onStateChange(state: PreIngestState, data: PreIngestStateData): void;
-}
-
 /** Configuration for a pre-ingest pipeline run. */
 export interface PreIngestConfig {
   /** Maximum allowed source file size in bytes. */
@@ -51,5 +39,5 @@ export interface PreIngestService {
 
 /** Creates {@link PreIngestService} instances configured for a single file. */
 export interface PreIngestServiceFactory {
-  create(config: PreIngestConfig, presentation: PreIngestPresentation): PreIngestService;
+  create(config: PreIngestConfig, presentation: PipelinePresentation): PreIngestService;
 }

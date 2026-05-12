@@ -1,25 +1,9 @@
 import { stream, confirm, isCancel, log, text } from '@clack/prompts';
-import type {
-  IngestPresentation,
-  IngestStep,
-  IngestStepData,
-  IngestSubStepPayload,
-} from '../operations/ingest/ingest-service';
-import type {
-  PreIngestPresentation,
-  PreIngestState,
-  PreIngestStateData,
-} from '../operations/pre-ingest/pre-ingest-service';
+import type { PipelinePresentation } from '../operations/pipeline-presentation';
 import { SpinnerManager } from './spinner-manager';
 
-/** Display actions the presentation layer can perform for a state transition. */
-type DisplayAction =
-  | 'LogStep'
-  | 'StartSpin'
-  | 'StopSpin'
-  | 'PrepareStream'
-  | 'FinishStream'
-  | 'SpinMessage';
+/** Display actions the presentation layer can perform for a step transition. */
+type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -27,67 +11,35 @@ interface ActionItem {
   label?: string;
 }
 
-/** Maps a pre-ingest state to its display behaviour — one or more actions executed in order. */
-interface StateDisplayConfig {
-  actions: ActionItem[];
-}
-
-const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
-  Reading: { actions: [{ action: 'LogStep', label: 'Reading' }] },
-  Discussing: { actions: [{ action: 'LogStep', label: 'Discussing' }] },
-  Streaming: { actions: [{ action: 'PrepareStream', label: 'Streaming' }] },
-  WaitingForInput: { actions: [{ action: 'FinishStream', label: 'Waiting for input' }] },
-  DiscussionSummary: { actions: [{ action: 'StartSpin', label: 'Summarizing discussion' }] },
-  ExtractingSourcePage: {
-    actions: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Extracting source page' }],
-  },
-  SourcePageWritten: {
-    actions: [{ action: 'StopSpin' }],
-  },
+/** Maps pipeline step names to their display behaviour. */
+const STEP_DISPLAY: Record<string, ActionItem[]> = {
+  // Pre-ingest states
+  Reading: [{ action: 'LogStep', label: 'Reading' }],
+  Discussing: [{ action: 'LogStep', label: 'Discussing' }],
+  Streaming: [{ action: 'PrepareStream', label: 'Streaming' }],
+  WaitingForInput: [{ action: 'FinishStream', label: 'Waiting for input' }],
+  DiscussionSummary: [{ action: 'StartSpin', label: 'Summarizing discussion' }],
+  ExtractingSourcePage: [
+    { action: 'StopSpin' },
+    { action: 'StartSpin', label: 'Extracting source page' },
+  ],
+  SourcePageWritten: [{ action: 'StopSpin' }],
+  // Ingest steps
+  Extracting: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
+  Updating: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Updating wiki pages' }],
+  Logging: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Writing log entry' }],
+  Compiling: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Compiling' }],
 };
-
-/** Maps an ingest step to its display behaviour. */
-interface IngestStepDisplayConfig {
-  actions: ActionItem[];
-  subStepActions: ActionItem[];
-}
-
-/** Maps an ingest step to its display behaviour — actions for the step and for sub-steps within it. */
-const INGEST_STEP_DISPLAY: Record<IngestStep, IngestStepDisplayConfig> = {
-  Extracting: {
-    actions: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
-    subStepActions: [],
-  },
-  Updating: {
-    actions: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Updating wiki pages' }],
-    subStepActions: [{ action: 'SpinMessage', label: '  Created {type}: {name} ({slug})' }],
-  },
-  Logging: {
-    actions: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Writing log entry' }],
-    subStepActions: [],
-  },
-  Compiling: {
-    actions: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Compiling' }],
-    subStepActions: [],
-  },
-};
-
-/** Shared error display for both pipeline presentations. */
-function makeErrorHandler(): (error: Error) => void {
-  return (error: Error) => log.error(`Error: ${error.message}\n`);
-}
 
 /**
- * Creates a {@link PreIngestPresentation} that writes step progress to stderr,
- * streams LLM chunks to stdout, and reads user input with {@link https://clack.cc @clack/prompts}.
+ * Creates a {@link PipelinePresentation} that drives terminal output via
+ * {@link https://clack.cc @clack/prompts} spinners, steps, and streamed text.
  *
  * @remarks
- * Progress indicators are managed autonomously by the presentation layer —
- * the operation itself is never aware of spinners or display framing.
+ * Works for both pre-ingest and ingest pipelines. The same presentation object
+ * is passed to either operation — unused callbacks are simply never invoked.
  */
-export function createCliPreIngestPresentation(
-  opts: { skipDiscuss?: boolean } = {},
-): PreIngestPresentation {
+export function createCliPresentation(opts: { skipDiscuss?: boolean } = {}): PipelinePresentation {
   const spin = new SpinnerManager();
   let chunkQueue: string[] | null = null;
   let queueResolve: (() => void) | null = null;
@@ -112,13 +64,17 @@ export function createCliPreIngestPresentation(
   }
 
   return {
-    /** Writes the current state and file name to stderr. Uses the output path when available. */
-    onStateChange(state: PreIngestState, data: PreIngestStateData): void {
-      for (const item of STATE_DISPLAY[state].actions) {
+    onStep(step: string, data?: Record<string, unknown>): void {
+      const actions = STEP_DISPLAY[step];
+      if (!actions) return;
+
+      for (const item of actions) {
         switch (item.action) {
-          case 'LogStep':
-            log.step(`${item.label}: ${data.fileName}`);
+          case 'LogStep': {
+            const label = (data?.sourceFilePath ?? data?.fileName ?? '') as string;
+            log.step(`${item.label}: ${label}`);
             break;
+          }
           case 'StartSpin':
             if (item.label) spin.start(item.label);
             break;
@@ -139,7 +95,10 @@ export function createCliPreIngestPresentation(
       }
     },
 
-    /** Streams a single LLM token chunk to stdout. */
+    onSubStep(message: string): void {
+      spin.message(`  ${message}`);
+    },
+
     onChunk(chunk: string): void {
       spin.stop();
 
@@ -191,62 +150,8 @@ export function createCliPreIngestPresentation(
       return result;
     },
 
-    onError: makeErrorHandler(),
-  };
-}
-
-/**
- * Creates an {@link IngestPresentation} that writes step progress to stderr.
- *
- * @remarks
- * Progress indicators are managed autonomously by the presentation layer —
- * the operation itself is never aware of display framing.
- */
-export function createCliIngestPresentation(): IngestPresentation {
-  const spin = new SpinnerManager();
-  let lastStep: IngestStep | null = null;
-
-  function formatSubStepLabel(template: string, payload: IngestSubStepPayload): string {
-    return template
-      .replace('{type}', payload.type === 'EntityCreated' ? 'entity' : 'concept')
-      .replace('{name}', payload.name)
-      .replace('{slug}', payload.slug);
-  }
-
-  return {
-    onStep(step: IngestStep, data: IngestStepData): void {
-      const config = INGEST_STEP_DISPLAY[step];
-
-      if (step !== lastStep) {
-        for (const item of config.actions) {
-          switch (item.action) {
-            case 'StartSpin':
-              if (item.label) spin.start(item.label);
-              break;
-            case 'StopSpin':
-              spin.stop();
-              break;
-            case 'LogStep':
-              if (item.label) log.step(`${item.label}: ${data.sourceFilePath}`);
-              break;
-          }
-        }
-        lastStep = step;
-      }
-
-      if (data.subStep) {
-        for (const item of config.subStepActions) {
-          switch (item.action) {
-            case 'SpinMessage':
-              if (item.label && data.subStep) {
-                spin.message(formatSubStepLabel(item.label, data.subStep));
-              }
-              break;
-          }
-        }
-      }
+    onError(error: Error): void {
+      log.error(`Error: ${error.message}\n`);
     },
-
-    onError: makeErrorHandler(),
   };
 }

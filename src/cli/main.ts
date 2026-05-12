@@ -12,7 +12,7 @@ import type { ConfigLoadResult, ExolithConfig } from '../core/config/config-type
 import { FileListServiceImpl } from '../core/file-list-service-impl';
 import type { TableFormatter } from '../core/table-formatter';
 import { TableFormatterImpl } from '../core/table-formatter-impl';
-import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
+import { createCliPresentation } from './cli-presentation';
 
 (globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
 
@@ -169,7 +169,7 @@ preIngestCmd
     process.once('SIGINT', sigintHandler);
 
     const factory = buildPreIngestFactory(logger, config);
-    const presentation = createCliPreIngestPresentation({ skipDiscuss: options.skipDiscuss });
+    const presentation = createCliPresentation({ skipDiscuss: options.skipDiscuss });
     const service = factory.create({ maxSourceSize, vaultPath }, presentation);
 
     try {
@@ -249,7 +249,7 @@ ingestCmd
     process.once('SIGINT', sigintHandler);
 
     const factory = buildIngestFactory(logger, config);
-    const presentation = createCliIngestPresentation();
+    const presentation = createCliPresentation();
     const service = factory.create({ vaultPath }, presentation);
 
     try {

@@ -9,12 +9,8 @@ import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompileService } from '../compile/compile-service';
-import type {
-  IngestConfig,
-  IngestPresentation,
-  IngestService,
-  IngestSubStep,
-} from './ingest-service';
+import type { PipelinePresentation } from '../pipeline-presentation';
+import type { IngestConfig, IngestService } from './ingest-service';
 
 /**
  * A distinct, identifiable thing extracted from a source page.
@@ -114,7 +110,7 @@ export class Ingest implements IngestService {
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
-    private presentation: IngestPresentation,
+    private presentation: PipelinePresentation,
     private compileService: CompileService,
     parentLogger?: Logger,
   ) {
@@ -216,7 +212,7 @@ export class Ingest implements IngestService {
     indexEntries: Map<string, IndexEntry[]>,
     sourceRelativePath: string,
     createPage: (item: T, slug: string, sourceRelativePath: string) => Promise<void>,
-    subStepType: IngestSubStep,
+    subStepType: string,
   ): Promise<void> {
     const entries = indexEntries.get(pageType) ?? [];
     const systemPrompt = this.promptService.render('system-prompt', {});
@@ -244,10 +240,8 @@ export class Ingest implements IngestService {
           );
           const slug = this.slugifyName(item.name);
           await createPage(item, slug, sourceRelativePath);
-          this.presentation.onStep('Updating', {
-            sourceFilePath: this.sourceFilePath,
-            subStep: { type: subStepType, name: item.name, slug },
-          });
+          const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
+          this.presentation.onSubStep(`Created ${label}: ${item.name} (${slug})`);
           continue;
         }
 
@@ -269,10 +263,8 @@ export class Ingest implements IngestService {
       } else {
         const slug = this.slugifyName(item.name);
         await createPage(item, slug, sourceRelativePath);
-        this.presentation.onStep('Updating', {
-          sourceFilePath: this.sourceFilePath,
-          subStep: { type: subStepType, name: item.name, slug },
-        });
+        const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
+        this.presentation.onSubStep(`Created ${label}: ${item.name} (${slug})`);
       }
     }
   }
