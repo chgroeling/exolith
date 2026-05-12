@@ -259,13 +259,6 @@ ingestCmd
   .action(async (id, options) => {
     const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
 
-ingestCmd
-  .command('process')
-  .description('Run the ingest pipeline on a source page from the vault')
-  .argument('<id>', 'ID (or prefix) of the file from "ingest list"')
-  .action(async (id, options) => {
-    const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
-
     const sourcesDir = join(vaultPath, 'sources');
     const fileListService = new FileListServiceImpl();
     const files = await fileListService.listFiles(sourcesDir);
