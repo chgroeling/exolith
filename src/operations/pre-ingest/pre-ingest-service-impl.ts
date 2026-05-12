@@ -29,7 +29,11 @@ interface SourcePage {
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.textile']);
 
-const sourcePageSchema = loadSchemaFile<Record<string, unknown>>('source-page.schema.json');
+const sourcePageSchema = loadSchemaFile<{ properties: Record<string, unknown> }>(
+  'source-page.schema.json',
+);
+
+const sourcePagePropertyKeys = Object.keys(sourcePageSchema.properties);
 
 export class PreIngest implements PreIngestService {
   private rawContent = '';
@@ -276,20 +280,16 @@ export class PreIngest implements PreIngestService {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const content = this.promptService.render('source-page-output', {
+    const context: Record<string, unknown> = {
       id: sourceId,
-      title: sourcePage.title,
-      tags: sourcePage.tags,
       created: today,
       updated: today,
-      type: sourcePage.type,
-      authors: sourcePage.authors,
-      date: sourcePage.date,
-      urlOrReference: sourcePage.urlOrReference,
       fileName,
-      summary: sourcePage.summary,
-      mainPoints: sourcePage.mainPoints,
-    });
+    };
+    for (const key of sourcePagePropertyKeys) {
+      context[key] = (sourcePage as unknown as Record<string, unknown>)[key];
+    }
+    const content = this.promptService.render('source-page-output', context);
 
     const sourcePath = join(sourceDir, `${slug}.md`);
     await writeFile(sourcePath, content, 'utf-8');
