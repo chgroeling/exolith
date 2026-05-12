@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch to filename-based 6-character IDs with disambiguation suffix for collisions
 - Convert `Presentation` and `Operations` enum members to PascalCase
 - Replace imperative `validateConfig()` with `ExolithConfigSchema.safeParse()`
+- Extract shared `loadSchemaFile` helper for JSON5 schema resolution, with SourcePage schema externalized to `schemas/`
 
 ### Deprecated
 
