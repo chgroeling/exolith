@@ -3,6 +3,7 @@ import { access, mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import { cancel, intro, outro } from '@clack/prompts';
 import { program } from 'commander';
+import pc from 'picocolors';
 import pino from 'pino';
 import pkg from '../../package.json' with { type: 'json' };
 import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
@@ -13,6 +14,13 @@ import { FileListServiceImpl } from '../core/file-list-service-impl';
 import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
 
 (globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
+
+/** Truncates text to maxLen, appending "..." if shortened. */
+function truncate(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  if (maxLen < 4) return '...'.slice(0, maxLen);
+  return `${text.slice(0, maxLen - 3)}...`;
+}
 
 function resolvePath(base: string, p?: string): string | undefined {
   if (!p) return undefined;
@@ -118,15 +126,26 @@ preIngestCmd
       return;
     }
 
-    const maxIdWidth = Math.max(...files.map((f) => f.id.length));
+    const maxIdWidth = Math.max(8, ...files.map((f) => f.id.length));
+    const termWidth = process.stdout.columns ?? 80;
+    const fileMaxLen = Math.max(0, termWidth - 2 - maxIdWidth - 2);
+    const headerId = pc.bold(pc.underline('ID'.padEnd(maxIdWidth)));
+    const headerFile = pc.bold(pc.underline('File'));
 
-    process.stderr.write(`\nInbox (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`);
+    process.stderr.write(
+      `\n${pc.bold('Inbox')} (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`,
+    );
+    process.stdout.write(`  ${headerId}  ${headerFile}\n`);
 
     for (const file of files) {
-      process.stdout.write(`  ${file.id.padEnd(maxIdWidth)}  ${file.fileName}\n`);
+      process.stdout.write(
+        `  ${pc.cyan(file.id.padEnd(maxIdWidth))}  ${pc.green(truncate(file.fileName, fileMaxLen))}\n`,
+      );
     }
 
-    process.stderr.write(`\nRun "exolith pre-ingest process <id>" to start the pipeline.\n`);
+    process.stderr.write(
+      `\n${pc.dim('Run "exolith pre-ingest process <id>" to start the pipeline.')}\n`,
+    );
 
     logger.info({ count: files.length }, 'pre-ingest list');
   });
@@ -209,17 +228,26 @@ ingestCmd
       return;
     }
 
-    const maxIdWidth = Math.max(...files.map((f) => f.id.length));
+    const maxIdWidth = Math.max(8, ...files.map((f) => f.id.length));
+    const termWidth = process.stdout.columns ?? 80;
+    const fileMaxLen = Math.max(0, termWidth - 2 - maxIdWidth - 2);
+    const headerId = pc.bold(pc.underline('ID'.padEnd(maxIdWidth)));
+    const headerFile = pc.bold(pc.underline('File'));
 
     process.stderr.write(
-      `\nSource pages (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`,
+      `\n${pc.bold('Source pages')} (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`,
     );
+    process.stdout.write(`  ${headerId}  ${headerFile}\n`);
 
     for (const file of files) {
-      process.stdout.write(`  ${file.id.padEnd(maxIdWidth)}  ${file.fileName}\n`);
+      process.stdout.write(
+        `  ${pc.cyan(file.id.padEnd(maxIdWidth))}  ${pc.green(truncate(file.fileName, fileMaxLen))}\n`,
+      );
     }
 
-    process.stderr.write(`\nRun "exolith ingest process <id>" to start the pipeline.\n`);
+    process.stderr.write(
+      `\n${pc.dim('Run "exolith ingest process <id>" to start the pipeline.')}\n`,
+    );
 
     logger.info({ count: files.length }, 'ingest list');
   });
