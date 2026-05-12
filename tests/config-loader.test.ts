@@ -24,28 +24,26 @@ describe('ConfigLoader', () => {
   describe('load', () => {
     it('finds exolith.json in cwd', async () => {
       const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
+      await writeConfig(dir, JSON.stringify({ provider: 'openrouter', maxSourceSize: 5000 }));
 
       const result = await makeLoader().load(dir);
 
-      expect(result.config).toEqual({ maxSourceSize: 5000 });
+      expect(result.config).toEqual({ provider: 'openrouter', maxSourceSize: 5000 });
       expect(result.rootDir).toBe(dir);
     });
 
-    it('parses an empty config file as empty object', async () => {
+    it('throws for an empty config file (missing provider)', async () => {
       const dir = testDir();
       await writeConfig(dir, '');
 
-      const result = await makeLoader().load(dir);
-
-      expect(result.config).toEqual({});
-      expect(result.rootDir).toBe(dir);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/missing required field "provider"/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
       const dir = testDir();
       const json5Content = `{
         // This is a comment
+        provider: "openrouter",
         maxSourceSize: 10000,
         logFile: "exolith.log", // trailing comma
       }`;
@@ -53,20 +51,21 @@ describe('ConfigLoader', () => {
 
       const result = await makeLoader().load(dir);
 
+      expect(result.config.provider).toBe('openrouter');
       expect(result.config.maxSourceSize).toBe(10000);
       expect(result.config.logFile).toBe('exolith.log');
     });
 
     it('bubbles up from a subdirectory to find exolith.json', async () => {
       const rootDir = testDir();
-      await writeConfig(rootDir, JSON.stringify({ logLevel: 'debug' }));
+      await writeConfig(rootDir, JSON.stringify({ provider: 'openrouter', logLevel: 'debug' }));
 
       const cwd = join(rootDir, 'deep', 'nested', 'dir');
       await mkdir(cwd, { recursive: true });
 
       const result = await makeLoader().load(cwd);
 
-      expect(result.config).toEqual({ logLevel: 'debug' });
+      expect(result.config).toEqual({ provider: 'openrouter', logLevel: 'debug' });
       expect(result.rootDir).toBe(rootDir);
     });
 
@@ -85,33 +84,56 @@ describe('ConfigLoader', () => {
 
       await expect(makeLoader().load(dir)).rejects.toThrow(/Malformed configuration/);
     });
+
+    it('throws when provider field is missing', async () => {
+      const dir = testDir();
+      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
+
+      await expect(makeLoader().load(dir)).rejects.toThrow(/missing required field "provider"/);
+    });
+
+    it('throws when provider has an unsupported value', async () => {
+      const dir = testDir();
+      await writeConfig(dir, JSON.stringify({ provider: 'anthropic' }));
+
+      await expect(makeLoader().load(dir)).rejects.toThrow(/provider "anthropic" is not supported/);
+    });
+
+    it('accepts deepseek as a valid provider', async () => {
+      const dir = testDir();
+      await writeConfig(dir, JSON.stringify({ provider: 'deepseek', model: 'deepseek-chat' }));
+
+      const result = await makeLoader().load(dir);
+
+      expect(result.config.provider).toBe('deepseek');
+      expect(result.config.model).toBe('deepseek-chat');
+      expect(result.rootDir).toBe(dir);
+    });
   });
 
   describe('loadAt', () => {
     it('loads exolith.json from the specified directory', async () => {
       const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
+      await writeConfig(dir, JSON.stringify({ provider: 'openrouter', maxSourceSize: 5000 }));
 
       const result = await makeLoader().loadAt(dir);
 
-      expect(result.config).toEqual({ maxSourceSize: 5000 });
+      expect(result.config).toEqual({ provider: 'openrouter', maxSourceSize: 5000 });
       expect(result.rootDir).toBe(dir);
     });
 
-    it('parses an empty config file as empty object', async () => {
+    it('throws for an empty config file (missing provider)', async () => {
       const dir = testDir();
       await writeConfig(dir, '');
 
-      const result = await makeLoader().loadAt(dir);
-
-      expect(result.config).toEqual({});
-      expect(result.rootDir).toBe(dir);
+      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/missing required field "provider"/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
       const dir = testDir();
       const json5Content = `{
         // This is a comment
+        provider: "openrouter",
         maxSourceSize: 10000,
         logFile: "exolith.log", // trailing comma
       }`;
@@ -119,6 +141,7 @@ describe('ConfigLoader', () => {
 
       const result = await makeLoader().loadAt(dir);
 
+      expect(result.config.provider).toBe('openrouter');
       expect(result.config.maxSourceSize).toBe(10000);
       expect(result.config.logFile).toBe('exolith.log');
     });
@@ -132,7 +155,7 @@ describe('ConfigLoader', () => {
 
     it('does not bubble up — throws even if exolith.json exists in a parent', async () => {
       const rootDir = testDir();
-      await writeConfig(rootDir, JSON.stringify({ logLevel: 'debug' }));
+      await writeConfig(rootDir, JSON.stringify({ provider: 'openrouter', logLevel: 'debug' }));
 
       const childDir = join(rootDir, 'subdir');
       await mkdir(childDir, { recursive: true });

@@ -8,6 +8,8 @@ import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import type { ConfigLoadResult } from '../core/config/config-types';
 import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
 
+(globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
+
 function resolvePath(base: string, p?: string): string | undefined {
   if (!p) return undefined;
   return isAbsolute(p) ? p : resolve(base, p);
@@ -50,7 +52,7 @@ async function bootstrap(
 
   logger.info({ rootDir }, 'CLI started');
 
-  return { vaultPath, maxSourceSize, logger };
+  return { vaultPath, maxSourceSize, logger, config };
 }
 
 program
@@ -68,9 +70,9 @@ program
   .option('--max-source-size <bytes>', 'maximum source file size in bytes')
   .option('--skip-discuss', 'skip the interactive discussion step')
   .action(async (file, options) => {
-    const { vaultPath, maxSourceSize, logger } = await bootstrap(program.opts(), options);
+    const { vaultPath, maxSourceSize, logger, config } = await bootstrap(program.opts(), options);
 
-    const factory = buildPreIngestFactory(logger);
+    const factory = buildPreIngestFactory(logger, config);
     const presentation = createCliPreIngestPresentation({ skipDiscuss: options.skipDiscuss });
     const service = factory.create({ maxSourceSize, vaultPath }, presentation);
 
@@ -90,9 +92,9 @@ program
   .description('Run the ingest pipeline on a source page')
   .argument('<file>', 'path to the source page in sources/')
   .action(async (file, options) => {
-    const { vaultPath, logger } = await bootstrap(program.opts(), options);
+    const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
 
-    const factory = buildIngestFactory(logger);
+    const factory = buildIngestFactory(logger, config);
     const presentation = createCliIngestPresentation();
     const service = factory.create({ vaultPath }, presentation);
 

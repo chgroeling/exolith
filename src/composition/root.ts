@@ -1,9 +1,14 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type { LanguageModel } from 'ai';
 import type { Logger } from 'pino';
+import type { ExolithConfig } from '../core/config/config-types';
 import { IdentifierServiceImpl } from '../core/identifier-service-impl';
 import { SluggerServiceImpl } from '../core/slugger-service-impl';
+import { DeepSeekLlmProvider } from '../infrastructure/llm/deepseek-llm-provider';
+import type { LlmProvider } from '../infrastructure/llm/llm-provider';
 import { LlmServiceImpl } from '../infrastructure/llm/llm-service-impl';
 import { OpenRouterLlmProvider } from '../infrastructure/llm/openrouter-llm-provider';
 import { PromptServiceImpl } from '../infrastructure/prompt/prompt-service-impl';
@@ -20,29 +25,57 @@ export function resolveTemplateDir(importMetaUrl: string): string {
 }
 
 /** Shared wiring helpers used by both factories. */
-function wireServices(logger: Logger) {
-  const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY,
-  });
-
-  const model = openrouter('deepseek/deepseek-v4-pro');
+function wireServices(logger: Logger, config: ExolithConfig) {
+  const model = createModel(config);
+  const provider = createProvider(config.provider, model);
   const slugger = new SluggerServiceImpl();
   const identifier = new IdentifierServiceImpl(slugger);
-  const provider = new OpenRouterLlmProvider(model);
   const llmService = new LlmServiceImpl(provider, logger);
   const promptService = new PromptServiceImpl(resolveTemplateDir(import.meta.url), logger);
 
   return { llmService, identifier, promptService };
 }
 
+function createModel(config: ExolithConfig): LanguageModel {
+  if (config.provider === 'deepseek') {
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new Error(
+        'DEEPSEEK_API_KEY environment variable is required for the DeepSeek provider.',
+      );
+    }
+
+    const deepseek = createDeepSeek({ apiKey: process.env.DEEPSEEK_API_KEY });
+    return deepseek(config.model ?? 'deepseek-chat');
+  }
+
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error(
+      'OPENROUTER_API_KEY environment variable is required for the OpenRouter provider.',
+    );
+  }
+
+  const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
+  return openrouter(config.model ?? 'deepseek/deepseek-v4-pro');
+}
+
+function createProvider(provider: string, model: LanguageModel): LlmProvider {
+  if (provider === 'deepseek') {
+    return new DeepSeekLlmProvider(model);
+  }
+  return new OpenRouterLlmProvider(model);
+}
+
 /** Builds the pre-ingest factory wired with all dependencies. */
-export function buildPreIngestFactory(logger: Logger): PreIngestServiceFactory {
-  const { llmService, identifier, promptService } = wireServices(logger);
+export function buildPreIngestFactory(
+  logger: Logger,
+  config: ExolithConfig,
+): PreIngestServiceFactory {
+  const { llmService, identifier, promptService } = wireServices(logger, config);
   return new PreIngestServiceFactoryImpl(llmService, identifier, promptService, logger);
 }
 
 /** Builds the ingest factory wired with all dependencies. */
-export function buildIngestFactory(logger: Logger): IngestServiceFactory {
-  const { llmService, identifier, promptService } = wireServices(logger);
+export function buildIngestFactory(logger: Logger, config: ExolithConfig): IngestServiceFactory {
+  const { llmService, identifier, promptService } = wireServices(logger, config);
   return new IngestServiceFactoryImpl(llmService, identifier, promptService, logger);
 }

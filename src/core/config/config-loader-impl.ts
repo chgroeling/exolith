@@ -81,10 +81,30 @@ export class ConfigLoaderServiceImpl implements ConfigLoaderService {
   }
 
   private parseConfig(path: string, raw: string): ExolithConfig {
+    let parsed: Record<string, unknown>;
+
     try {
-      return JSON5.parse(raw.trim() || '{}');
+      parsed = JSON5.parse(raw.trim() || '{}');
     } catch (err) {
       throw new Error(`Malformed configuration at ${path}: ${(err as Error).message}`);
+    }
+
+    this.validateConfig(path, parsed);
+
+    return parsed as unknown as ExolithConfig;
+  }
+
+  private validateConfig(path: string, config: Record<string, unknown>): void {
+    if (!config.provider) {
+      throw new Error(
+        `Invalid configuration at ${path}: missing required field "provider". Must be "openrouter" or "deepseek".`,
+      );
+    }
+
+    if (config.provider !== 'openrouter' && config.provider !== 'deepseek') {
+      throw new Error(
+        `Invalid configuration at ${path}: provider "${config.provider}" is not supported. Must be "openrouter" or "deepseek".`,
+      );
     }
   }
 }
