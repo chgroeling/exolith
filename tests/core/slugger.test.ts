@@ -1,7 +1,7 @@
 // Specification: docs/cross-cutting/slug-spec.md
 
 import { describe, expect, it } from 'vitest';
-import { SluggerServiceImpl } from '../src/core/slugger-service-impl';
+import { SluggerServiceImpl } from '../../src/core/slugger-service-impl';
 
 const s = new SluggerServiceImpl();
 

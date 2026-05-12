@@ -28,7 +28,7 @@ exolith/
 │   ├── composition/              DI composition root — wires the object graph
 │   ├── cli/                      CLI parsing and bootstrap
 │   └── tui/                      Terminal UI (Ink / React)
-├── tests/                        Flat test files, one per module
+├── tests/                        Test files mirror src/ directory structure
 ├── docs/                         Specifications (tech-free)
 ├── templates/                    Nunjucks prompt templates
 ├── dist/
@@ -88,9 +88,9 @@ The consumer owns the interface. The implementation module conforms structurally
 
 ### Test Strategy
 
-One test file per source module. Tests live in the flat `tests/` directory — never mirror the `src/` directory structure. Mock dependencies at module boundaries. Assert only the module's own logic, never the behavior of its dependencies.
+One test file per source module. Tests mirror the `src/` directory structure. Mock dependencies at module boundaries. Assert only the module's own logic, never the behavior of its dependencies.
 
-**Rationale:** Nesting test directories under the same names as source directories causes module resolution conflicts in Vite/Vitest. Flat naming avoids this entirely. Example: `tests/slugger.test.ts` tests `src/core/slugger-service-impl.ts`.
+Example: `tests/core/slugger.test.ts` tests `src/core/slugger-service-impl.ts`.
 
 ### Constructor Options, Not Per-Call
 

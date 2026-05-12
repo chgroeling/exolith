@@ -4,8 +4,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ConfigLoaderServiceImpl } from '../src/core/config/config-loader-impl';
-import { CONFIG_FILE_NAME } from '../src/core/config/config-types';
+import { ConfigLoaderServiceImpl } from '../../../src/core/config/config-loader-impl';
+import { CONFIG_FILE_NAME } from '../../../src/core/config/config-types';
 
 function makeLoader(): ConfigLoaderServiceImpl {
   return new ConfigLoaderServiceImpl();

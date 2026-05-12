@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { LlmProvider } from '../src/infrastructure/llm/llm-provider';
-import { LlmServiceImpl } from '../src/infrastructure/llm/llm-service-impl';
+import type { LlmProvider } from '../../../src/infrastructure/llm/llm-provider';
+import { LlmServiceImpl } from '../../../src/infrastructure/llm/llm-service-impl';
 
 function makeMockProvider(opts?: {
   streamChunks?: string[];

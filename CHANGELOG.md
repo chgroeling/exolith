@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extract shared `loadSchemaFile` helper for JSON5 schema resolution, with SourcePage schema externalized to `schemas/`
 - Rename `ingest`/`pre-ingest` implementation files to `-service-impl` suffix convention
 - Extract table output to `TableFormatter` interface and implementation in `core/`
+- Restructure test files to mirror `src/` directory layout
 
 ### Deprecated
 

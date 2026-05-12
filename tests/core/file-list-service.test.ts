@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { FileListServiceImpl } from '../src/core/file-list-service-impl';
+import { FileListServiceImpl } from '../../src/core/file-list-service-impl';
 
 describe('FileListService', () => {
   describe('listFiles', () => {
@@ -163,7 +163,7 @@ describe('FileListService', () => {
       }));
 
       const { FileListServiceImpl: MockedImpl } = await import(
-        '../src/core/file-list-service-impl'
+        '../../src/core/file-list-service-impl'
       );
 
       const mocked = new MockedImpl();

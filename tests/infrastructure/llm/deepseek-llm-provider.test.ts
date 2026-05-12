@@ -2,7 +2,7 @@
 
 import type { LanguageModel } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { DeepSeekLlmProvider } from '../src/infrastructure/llm/deepseek-llm-provider';
+import { DeepSeekLlmProvider } from '../../../src/infrastructure/llm/deepseek-llm-provider';
 
 function makeMockModel(): LanguageModel {
   return {

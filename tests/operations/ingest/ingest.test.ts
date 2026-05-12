@@ -4,12 +4,15 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { IdentifierService } from '../src/core/identifier-service';
-import type { IdentifierType } from '../src/core/types';
-import type { LlmService, LlmStructuredRequest } from '../src/infrastructure/llm/llm-service';
-import type { PromptService } from '../src/infrastructure/prompt/prompt-service';
-import type { IngestConfig, IngestPresentation } from '../src/operations/ingest/ingest-service';
-import { Ingest } from '../src/operations/ingest/ingest-service-impl';
+import type { IdentifierService } from '../../../src/core/identifier-service';
+import type { IdentifierType } from '../../../src/core/types';
+import type { LlmService, LlmStructuredRequest } from '../../../src/infrastructure/llm/llm-service';
+import type { PromptService } from '../../../src/infrastructure/prompt/prompt-service';
+import type {
+  IngestConfig,
+  IngestPresentation,
+} from '../../../src/operations/ingest/ingest-service';
+import { Ingest } from '../../../src/operations/ingest/ingest-service-impl';
 
 function makeMockLlm(): LlmService {
   return {
