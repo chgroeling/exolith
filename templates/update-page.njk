@@ -1,0 +1,78 @@
+You are updating an existing wiki page with newly extracted knowledge from a source.
+
+## Current Page Content
+{{ currentPageContent }}
+
+## New Knowledge to Integrate
+The following information was extracted from the source page [[{{ sourcePath }}]]:
+
+### Entities relevant to this page
+{% for entity in entities %}
+- {{ entity.name }} ({{ entity.entityType }}): {{ entity.description }}
+  Source context: {{ entity.sourceContext }}
+{% endfor %}
+
+### Concepts relevant to this page
+{% for concept in concepts %}
+- {{ concept.name }} ({{ concept.domain }}): {{ concept.description }}
+  Source context: {{ concept.sourceContext }}
+{% endfor %}
+
+### New Claims
+{% for claim in claims %}
+- id:{{ claim.id }} conf:{{ claim.confidence }}
+  {{ claim.text }}
+  Evidence: {{ claim.evidence }} ({{ claim.sourceLocation }})
+  {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
+{% endfor %}
+
+### New Relationships
+{% for rel in relationships %}
+- {{ rel.source }} → {{ rel.relation }} → {{ rel.target }}
+  Context: {{ rel.context }}
+{% endfor %}
+
+### Open Questions
+{% for q in openQuestions %}
+- {{ q.question }}
+  Context: {{ q.context }}
+{% endfor %}
+
+## Instructions
+
+Update the page above by integrating the new knowledge. Follow these rules precisely:
+
+1. **Prose merge:** Weave new information naturally into the body text. Do NOT replace existing content — expand and enrich it. The body text after the YAML frontmatter (under # Title) is prose.
+
+2. **Human Block preservation:** NEVER modify anything between `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Leave these sections exactly as they are.
+
+3. **Claims — decision logic:** For each new claim, scan the existing `## Claims` section:
+   - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace the old claim text/confidence and set old status to `superseded`
+   - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND: add as additional perspective
+   - If claims contradict → CONFLICT: mark both as `contested`
+   - If no similar claim → CREATE: add as new claim entry
+   Format each claim as:
+   ```
+   - `id:claim.xxx` `conf:0.X` `status:active`
+     Claim text here.
+     *Evidence:* [[sources/whatever]] (location)
+     *Limitation:* any limitations here
+   ```
+
+4. **Relationships:** Add new relationships to the `## Verknüpfungen` or `## Links` section. Format as:
+   ```
+   - `relation_type` → [[pageType/slug]]
+     *Notiz:* context
+   ```
+
+5. **Open Questions:** Add new questions to the `## Offene Fragen` section. Format as:
+   ```
+   - Question text here?
+     *Kontext:* context
+   ```
+
+6. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
+
+7. **Do NOT add** a `## Linked Wiki Pages` section — that is maintained by compile.
+
+Return the complete updated page content (including YAML frontmatter) as a single string.

@@ -1,0 +1,35 @@
+---
+id: {{ id }}
+title: {{ title }}
+status: {{ status }}
+tags:
+{%- for tag in tags %}
+  - {{ tag }}
+{%- endfor %}
+confidence: {{ confidence }}
+created: {{ created }}
+updated: {{ updated }}
+---
+
+# {{ title }}
+
+{{ body }}
+
+## Claims
+
+{{ claims }}
+
+## Verknüpfungen
+
+{{ relationships }}
+
+{% if openQuestions %}
+## Offene Fragen
+
+{{ openQuestions }}
+{% endif %}
+
+<!-- exolith:human:start -->
+## Persönliche Notizen
+
+<!-- exolith:human:end -->

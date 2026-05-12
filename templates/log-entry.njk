@@ -1,0 +1,39 @@
+Write a concise log entry for the wiki chronicle (log.md) documenting what happened during this ingest.
+
+## Source
+- Source page: [[{{ sourcePath }}]]
+
+## Extraction Summary
+- Entities extracted: {{ entityCount }}
+  {% for entity in entities %}- {{ entity.name }}
+  {% endfor %}
+- Concepts extracted: {{ conceptCount }}
+  {% for concept in concepts %}- {{ concept.name }}
+  {% endfor %}
+- Claims extracted: {{ claimCount }}
+- Relationships extracted: {{ relationshipCount }}
+- Open questions: {{ questionCount }}
+
+## Update Summary
+- Pages created: {{ pagesCreated }}
+  {% for p in createdPages %}- {{ p }}
+  {% endfor %}
+- Pages updated: {{ pagesUpdated }}
+  {% for p in updatedPages %}- {{ p }}
+  {% endfor %}
+
+Write a single log entry in this format:
+
+```
+## {{ today }} • ingest | {{ sourceTitle }}
+Source: [[{{ sourcePath }}]]
+Action: {{ summary of what was created/modified — counts and key highlights }}
+```
+
+Rules:
+- The heading format is exactly: `## YYYY-MM-DD • ingest | Short Source Title` — no brackets around the date
+- The Action line summarizes counts: entities created/updated, concepts created/updated, claims, relationships
+- Be concise — the entry should be 1-3 lines total (including heading)
+- Write in the same language as the source content
+
+Return only the log entry text (no additional explanation).

@@ -12,6 +12,8 @@ import type { LlmProvider } from '../infrastructure/llm/llm-provider';
 import { LlmServiceImpl } from '../infrastructure/llm/llm-service-impl';
 import { OpenRouterLlmProvider } from '../infrastructure/llm/openrouter-llm-provider';
 import { PromptServiceImpl } from '../infrastructure/prompt/prompt-service-impl';
+import type { CompileServiceFactory } from '../operations/compile/compile-service';
+import { CompileServiceFactoryImpl } from '../operations/compile/compile-service-factory-impl';
 import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-factory-impl';
 import type { PreIngestServiceFactory } from '../operations/pre-ingest/pre-ingest-service';
@@ -74,8 +76,20 @@ export function buildPreIngestFactory(
   return new PreIngestServiceFactoryImpl(llmService, identifier, promptService, logger);
 }
 
+/** Builds the compile factory wired with all dependencies. */
+export function buildCompileFactory(logger: Logger): CompileServiceFactory {
+  return new CompileServiceFactoryImpl(logger);
+}
+
 /** Builds the ingest factory wired with all dependencies. */
 export function buildIngestFactory(logger: Logger, config: ExolithConfig): IngestServiceFactory {
   const { llmService, identifier, promptService } = wireServices(logger, config);
-  return new IngestServiceFactoryImpl(llmService, identifier, promptService, logger);
+  const compileServiceFactory = buildCompileFactory(logger);
+  return new IngestServiceFactoryImpl(
+    llmService,
+    identifier,
+    promptService,
+    compileServiceFactory,
+    logger,
+  );
 }

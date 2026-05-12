@@ -1,0 +1,58 @@
+You are creating a new concept page for the wiki, following the concept page specification precisely.
+
+## Concept Information
+- Name: {{ conceptName }}
+- Domain: {{ domain }}
+- Description: {{ description }}
+- Source context: {{ sourceContext }}
+
+## Source
+- Source page: [[{{ sourcePath }}]]
+
+## Related Claims
+{% for claim in claims %}
+- id:{{ claim.id }} conf:{{ claim.confidence }}
+  {{ claim.text }}
+  Evidence: {{ claim.evidence }} ({{ claim.sourceLocation }})
+  {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
+{% endfor %}
+
+## Related Relationships
+{% for rel in relationships %}
+- {{ rel.source }} → {{ rel.relation }} → {{ rel.target }}
+  Context: {{ rel.context }}
+{% endfor %}
+
+## Open Questions
+{% for q in openQuestions %}
+- {{ q.question }}
+  Context: {{ q.context }}
+{% endfor %}
+
+## Instructions
+
+Create a complete concept page for "{{ conceptName }}". Follow the concept page specification:
+
+1. **YAML frontmatter:** Use id: concept.{{ slug }}, set title to the concept name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags.
+
+2. **Body:** Write a concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally.
+
+3. **Claims:** Add a `## Claims` section. Format each claim:
+   ```
+   - `id:claim.xxx` `conf:0.X` `status:active`
+     Claim text here.
+     *Evidence:* [[{{ sourcePath }}]] (location)
+     *Limitation:* any limitations here
+   ```
+
+4. **Relationships:** Add a `## Links` section. Format:
+   ```
+   - `relation_type` → [[pageType/slug]]
+     *Notiz:* context
+   ```
+
+5. **Open Questions:** Add an `## Open Questions` section if there are questions.
+
+6. Write in the same language as the source content. Be concise and precise.
+
+Return the complete page content (including YAML frontmatter) as a single string.

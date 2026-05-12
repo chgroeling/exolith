@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "extractedName": { "type": "string", "description": "The original extracted name" },
+          "matchedSlug": { "type": "string", "description": "The slug of the matching existing page" }
+        },
+        "required": ["extractedName", "matchedSlug"],
+        "additionalProperties": false
+      }
+    },
+    "unmatched": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names that have no semantic match"
+    }
+  },
+  "required": ["matches", "unmatched"],
+  "additionalProperties": false
+}

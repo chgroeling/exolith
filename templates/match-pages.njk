@@ -1,0 +1,21 @@
+You are matching extracted knowledge elements to existing wiki pages via semantic similarity.
+
+Below are extracted {{pageType}} names that were NOT found by exact slug match. You also receive summaries of all existing {{pageType}} pages from the wiki index.
+
+Determine which existing pages (if any) semantically match the extracted names, even if the exact slug differs (e.g. "Cortisol reduction" ↔ "cortisol-senkung-durch-meditation").
+
+## Extracted {{pageType}} names (no exact slug match found)
+{% for name in unmatchedNames %}
+- {{ name }}
+{% endfor %}
+
+## Existing {{pageType}} pages (summaries)
+{% for entry in indexEntries %}
+- slug: {{ entry.slug }}
+  title: {{ entry.title }}
+  summary: {{ entry.summary }}
+{% endfor %}
+
+For each extracted name, decide: does it match any existing page semantically? If yes, provide the slug. If no, mark as unmatched.
+
+Only match when there is a meaningful semantic connection — do not force matches.
