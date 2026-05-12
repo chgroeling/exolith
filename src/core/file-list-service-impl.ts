@@ -7,9 +7,9 @@ import type { FileListConfig, FileListService, ListedFile } from './file-list-se
 /** Default file extensions included when listing. */
 const DEFAULT_EXTENSIONS = ['.md', '.txt', '.textile'];
 
-/** Creates a stable 8-character hex ID from file name and content. */
-function computeId(fileName: string, content: string): string {
-  return createHash('sha256').update(`${fileName}:${content}`).digest('hex').slice(0, 8);
+/** Creates a stable 6-character hex ID from file name. */
+function computeId(fileName: string): string {
+  return createHash('sha256').update(fileName).digest('hex').slice(0, 6);
 }
 
 /** Implementation of {@link FileListService} using the local filesystem. */
@@ -54,20 +54,17 @@ export class FileListServiceImpl implements FileListService {
     names.sort((a, b) => a.localeCompare(b));
 
     const result: ListedFile[] = [];
-    const seen = new Map<string, string>();
+    const seenCount = new Map<string, number>();
 
     for (const name of names) {
       const fullPath = join(dirPath, name);
       const content = await readFile(fullPath, 'utf-8');
-      const id = computeId(name, content);
+      const baseId = computeId(name);
 
-      const existing = seen.get(id);
-      if (existing) {
-        throw new Error(
-          `Hash collision: files "${existing}" and "${name}" both produce ID "${id}"`,
-        );
-      }
-      seen.set(id, name);
+      const count = seenCount.get(baseId) ?? 0;
+      seenCount.set(baseId, count + 1);
+
+      const id = count === 0 ? baseId : `${baseId}-${count + 1}`;
 
       result.push({ id, fileName: name, fullPath });
     }

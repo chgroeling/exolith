@@ -84,10 +84,12 @@ preIngestCmd
       return;
     }
 
+    const maxIdWidth = Math.max(...files.map((f) => f.id.length));
+
     process.stderr.write(`\nInbox (${files.length} file${files.length === 1 ? '' : 's'}):\n\n`);
 
     for (const file of files) {
-      process.stdout.write(`  ${file.id}  ${file.fileName}\n`);
+      process.stdout.write(`  ${file.id.padEnd(maxIdWidth)}  ${file.fileName}\n`);
     }
 
     process.stderr.write(`\nRun "exolith pre-ingest process <id>" to start the pipeline.\n`);

@@ -78,7 +78,7 @@ describe('FileListService', () => {
       expect(files[0].fileName).toBe('file.md');
     });
 
-    it('assigns a stable 8-character hex ID', async () => {
+    it('assigns a stable 6-character hex ID', async () => {
       const dir = join(tmpdir(), `exolith-test-${Date.now()}`);
       await mkdir(dir, { recursive: true });
       await writeFile(join(dir, 'test.md'), 'hello world', 'utf-8');
@@ -87,7 +87,7 @@ describe('FileListService', () => {
       const files = await svc.listFiles(dir);
 
       expect(files).toHaveLength(1);
-      expect(files[0].id).toMatch(/^[0-9a-f]{8}$/);
+      expect(files[0].id).toMatch(/^[0-9a-f]{6}$/);
       expect(files[0].fullPath).toBe(join(dir, 'test.md'));
     });
 
@@ -103,12 +103,11 @@ describe('FileListService', () => {
       expect(first[0].id).toBe(second[0].id);
     });
 
-    it('produces different IDs for files with same content but different names', async () => {
+    it('produces different IDs for different filenames', async () => {
       const dir = join(tmpdir(), `exolith-test-${Date.now()}`);
       await mkdir(dir, { recursive: true });
-      const sharedContent = 'identical content';
-      await writeFile(join(dir, 'alpha.md'), sharedContent, 'utf-8');
-      await writeFile(join(dir, 'beta.md'), sharedContent, 'utf-8');
+      await writeFile(join(dir, 'alpha.md'), 'content', 'utf-8');
+      await writeFile(join(dir, 'beta.md'), 'content', 'utf-8');
 
       const svc = new FileListServiceImpl();
       const files = await svc.listFiles(dir);
@@ -146,11 +145,12 @@ describe('FileListService', () => {
   });
 
   describe('collision', () => {
-    it('throws when two files produce the same hash', async () => {
+    it('disambiguates duplicate IDs with -N suffix', async () => {
       const dir = join(tmpdir(), `exolith-test-${Date.now()}`);
       await mkdir(dir, { recursive: true });
-      await writeFile(join(dir, 'alpha.md'), 'content', 'utf-8');
-      await writeFile(join(dir, 'beta.md'), 'content', 'utf-8');
+      await writeFile(join(dir, 'alpha.md'), 'content a', 'utf-8');
+      await writeFile(join(dir, 'beta.md'), 'content b', 'utf-8');
+      await writeFile(join(dir, 'gamma.md'), 'content c', 'utf-8');
 
       vi.resetModules();
 
@@ -167,7 +167,12 @@ describe('FileListService', () => {
       );
 
       const mocked = new MockedImpl();
-      await expect(mocked.listFiles(dir)).rejects.toThrow(/Hash collision.*alpha.*beta.*aaaaaaaa/);
+      const files = await mocked.listFiles(dir);
+
+      expect(files).toHaveLength(3);
+      expect(files[0].id).toBe('aaaaaa');
+      expect(files[1].id).toBe('aaaaaa-2');
+      expect(files[2].id).toBe('aaaaaa-3');
     });
   });
 });

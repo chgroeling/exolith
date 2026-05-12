@@ -1,12 +1,12 @@
 /**
  * Specification: docs/cross-cutting/vault-layout.md
  *
- * Generic service for listing files in a directory with stable content-based IDs.
+ * Generic service for listing files in a directory with stable filename-based IDs.
  */
 
 /** A file entry returned by the listing operation. */
 export interface ListedFile {
-  /** Stable 8-character hex ID derived from SHA-256(fileName + ":" + content). */
+  /** Stable filename-based ID: 6-char hex with optional -N suffix for hash collisions. */
   id: string;
   /** Base name of the file (without directory). */
   fileName: string;
