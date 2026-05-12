@@ -15,30 +15,38 @@ import type {
 type DisplayAction =
   | 'LogStep'
   | 'StartSpin'
-  | 'UpdateSpinOrStart'
-  | 'StopSpinLogSuccess'
+  | 'StopSpin'
+  | 'LogSuccess'
   | 'PrepareStream'
   | 'FinishStream';
 
-/** Maps a pre-ingest state to its display behaviour. */
-interface StateDisplayConfig {
+/** A single display action with its parameters. */
+interface ActionItem {
   action: DisplayAction;
-  label: string;
-  /** The {@link PreIngestStateData} field to log after stopping the spinner. Only relevant for 'StopSpinLogSuccess'. */
+  label?: string;
+  /** Only relevant for {@link LogSuccess}. */
   successField?: keyof PreIngestStateData;
 }
 
+/** Maps a pre-ingest state to its display behaviour — one or more actions executed in order. */
+interface StateDisplayConfig {
+  actions: ActionItem[];
+}
+
 const STATE_DISPLAY: Record<PreIngestState, StateDisplayConfig> = {
-  Reading: { action: 'LogStep', label: 'Reading' },
-  Discussing: { action: 'LogStep', label: 'Discussing' },
-  Streaming: { action: 'PrepareStream', label: 'Streaming' },
-  WaitingForInput: { action: 'FinishStream', label: 'Waiting for input' },
-  DiscussionSummary: { action: 'StartSpin', label: 'Summarizing discussion' },
-  ExtractingSourcePage: { action: 'UpdateSpinOrStart', label: 'Extracting source page' },
+  Reading: { actions: [{ action: 'LogStep', label: 'Reading' }] },
+  Discussing: { actions: [{ action: 'LogStep', label: 'Discussing' }] },
+  Streaming: { actions: [{ action: 'PrepareStream', label: 'Streaming' }] },
+  WaitingForInput: { actions: [{ action: 'FinishStream', label: 'Waiting for input' }] },
+  DiscussionSummary: { actions: [{ action: 'StartSpin', label: 'Summarizing discussion' }] },
+  ExtractingSourcePage: {
+    actions: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Extracting source page' }],
+  },
   SourcePageWritten: {
-    action: 'StopSpinLogSuccess',
-    label: 'Source page written',
-    successField: 'sourcePath',
+    actions: [
+      { action: 'StopSpin' },
+      { action: 'LogSuccess', label: 'Source page written', successField: 'sourcePath' },
+    ],
   },
 };
 
@@ -48,13 +56,6 @@ const INGEST_STEP_DISPLAY: Record<IngestStep, { label: string }> = {
   Updating: { label: 'Updating wiki pages' },
   Logging: { label: 'Writing log entry' },
   Compiling: { label: 'Compiling' },
-};
-
-const INGEST_STEP_LABELS: Record<IngestStep, string> = {
-  Extracting: 'Extracting knowledge…',
-  Updating: 'Updating wiki pages…',
-  Logging: 'Writing log entry…',
-  Compiling: 'Compiling…',
 };
 
 /** Shared error display for both pipeline presentations. */
@@ -112,38 +113,35 @@ export function createCliPreIngestPresentation(
   return {
     /** Writes the current state and file name to stderr. Uses the output path when available. */
     onStateChange(state: PreIngestState, data: PreIngestStateData): void {
-      const config = STATE_DISPLAY[state];
-      switch (config.action) {
-        case 'LogStep':
-          log.step(`${config.label}: ${data.fileName}`);
-          break;
-        case 'StartSpin':
-          startSpin(config.label);
-          break;
-        case 'UpdateSpinOrStart':
-          if (spin) {
-            spin.message(config.label);
-            spinLabel = config.label;
-          } else {
-            startSpin(config.label);
+      for (const item of STATE_DISPLAY[state].actions) {
+        switch (item.action) {
+          case 'LogStep':
+            log.step(`${item.label}: ${data.fileName}`);
+            break;
+          case 'StartSpin':
+            if (item.label) startSpin(item.label);
+            break;
+          case 'StopSpin':
+            stopSpin();
+            break;
+          case 'LogSuccess': {
+            const msg = item.successField
+              ? `${item.label}: ${data[item.successField]}`
+              : item.label;
+            if (msg) log.success(msg);
+            break;
           }
-          break;
-        case 'StopSpinLogSuccess': {
-          stopSpin();
-          const field = config.successField;
-          log.success(field ? `${data[field]}` : '');
-          break;
+          case 'PrepareStream':
+            chunkQueue = [];
+            queueDone = false;
+            streamPromise = null;
+            break;
+          case 'FinishStream':
+            queueDone = true;
+            queueResolve?.();
+            queueResolve = null;
+            break;
         }
-        case 'PrepareStream':
-          chunkQueue = [];
-          queueDone = false;
-          streamPromise = null;
-          break;
-        case 'FinishStream':
-          queueDone = true;
-          queueResolve?.();
-          queueResolve = null;
-          break;
       }
     },
 

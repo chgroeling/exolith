@@ -10,6 +10,7 @@ import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type {
   PreIngestConfig,
   PreIngestPresentation,
+  PreIngestResult,
   PreIngestService,
 } from './pre-ingest-service';
 
@@ -49,7 +50,7 @@ export class PreIngest implements PreIngestService {
    * Runs the full pre-ingest pipeline on a raw source file.
    * @param filePath Absolute path to the raw source file
    */
-  async process(filePath: string): Promise<void> {
+  async process(filePath: string): Promise<PreIngestResult> {
     this.filePath = filePath;
     this.logger.info({ filePath }, 'Pre-ingest process started');
 
@@ -79,6 +80,7 @@ export class PreIngest implements PreIngestService {
 
       // 5. Write source page to disk
       const sourcePath = await this.writeSourcePageToDisk(sourcePage);
+      return { sourcePath };
     } catch (err) {
       this.presentation.onError(err as Error);
       this.logger.error({ filePath, err }, 'Pre-ingest process failed');

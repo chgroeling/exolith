@@ -1,11 +1,14 @@
 import { createWriteStream } from 'node:fs';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
+import { cancel, intro, outro } from '@clack/prompts';
 import { program } from 'commander';
 import pino from 'pino';
 import pkg from '../../package.json' with { type: 'json' };
 import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
-import type { ConfigLoadResult } from '../core/config/config-types';
+import { CONFIG_FILE_NAME } from '../core/config/config-types';
+import type { ConfigLoadResult, ExolithConfig } from '../core/config/config-types';
 import { FileListServiceImpl } from '../core/file-list-service-impl';
 import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
 
@@ -63,6 +66,37 @@ program
   .option('-l, --log-file <path>', 'path to log file')
   .option('--log-level <level>', 'log level')
   .option('-v, --vault-dir <path>', 'path to the vault directory containing exolith.json');
+
+program
+  .command('init')
+  .description('Initialize a new exolith vault by writing exolith.json')
+  .option('--provider <provider>', 'LLM provider', 'deepseek')
+  .action(async (options) => {
+    const globalOpts = program.opts();
+    const targetDir = resolve(globalOpts.vaultDir ?? process.cwd());
+    const configPath = join(targetDir, CONFIG_FILE_NAME);
+
+    if (options.provider !== 'openrouter' && options.provider !== 'deepseek') {
+      process.stderr.write(
+        `Error: provider must be "openrouter" or "deepseek", got "${options.provider}"\n`,
+      );
+      process.exit(1);
+    }
+
+    try {
+      await access(configPath);
+      process.stderr.write(
+        `Error: ${configPath} already exists. Remove it first or use a different directory.\n`,
+      );
+      process.exit(1);
+    } catch {}
+
+    const config: ExolithConfig = { provider: options.provider };
+
+    await mkdir(targetDir, { recursive: true });
+    await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+    process.stderr.write(`Created ${configPath}\n`);
+  });
 
 const preIngestCmd = program
   .command('pre-ingest')
@@ -132,15 +166,25 @@ preIngestCmd
     const target = matches[0];
     logger.info({ id, file: target.fullPath }, 'pre-ingest process: starting pipeline');
 
+    intro(`Pre-ingesting ${target.fileName}`);
+    const sigintHandler = () => {
+      cancel('Cancelled.');
+      process.exit(0);
+    };
+    process.once('SIGINT', sigintHandler);
+
     const factory = buildPreIngestFactory(logger, config);
     const presentation = createCliPreIngestPresentation({ skipDiscuss: options.skipDiscuss });
     const service = factory.create({ maxSourceSize, vaultPath }, presentation);
 
     try {
-      await service.process(target.fullPath);
+      const result = await service.process(target.fullPath);
+      process.off('SIGINT', sigintHandler);
+      outro(`Source page written: ${result.sourcePath}`);
     } catch (err) {
+      process.off('SIGINT', sigintHandler);
       logger.error({ err }, 'pre-ingest failed');
-      process.stderr.write(`Error: ${(err as Error).message}\n`);
+      cancel(`Error: ${(err as Error).message}`);
       process.exit(1);
     }
 
@@ -154,15 +198,25 @@ program
   .action(async (file, options) => {
     const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
 
+    intro(`Ingesting ${file}`);
+    const sigintHandler = () => {
+      cancel('Cancelled.');
+      process.exit(0);
+    };
+    process.once('SIGINT', sigintHandler);
+
     const factory = buildIngestFactory(logger, config);
     const presentation = createCliIngestPresentation();
     const service = factory.create({ vaultPath }, presentation);
 
     try {
       await service.process(file);
+      process.off('SIGINT', sigintHandler);
+      outro(`Ingested: ${file}`);
     } catch (err) {
+      process.off('SIGINT', sigintHandler);
       logger.error({ err }, 'ingest failed');
-      process.stderr.write(`Error: ${(err as Error).message}\n`);
+      cancel(`Error: ${(err as Error).message}`);
       process.exit(1);
     }
 

@@ -38,9 +38,15 @@ export interface PreIngestConfig {
   vaultPath: string;
 }
 
+/** Result of a successful pre-ingest pipeline run. */
+export interface PreIngestResult {
+  /** Absolute path to the written source page file. */
+  sourcePath: string;
+}
+
 /** Runs the pre-ingest pipeline on a raw source file. */
 export interface PreIngestService {
-  process(filePath: string): Promise<void>;
+  process(filePath: string): Promise<PreIngestResult>;
 }
 
 /** Creates {@link PreIngestService} instances configured for a single file. */
