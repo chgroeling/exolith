@@ -1,13 +1,13 @@
 {
-  "name": "hello-world",
-  "version": "1.0.0",
+  "name": "exolith",
+  "version": "0.1.0",
   "type": "module",
   "bin": {
     "hello-world": "dist/index.js"
   },
   "scripts": {
     "build": "tsup",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "dev": "tsx --watch src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

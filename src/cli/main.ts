@@ -2,6 +2,7 @@ import { createWriteStream } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { program } from 'commander';
 import pino from 'pino';
+import pkg from '../../package.json' with { type: 'json' };
 import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import type { ConfigLoadResult } from '../core/config/config-types';
@@ -55,6 +56,7 @@ async function bootstrap(
 program
   .name('exolith')
   .description('A CLI for ingesting knowledge into the exolith vault')
+  .version(pkg.version)
   .option('-l, --log-file <path>', 'path to log file')
   .option('--log-level <level>', 'log level')
   .option('-v, --vault-dir <path>', 'path to the vault directory containing exolith.json');
