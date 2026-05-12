@@ -10,8 +10,8 @@ import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import { CONFIG_FILE_NAME } from '../core/config/config-types';
 import type { ConfigLoadResult, ExolithConfig } from '../core/config/config-types';
 import { FileListServiceImpl } from '../core/file-list-service-impl';
-import type { TableFormatter } from '../utils/table-formatter';
-import { TableFormatterImpl } from '../utils/table-formatter-impl';
+import type { TableFormatter } from '../core/table-formatter';
+import { TableFormatterImpl } from '../core/table-formatter-impl';
 import { createCliIngestPresentation, createCliPreIngestPresentation } from './cli-presentation';
 
 (globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
