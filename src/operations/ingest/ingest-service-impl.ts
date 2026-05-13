@@ -1,6 +1,6 @@
 /** Specification: docs/operations/ingest.md */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
@@ -125,17 +125,29 @@ export class Ingest implements IngestService {
   async process(sourceFilePath: string): Promise<void> {
     this.logger.info({ sourceFilePath }, 'Ingest process started');
     const vaultPath = this.config.vaultPath;
-    this.sourceFileName = sourceFilePath.replace(`${vaultPath}/`, '').replace(/^sources\//, '');
-    this.sourceFilePath = sourceFilePath;
+
+    const inboxDir = join(vaultPath, 'inbox');
+    const sourcesDir = join(vaultPath, 'sources');
+    await mkdir(sourcesDir, { recursive: true });
+    const fileName = sourceFilePath.replace(`${inboxDir}/`, '');
+    const newSourcePath = join(sourcesDir, fileName);
+    await rename(sourceFilePath, newSourcePath);
+    this.logger.info(
+      { from: sourceFilePath, to: newSourcePath },
+      'Moved source page from inbox to sources',
+    );
+
+    this.sourceFileName = fileName;
+    this.sourceFilePath = newSourcePath;
 
     try {
-      await this.extract(sourceFilePath);
+      await this.extract(newSourcePath);
       await this.updateWikiPages();
       await this.writeLogEntry();
       await this.triggerCompile();
     } catch (err) {
       this.emit({ type: 'error', error: err as Error });
-      this.logger.error({ sourceFilePath, err }, 'Ingest process failed');
+      this.logger.error({ sourceFilePath: newSourcePath, err }, 'Ingest process failed');
       throw err;
     }
   }

@@ -239,7 +239,7 @@ describe('PreIngest', () => {
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
 
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
       expect(pageContent).toBeTruthy();
     });
@@ -403,7 +403,7 @@ describe('PreIngest', () => {
   });
 
   describe('writeSourcePage', () => {
-    it('writes a source page to sources/{slug}.md', async () => {
+    it('writes a source page to inbox/{slug}.md', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'test.md');
@@ -422,7 +422,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const expectedPath = join(config.vaultPath, 'sources', 'test-page.md');
+      const expectedPath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(expectedPath, 'utf-8');
       expect(pageContent).toBeTruthy();
     });
@@ -446,7 +446,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('id: source.test-page');
@@ -478,7 +478,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('*Original File:* [[raw-sources/my-article.md]]');
@@ -503,7 +503,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('## Summary');
@@ -532,7 +532,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const sourcePath = join(config.vaultPath, 'sources', 'test-page.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('## Linked Wiki Pages');
@@ -568,7 +568,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const sourcePath = join(config.vaultPath, 'sources', 'specific-article.md');
+      const sourcePath = join(config.vaultPath, 'inbox', 'specific-article.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('*Type:* paper');
@@ -727,7 +727,7 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(finalData?.fileName).toBe('source.md');
-      expect(finalData?.sourcePath).toContain('sources/');
+      expect(finalData?.sourcePath).toContain('inbox/');
     });
 
     it('skips discussion-summary when discussion is declined', async () => {

@@ -106,66 +106,16 @@ program
     process.stderr.write(`Created ${configPath}\n`);
   });
 
-const preIngestCmd = program
-  .command('pre-ingest')
-  .description('Manage and process raw source files in the inbox');
-
-preIngestCmd
-  .command('list')
-  .description('List files in the inbox with their content-based IDs')
-  .action(async () => {
-    const { vaultPath, logger } = await bootstrap(program.opts());
-
-    const inboxDir = join(vaultPath, 'inbox');
-    const fileListService = new FileListServiceImpl();
-    const files = await fileListService.listFiles(inboxDir);
-
-    if (files.length === 0) {
-      process.stderr.write(`Inbox is empty (${inboxDir})\n`);
-      logger.info('pre-ingest list: inbox empty');
-      return;
-    }
-
-    tableFormatter.renderFileList(
-      'Inbox',
-      files,
-      'Run "exolith pre-ingest process <id>" to start the pipeline.',
-    );
-
-    logger.info({ count: files.length }, 'pre-ingest list');
-  });
-
-preIngestCmd
-  .command('process')
-  .description('Run the pre-ingest pipeline on a file from the inbox')
-  .argument('<id>', 'ID (or prefix) of the file from "pre-ingest list"')
+program
+  .command('enqueue')
+  .description('Process a raw source file and write the source page to the inbox')
+  .argument('<file>', 'Path to the raw source file')
   .option('--max-source-size <bytes>', 'maximum source file size in bytes')
   .option('--skip-discuss', 'skip the interactive discussion step')
-  .action(async (id, options) => {
+  .action(async (filePath, options) => {
     const { vaultPath, maxSourceSize, logger, config } = await bootstrap(program.opts(), options);
 
-    const inboxDir = join(vaultPath, 'inbox');
-    const fileListService = new FileListServiceImpl();
-    const files = await fileListService.listFiles(inboxDir);
-
-    const matches = files.filter((f) => f.id.startsWith(id));
-
-    if (matches.length === 0) {
-      process.stderr.write(`Error: No file found with ID prefix "${id}" in ${inboxDir}\n`);
-      logger.warn({ id }, 'pre-ingest process: no match');
-      process.exit(1);
-    }
-
-    if (matches.length > 1) {
-      tableFormatter.renderAmbiguousIdError(id, matches);
-      logger.warn({ id, matches: matches.length }, 'pre-ingest process: ambiguous ID');
-      process.exit(1);
-    }
-
-    const target = matches[0];
-    logger.info({ id, file: target.fullPath }, 'pre-ingest process: starting pipeline');
-
-    intro(`Pre-ingesting ${target.fileName}`);
+    intro(`Enqueuing ${filePath}`);
     const sigintHandler = () => {
       cancel('Cancelled.');
       process.exit(0);
@@ -181,33 +131,33 @@ preIngestCmd
     );
 
     try {
-      const result = await service.process(target.fullPath);
+      const result = await service.process(filePath);
       process.off('SIGINT', sigintHandler);
-      outro(`Source page written: ${result.sourcePath}`);
+      outro(`Source page written to inbox: ${result.sourcePath}`);
     } catch (err) {
       process.off('SIGINT', sigintHandler);
-      logger.error({ err }, 'pre-ingest failed');
+      logger.error({ err }, 'enqueue failed');
       cancel(`Error: ${(err as Error).message}`);
       process.exit(1);
     }
 
-    logger.info('pre-ingest complete');
+    logger.info('enqueue complete');
   });
 
-const ingestCmd = program.command('ingest').description('Process source pages from the vault');
+const ingestCmd = program.command('ingest').description('Process source pages from the inbox');
 
 ingestCmd
   .command('list')
-  .description('List source pages in the vault with their content-based IDs')
+  .description('List source pages in the inbox with their content-based IDs')
   .action(async () => {
     const { vaultPath, logger } = await bootstrap(program.opts());
 
-    const sourcesDir = join(vaultPath, 'sources');
+    const inboxDir = join(vaultPath, 'inbox');
     const fileListService = new FileListServiceImpl();
-    const files = await fileListService.listFiles(sourcesDir);
+    const files = await fileListService.listFiles(inboxDir);
 
     if (files.length === 0) {
-      process.stderr.write(`No source pages found (${sourcesDir})\n`);
+      process.stderr.write(`No source pages found (${inboxDir})\n`);
       logger.info('ingest list: no source pages');
       return;
     }
@@ -223,19 +173,19 @@ ingestCmd
 
 ingestCmd
   .command('process')
-  .description('Run the ingest pipeline on a source page from the vault')
+  .description('Run the ingest pipeline on a source page from the inbox')
   .argument('<id>', 'ID (or prefix) of the file from "ingest list"')
   .action(async (id, options) => {
     const { vaultPath, logger, config } = await bootstrap(program.opts(), options);
 
-    const sourcesDir = join(vaultPath, 'sources');
+    const inboxDir = join(vaultPath, 'inbox');
     const fileListService = new FileListServiceImpl();
-    const files = await fileListService.listFiles(sourcesDir);
+    const files = await fileListService.listFiles(inboxDir);
 
     const matches = files.filter((f) => f.id.startsWith(id));
 
     if (matches.length === 0) {
-      process.stderr.write(`Error: No file found with ID prefix "${id}" in ${sourcesDir}\n`);
+      process.stderr.write(`Error: No file found with ID prefix "${id}" in ${inboxDir}\n`);
       logger.warn({ id }, 'ingest process: no match');
       process.exit(1);
     }

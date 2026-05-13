@@ -293,7 +293,7 @@ export class PreIngest implements PreIngestService {
     this.emit({ type: 'step_start', step: 'SourcePageWrite' });
     const sourceId = this.identifier.createId('source', sourcePage.title);
     const slug = this.identifier.decomposeId(sourceId).slug;
-    const sourceDir = join(this.config.vaultPath, 'sources');
+    const sourceDir = join(this.config.vaultPath, 'inbox');
     await mkdir(sourceDir, { recursive: true });
 
     const today = new Date().toISOString().slice(0, 10);

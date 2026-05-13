@@ -175,9 +175,9 @@ function makeConfig(overrides?: Partial<IngestConfig>): IngestConfig {
 }
 
 async function createTestSourceFile(vaultPath: string): Promise<string> {
-  const sourcesDir = join(vaultPath, 'sources');
-  await mkdir(sourcesDir, { recursive: true });
-  const filePath = join(sourcesDir, 'test-source.md');
+  const inboxDir = join(vaultPath, 'inbox');
+  await mkdir(inboxDir, { recursive: true });
+  const filePath = join(inboxDir, 'test-source.md');
   const content = [
     '---',
     'id: source.test-source',
