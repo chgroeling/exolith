@@ -125,32 +125,32 @@ export function createCliPresentation(): {
 
       case 'page_creating_start': {
         spin = spinner({ withGuide: false });
-        spinLabel = `▪ Creating ${event.pageType}: ${event.name} (${event.slug})`;
-        spin.start(spinLabel);
+        const label = `▪ Creating ${event.pageType}: ${event.name} (${event.slug})`;
+        spin.start(label);
         break;
       }
 
       case 'page_created': {
-        spinLabel = `▪ Creating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
         spin?.clear();
         spin = null;
-        log.message(spinLabel, { spacing: 0 })
+        const label = `▪ Creating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
+        log.message(label, { spacing: 0 })
         spinLabel = '';
         break;
       }
 
       case 'page_updating_start': {
         spin = spinner({ withGuide: false });
-        spinLabel = `▪ Updating ${event.pageType}: ${event.name} (${event.slug})`;
-        spin.start(spinLabel);
+        const label = `▪ Updating ${event.pageType}: ${event.name} (${event.slug})`;
+        spin.start(label);
         break;
       }
 
       case 'page_updated': {
-        spinLabel = `▪ Updating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
         spin?.clear();
         spin = null;
-        log.message(spinLabel, { spacing: 0 })
+        const label = `▪ Updating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
+        log.message(label, { spacing: 0 })
         spin = null;
         spinLabel = '';
         break;
