@@ -26,12 +26,6 @@ The following information was extracted from the source page [[{{ sourcePath }}]
   {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
 {% endfor %}
 
-### New Relationships
-{% for rel in relationships %}
-- {{ rel.source }} → {{ rel.relation }} → {{ rel.target }}
-  Context: {{ rel.context }}
-{% endfor %}
-
 ### Open Questions
 {% for q in openQuestions %}
 - {{ q.question }}
@@ -59,10 +53,10 @@ Update the page above by integrating the new knowledge. Follow these rules preci
      *Limitation:* any limitations here
    ```
 
-4. **Relationships:** Add new relationships to the `## Verknüpfungen` or `## Links` section. Format as:
+4. **Claims as relationships:** Claims are the mechanism for establishing relationships between wiki elements. When a claim asserts a connection (e.g. between an entity and a concept, between two entities, or between a concept and a source), add it to the `## Verknüpfungen` or `## Links` section using the claim as the anchor. Format as:
    ```
-   - `relation_type` → [[pageType/slug]]
-     *Notiz:* context
+   - claim reference → [[pageType/slug]]
+     *Notiz:* context from the claim
    ```
 
 5. **Open Questions:** Add new questions to the `## Offene Fragen` section. Format as:

@@ -14,7 +14,7 @@ The page type `report` is an **automatically generated dashboard**. Unlike all o
 | `reports/claim-health.md`       | Missing Evidence, Contested, Stale Claims |
 | `reports/stale-pages.md`        | Pages without updates despite new sources |
 | `reports/person-directory.md`   | All Entities of type "person"             |
-| `reports/relationship-graph.md` | All structured Relationships              |
+| `reports/person-directory.md`   | All Entities of type "person"             |
 | `reports/herkunftsabdeckung.md` | Evidence statistics per Source            |
 | `reports/privacy-review.md`     | Pages with sensitive content              |
 

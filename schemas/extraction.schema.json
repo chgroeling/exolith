@@ -87,26 +87,6 @@
         "additionalProperties": false
       }
     },
-    "relationships": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "source": { "type": "string", "description": "Name of the source entity or concept" },
-          "relation": {
-            "type": "string",
-            "description": "Type of relationship (e.g. defined, provided_empirical_evidence_for, contradicted)"
-          },
-          "target": { "type": "string", "description": "Name of the target entity or concept" },
-          "context": {
-            "type": "string",
-            "description": "Context or evidence for this relationship"
-          }
-        },
-        "required": ["source", "relation", "target", "context"],
-        "additionalProperties": false
-      }
-    },
     "openQuestions": {
       "type": "array",
       "items": {
@@ -123,6 +103,6 @@
       }
     }
   },
-  "required": ["entities", "concepts", "claims", "relationships", "openQuestions"],
+  "required": ["entities", "concepts", "claims", "openQuestions"],
   "additionalProperties": false
 }

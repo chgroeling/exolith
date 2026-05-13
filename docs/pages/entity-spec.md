@@ -85,7 +85,7 @@ Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
 **Special characteristics:**
 
 - Entities collect claims that *concern* a person/organization — not only statements *by* them.
-- `## Verknüpfungen` lists directed relationships to other Entities and Concepts (e.g. `definierte → [[concepts/praemeditatio-malorum]]`).
+- `## Verknüpfungen` lists connections to other Entities and Concepts established through claims. Claims are the mechanism for asserting relationships — a claim can connect an entity to a concept (e.g. "Seneca defined praemeditatio malorum"), to another entity, or to a source. Format: `claim reference → [[pageType/slug]]`.
 - An Entity can reference claims from different Sources — each claim carries its own reference.
 - Everything outside of `<!-- exolith:human:start -->` / `<!-- exolith:human:end -->` is implicitly LLM-managed.
 

@@ -6,7 +6,7 @@ Source pages are created by the [Pre-Ingest](pre-ingest.md) operation (or placed
 
 ## The Four Steps of Ingest
 
-1. **Extracts** entities, concepts, claims, relationships **exclusively from the source**
+1. **Extracts** entities, concepts, claims, and open questions **exclusively from the source**
 2. **Updates all affected wiki pages** — a single source can touch 10-15 pages
 3. **Writes an entry** in `log.md`
 4. **Triggers the [compile](compile.md) operation** — a separate operation that regenerates index.md, backlinks, and dashboards
@@ -33,10 +33,6 @@ Cortisol reduction through meditation | neurobiology | measurable effect of ment
 ## Claims
 claim.cortisol-senkung | praemeditatio malorum reduces cortisol by 18% | 0.85 | Paragraph 2 | Meta-study, n=1,200, Nature Human Behaviour; limitation: no effect <25 yrs
 claim.seneca-angst-these | Anxieties arise from anticipation, not from real events | 0.3 | Paragraph 1 | Seneca's philosophical assertion, no empirical evidence
-
-## Relationships
-Seneca | defined | praemeditatio malorum | 13th letter to Lucilius
-Dr. Maria Schneider | provided_empirical_evidence_for | praemeditatio malorum | Meta-study (cortisol -18%)
 
 ## Open Questions
 Does the cortisol reduction persist after discontinuing the exercises? | only acute effects measured
@@ -104,11 +100,6 @@ For each extracted claim (after loading the target page):
   │   ├─ YES and claims CONTRADICT each other
   │   │   └─ CONFLICT: Mark both as contested, create contradiction cluster
   │   └─ NO → CREATE: Create new claim with evidence and new claim ID
-
-For each extracted relationship:
-  ├─ Does this connection already exist on the loaded page?
-  │   ├─ YES → SKIP (duplicate)
-  │   └─ NO → CREATE: Enter on BOTH affected pages (also update the other side)
 
 For each open question:
   └─ Enter on the loaded affected pages as ## Offene Fragen
@@ -214,7 +205,7 @@ Meditations — less cryptic, more directly applicable.
 
 1. **Prose merge:** The "Teachings" section was expanded with two new paragraphs — praemeditatio definition, empirical evidence, limitation.
 2. **Structured claim:** Seneca's anxiety thesis with `id:claim.seneca-angst-these`, `confidence: 0.3` and `status: uncertain` — explicitly marked as a philosophical assertion.
-3. **New relationships:** Reciprocal update on both affected pages.
+3. **Claims as connections:** Claims establish relationships between entities, concepts, and sources. A claim about an entity may link it to a concept or another entity, forming the knowledge graph.
 4. **Human block untouched:** The personal note remained exactly preserved.
 
 **Other affected pages (analogous):**

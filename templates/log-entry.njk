@@ -11,7 +11,6 @@ Write a concise log entry for the wiki chronicle (log.md) documenting what happe
   {% for concept in concepts %}- {{ concept.name }}
   {% endfor %}
 - Claims extracted: {{ claimCount }}
-- Relationships extracted: {{ relationshipCount }}
 - Open questions: {{ questionCount }}
 
 ## Update Summary
@@ -32,7 +31,7 @@ Action: {{ summary of what was created/modified — counts and key highlights }}
 
 Rules:
 - The heading format is exactly: `## YYYY-MM-DD • ingest | Short Source Title` — no brackets around the date
-- The Action line summarizes counts: entities created/updated, concepts created/updated, claims, relationships
+- The Action line summarizes counts: entities created/updated, concepts created/updated, claims
 - Be concise — the entry should be 1-3 lines total (including heading)
 - Write in the same language as the source content
 

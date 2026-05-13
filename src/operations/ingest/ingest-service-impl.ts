@@ -41,14 +41,6 @@ interface ExtractedClaim {
   limitation?: string;
 }
 
-/** Extracted relationship from a source page. */
-interface ExtractedRelationship {
-  source: string;
-  relation: string;
-  target: string;
-  context: string;
-}
-
 /** Extracted open question from a source page. */
 interface ExtractedQuestion {
   question: string;
@@ -60,7 +52,6 @@ interface ExtractionResult {
   entities: ExtractedEntity[];
   concepts: ExtractedConcept[];
   claims: ExtractedClaim[];
-  relationships: ExtractedRelationship[];
   openQuestions: ExtractedQuestion[];
 }
 
@@ -96,7 +87,6 @@ export class Ingest implements IngestService {
     entities: [],
     concepts: [],
     claims: [],
-    relationships: [],
     openQuestions: [],
   };
   private createdPages: string[] = [];
@@ -152,7 +142,7 @@ export class Ingest implements IngestService {
     }
   }
 
-  /** Step 1: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
+  /** Step 1: Extracts structured knowledge — entities, concepts, claims, and open questions. */
   private async extract(sourceFilePath: string): Promise<void> {
     this.emit({ type: 'step_start', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
@@ -170,7 +160,7 @@ export class Ingest implements IngestService {
       schema: extractionSchema,
       schemaName: 'ExtractionResult',
       schemaDescription:
-        'Structured extraction of entities, concepts, claims, relationships, and open questions from a wiki source page.',
+        'Structured extraction of entities, concepts, claims, and open questions from a wiki source page.',
     });
 
     this.logger.info(
@@ -178,7 +168,6 @@ export class Ingest implements IngestService {
         entities: this.extractionResult.entities.length,
         concepts: this.extractionResult.concepts.length,
         claims: this.extractionResult.claims.length,
-        relationships: this.extractionResult.relationships.length,
         questions: this.extractionResult.openQuestions.length,
       },
       'Extraction complete',
@@ -260,7 +249,6 @@ export class Ingest implements IngestService {
           entities: this.extractionResult.entities,
           concepts: this.extractionResult.concepts,
           claims: this.extractionResult.claims,
-          relationships: this.extractionResult.relationships,
           openQuestions: this.extractionResult.openQuestions,
           today,
         });
@@ -305,7 +293,6 @@ export class Ingest implements IngestService {
       slug,
       sourcePath: sourceRelativePath,
       claims: this.extractionResult.claims,
-      relationships: this.extractionResult.relationships,
       openQuestions: this.extractionResult.openQuestions,
       today,
     });
@@ -338,7 +325,6 @@ export class Ingest implements IngestService {
       slug,
       sourcePath: sourceRelativePath,
       claims: this.extractionResult.claims,
-      relationships: this.extractionResult.relationships,
       openQuestions: this.extractionResult.openQuestions,
       today,
     });
@@ -374,7 +360,6 @@ export class Ingest implements IngestService {
     actionParts.push(`${this.extractionResult.entities.length} entities`);
     actionParts.push(`${this.extractionResult.concepts.length} concepts`);
     actionParts.push(`${this.extractionResult.claims.length} claims`);
-    actionParts.push(`${this.extractionResult.relationships.length} relationships`);
 
     const sourceRelPath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
     const heading = `## ${today} • ingest | ${this.sourceTitle}`;

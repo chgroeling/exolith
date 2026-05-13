@@ -17,12 +17,6 @@ You are creating a new entity page for the wiki, following the entity page speci
   {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
 {% endfor %}
 
-## Related Relationships
-{% for rel in relationships %}
-- {{ rel.source }} → {{ rel.relation }} → {{ rel.target }}
-  Context: {{ rel.context }}
-{% endfor %}
-
 ## Open Questions
 {% for q in openQuestions %}
 - {{ q.question }}
@@ -45,10 +39,10 @@ Create a complete entity page for "{{ entityName }}". Follow the entity page spe
      *Limitation:* any limitations here
    ```
 
-4. **Relationships:** Add a `## Verknüpfungen` section. Format:
+4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this entity and another wiki element (concept, entity, or source), add a `## Verknüpfungen` section. Format each entry as:
    ```
-   - `relation_type` → [[pageType/slug]]
-     *Notiz:* context
+   - claim reference → [[pageType/slug]]
+     *Notiz:* context from the claim
    ```
 
 5. **Open Questions:** Add an `## Offene Fragen` section if there are questions.

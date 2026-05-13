@@ -60,20 +60,6 @@ const defaultExtractionResult = {
       limitation: 'Philosophical assertion, 2,000 years old, no empirical evidence',
     },
   ],
-  relationships: [
-    {
-      source: 'Seneca',
-      relation: 'defined',
-      target: 'Praemeditatio Malorum',
-      context: '13th letter to Lucilius',
-    },
-    {
-      source: 'Dr. Maria Schneider',
-      relation: 'provided_empirical_evidence_for',
-      target: 'Praemeditatio Malorum',
-      context: 'Meta-study (cortisol -18%)',
-    },
-  ],
   openQuestions: [
     {
       question: 'Does the cortisol reduction persist after discontinuing the exercises?',

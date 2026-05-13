@@ -251,7 +251,7 @@ Instead of just ad-hoc lint, the compile step automatically generates dashboard 
 * **Claim Health** — missing evidence, contested, stale claims
 * **Stale Pages** — pages without updates despite new sources
 * **Person/Agent Directory** — people with routing metadata
-* **Relationship Graph** — all structured relationships
+* **Person/Agent Directory** — people with routing metadata
 * **Source Coverage** — evidence statistics per source
 * **Privacy Review** — pages with sensitive content
 

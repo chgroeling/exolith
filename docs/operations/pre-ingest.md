@@ -29,7 +29,7 @@ If the human chooses to discuss, the LLM reads the raw source content and summar
 The human is asked to weigh in on:
 - Which claims are central and which are peripheral?
 - How credible is the source — should claims carry high or low confidence?
-- Which entities, concepts, or relationships deserve priority extraction?
+- Which entities, concepts, or interconnections deserve priority extraction?
 - What should be ignored or deprioritized?
 - Are there nuances the source hints at but doesn't fully unpack?
 

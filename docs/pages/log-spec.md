@@ -4,7 +4,7 @@
 
 - **Heading:** `## YYYY-MM-DD • action | short title` — machine-readable and grep-friendly. No `[ ]` around the date (that would be a wikilink).
 - **Source:** Only for `ingest`, as a wikilink: `[[path/to/source]]`
-- **Action:** What was created, modified, deleted. Counts for Entities/Concepts/Claims/Relationships
+- **Action:** What was created, modified, deleted. Counts for Entities/Concepts/Claims
 - **Context:** For `lint` or `compile`: Why the step was triggered, what the result was
 
 ## Structure and Example
@@ -16,12 +16,12 @@
 Source: [[inbox/stoizismus-engineering]]
 Action: 1 new Source, 2 Entities created (maria-schneider, uni-tuebingen),
   3 Concepts (praemeditatio-malorum, cortison-senkung, antizipiertes-leiden),
-  6 Claims, 4 Relationships. 5 existing pages updated.
+  6 Claims. 5 existing pages updated.
 
 ## 2026-05-01 • ingest | Letters to Lucilius (Letter 13)
 Source: [[inbox/briefe-an-lucilius-13]]
 Action: 1 new Source, Entity seneca expanded, Concept praemeditatio-malorum
-  created. 2 Claims, 1 Relationship.
+  created. 2 Claims.
 
 ## 2026-04-30 • lint | Confidence Review
 3 Claims with confidence < 0.5 found → all in [[concepts/dichotomie-der-kontrolle]].

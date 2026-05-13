@@ -19,7 +19,7 @@ After every ingest, the compile step runs. It reads the entire vault and updates
 4. GENERATE DASHBOARDS
    Cross-sectional analyses across all pages: Open Questions,
    Contradictions, Low Confidence, Claim Health, Stale Pages,
-   Person Directory, Relationship Graph, provenance coverage
+   Person Directory, provenance coverage
    ↓
 5. WRITE DIGESTS
    agent-digest.json + claims.jsonl for machine consumption
@@ -94,7 +94,7 @@ Compile always regenerates the index **fully** — not incrementally. This is a 
 ## Further Compile Phases
 
 - **Backlink blocks** (`## Related`) inserted into every page — lists sources, backlinks, and shared-source neighbors
-- **Dashboard reports** under `reports/` updated: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, Relationship Graph, provenance coverage, Privacy Review. Claims are identified in dashboards via their identifier.
+- **Dashboard reports** under `reports/` updated: Open Questions, Contradictions, Low Confidence, Claim Health, Stale Pages, Person/Agent Directory, provenance coverage, Privacy Review. Claims are identified in dashboards via their identifier. Claims are the mechanism for establishing relationships between entities, concepts, and sources.
 - **Machine-readable digests** written: `agent-digest.json` (compact summary of all pages incl. claim IDs) and `claims.jsonl` (all claims with full reference as JSON-Lines)
 - Optional: update embedding index
 

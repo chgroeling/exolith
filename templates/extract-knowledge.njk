@@ -3,7 +3,7 @@ You are extracting structured knowledge from a wiki source page. The source page
 Source page content:
 {{ sourceContent }}
 
-Extract all entities, concepts, claims, relationships, and open questions from this source. Follow these rules:
+Extract all entities, concepts, claims, and open questions from this source. Follow these rules:
 
 ## Entities
 Identify distinct, self-standing **things** mentioned in the source — the "nouns" of the text. An entity is a discrete, nameable, referable thing that exists independently of any single document: people, organizations, projects, products, tools, places, works, datasets, events, or systems.
@@ -34,9 +34,6 @@ Extract verifiable assertions as structured claims. Each claim must have:
 - Evidence details
 
 Claims with strong empirical evidence → 0.8+. Claims based on opinion or philosophical assertion → 0.2-0.4. Claims with moderate evidence → 0.5-0.7.
-
-## Relationships
-Identify directed relationships between entities and concepts (e.g. "Seneca defined praemeditatio malorum"). For each: source name, relation type (snake_case verb), target name, and context.
 
 ## Open Questions
 List questions the source raises but does not answer. For each: the question and context.
