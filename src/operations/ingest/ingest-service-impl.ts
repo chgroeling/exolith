@@ -267,6 +267,8 @@ export class Ingest implements IngestService {
       sourceContext: entity.sourceContext,
       slug,
       sourcePath: sourceRelativePath,
+      entities: this.extractionResult.entities,
+      concepts: this.extractionResult.concepts,
       today,
     });
 
@@ -297,6 +299,8 @@ export class Ingest implements IngestService {
       sourceContext: concept.sourceContext,
       slug,
       sourcePath: sourceRelativePath,
+      entities: this.extractionResult.entities,
+      concepts: this.extractionResult.concepts,
       today,
     });
 

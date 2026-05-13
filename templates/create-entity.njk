@@ -1,35 +1,62 @@
-You are creating a new entity page for the wiki, following the entity page specification precisely. Entities are distinct, identifiable things — the "nouns" of the wiki. An entity is a discrete, nameable, referable thing that exists independently of any single document (person, organization, project, tool, place, work, dataset, event, system). Entities are NOT patterns, methods, or theories — those are Concepts.
+You are creating a new entity page for the wiki. Entities are distinct, identifiable things — the "nouns" of the wiki: people, organizations, projects, products, tools, places, works, datasets, events, systems.
 
-## Entity Information
-- Name: {{ entityName }}
-- Entity type: {{ entityType }}
-- Description: {{ description }}
-- Source context: {{ sourceContext }}
+## The Entity You Are Creating
 
-## Source
-- Source page: [[{{ sourcePath }}]]
+This is the entity you must create a page for:
+
+**Name:** {{ entityName }}
+**Type:** {{ entityType }}
+**Description:** {{ description }}
+**Source context:** {{ sourceContext }}
+
+## Source Page
+
+This entity was extracted from: [[{{ sourcePath }}]]
+
+## All Extracted Entities
+
+These are all entities extracted from the source — use them to understand connections and form inter-entity claims:
+
+{% for e in entities %}
+- **{{ e.name }}** ({{ e.entityType }}): {{ e.description }}
+  {% if e.name == entityName %}← THIS IS THE ENTITY YOU ARE CREATING{% endif %}
+{% endfor %}
+
+## All Extracted Concepts
+
+These are all concepts extracted from the source — use them to form claims connecting this entity to concepts:
+
+{% for c in concepts %}
+- **{{ c.name }}** ({{ c.domain }}): {{ c.description }}
+{% endfor %}
 
 ## Instructions
 
 Create a complete entity page for "{{ entityName }}". Follow the entity page specification:
 
-1. **YAML frontmatter:** Use id: entity.{{ slug }}, set title to the entity name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags.
+1. **YAML frontmatter:** Use id: entity.{{ slug }}, set title to the entity name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags based on the entity type and domain.
 
 2. **Body:** Write a concise encyclopedia-style description (2-3 paragraphs). Weave in the description and source context naturally.
 
-3. **Generate claims:** Based on the entity information and source context above, generate verifiable claims for a `## Claims` section. Each claim must:
+3. **Generate claims:** Based on ALL the context above — the entity being created, the other entities, the concepts, and the source — generate verifiable claims for a `## Claims` section. Claims can assert:
+   - Facts about this entity (from the source context)
+   - Connections between this entity and other extracted entities
+   - Connections between this entity and extracted concepts
+   - Connections between this entity and the source
+
+   Each claim must:
    - Have a unique `id:claim.xxx` derived from the claim text
    - Include a confidence estimate (0.0-1.0) based on evidence quality
    - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
    Format each claim as:
    ```
    - `id:claim.xxx` `conf:0.X` `status:active`
-     Claim text here — assertions about or by this entity.
+     Claim text here.
      *Evidence:* [[{{ sourcePath }}]] (location)
      *Limitation:* any limitations here
    ```
 
-4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this entity and another wiki element (concept, entity, or source), add a `## Verknüpfungen` section. Format each entry as:
+4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this entity and another wiki element (concept, entity, or source), add a `## Verknüpfungen` section. For each relationship-bearing claim, add an entry pointing to the target:
    ```
    - claim reference → [[pageType/slug]]
      *Notiz:* context from the claim

@@ -1,35 +1,62 @@
-You are creating a new concept page for the wiki, following the concept page specification precisely. Concepts are abstract ideas, theories, patterns, methods, or frameworks — the "verbs and adjectives" of the wiki. They describe *how* things relate and *which* properties they have. Concepts are NOT discrete, nameable things (persons, tools, places…) — those are Entities.
+You are creating a new concept page for the wiki. Concepts are abstract ideas, theories, patterns, methods, or frameworks — the "verbs and adjectives" of the wiki. They describe *how* things relate and *which* properties they have.
 
-## Concept Information
-- Name: {{ conceptName }}
-- Domain: {{ domain }}
-- Description: {{ description }}
-- Source context: {{ sourceContext }}
+## The Concept You Are Creating
 
-## Source
-- Source page: [[{{ sourcePath }}]]
+This is the concept you must create a page for:
+
+**Name:** {{ conceptName }}
+**Domain:** {{ domain }}
+**Description:** {{ description }}
+**Source context:** {{ sourceContext }}
+
+## Source Page
+
+This concept was extracted from: [[{{ sourcePath }}]]
+
+## All Extracted Entities
+
+These are all entities extracted from the source — use them to form claims connecting this concept to entities:
+
+{% for e in entities %}
+- **{{ e.name }}** ({{ e.entityType }}): {{ e.description }}
+{% endfor %}
+
+## All Extracted Concepts
+
+These are all concepts extracted from the source — use them to understand connections and form inter-concept claims:
+
+{% for c in concepts %}
+- **{{ c.name }}** ({{ c.domain }}): {{ c.description }}
+  {% if c.name == conceptName %}← THIS IS THE CONCEPT YOU ARE CREATING{% endif %}
+{% endfor %}
 
 ## Instructions
 
 Create a complete concept page for "{{ conceptName }}". Follow the concept page specification:
 
-1. **YAML frontmatter:** Use id: concept.{{ slug }}, set title to the concept name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags.
+1. **YAML frontmatter:** Use id: concept.{{ slug }}, set title to the concept name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags based on the domain.
 
 2. **Body:** Write a concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally.
 
-3. **Generate claims:** Based on the concept information and source context above, generate verifiable claims for a `## Claims` section. Each claim must:
+3. **Generate claims:** Based on ALL the context above — the concept being created, the entities, the other concepts, and the source — generate verifiable claims for a `## Claims` section. Claims can assert:
+   - Facts about this concept (from the source context)
+   - Connections between this concept and extracted entities
+   - Connections between this concept and other extracted concepts
+   - Connections between this concept and the source
+
+   Each claim must:
    - Have a unique `id:claim.xxx` derived from the claim text
    - Include a confidence estimate (0.0-1.0) based on evidence quality
    - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
    Format each claim as:
    ```
    - `id:claim.xxx` `conf:0.X` `status:active`
-     Claim text here — assertions about this concept.
+     Claim text here.
      *Evidence:* [[{{ sourcePath }}]] (location)
      *Limitation:* any limitations here
    ```
 
-4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this concept and another wiki element (entity, concept, or source), add a `## Links` section. Format each entry as:
+4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this concept and another wiki element (entity, concept, or source), add a `## Links` section. For each relationship-bearing claim, add an entry pointing to the target:
    ```
    - claim reference → [[pageType/slug]]
      *Notiz:* context from the claim
