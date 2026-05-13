@@ -1,9 +1,15 @@
-import { stream, confirm, isCancel, log, text } from '@clack/prompts';
+import { stream, confirm, isCancel, log, box, text } from '@clack/prompts';
 import type { PipelineEvent, Question } from '../operations/pipeline-presentation';
 import { SpinnerManager } from './spinner-manager';
 
 /** Display actions the presentation layer can perform for a step transition. */
-type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
+type DisplayAction =
+  | 'LogStep'
+  | 'StartSpin'
+  | 'StopSpin'
+  | 'PrepareStream'
+  | 'FinishStream'
+  | 'Note';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -47,8 +53,6 @@ const STEP_DISPLAY: Record<string, StepActions> = {
     end: [{ action: 'StopSpin' }],
   },
   Updating: {
-    start: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
-    end: [{ action: 'StopSpin' }],
   },
   Logging: {
     start: [{ action: 'LogStep', label: 'Writing log entry' }],
@@ -76,11 +80,6 @@ export function createCliPresentation(): {
   let queueDone = false;
   let streamPromise: Promise<void> | null = null;
 
-  let pageQueue: string[] | null = null;
-  let pageResolve: (() => void) | null = null;
-  let pageDone = false;
-  let pageStreamPromise: Promise<void> | null = null;
-
   function startStream() {
     streamPromise = stream.message({
       async *[Symbol.asyncIterator]() {
@@ -98,24 +97,6 @@ export function createCliPresentation(): {
     });
   }
 
-  function startPageStream() {
-    spin.stop();
-    pageStreamPromise = stream.info({
-      async *[Symbol.asyncIterator]() {
-        while (true) {
-          while (pageQueue && pageQueue.length > 0) {
-            const item = pageQueue.shift();
-            if (item !== undefined) yield item;
-          }
-          if (pageDone) return;
-          await new Promise<void>((r) => {
-            pageResolve = r;
-          });
-        }
-      },
-    });
-  }
-
   function emit(event: PipelineEvent): void {
     switch (event.type) {
       case 'error':
@@ -123,22 +104,12 @@ export function createCliPresentation(): {
         break;
 
       case 'step_start': {
-        if (event.step === 'Updating') {
-          pageQueue = [];
-          pageDone = false;
-          pageStreamPromise = null;
-        }
         runActions(STEP_DISPLAY[event.step]?.start, event.data);
         break;
       }
 
       case 'step_end': {
         runActions(STEP_DISPLAY[event.step]?.end, event.data);
-        if (event.step === 'Updating' && pageQueue !== null) {
-          pageDone = true;
-          pageResolve?.();
-          pageResolve = null;
-        }
         break;
       }
 
@@ -154,42 +125,22 @@ export function createCliPresentation(): {
         break;
 
       case 'page_creating_start': {
-        if (pageQueue !== null) {
-          if (!pageStreamPromise) startPageStream();
-          pageQueue.push(`Creating ${event.pageType}: ${event.name} (${event.slug})...`);
-          pageResolve?.();
-          pageResolve = null;
-        }
+        spin.start(`Creating ${event.pageType}: ${event.name} (${event.slug})`);
         break;
       }
 
       case 'page_created': {
-        if (pageQueue !== null) {
-          if (!pageStreamPromise) startPageStream();
-          pageQueue.push(' \x1b[32mOK\x1b[39m\n');
-          pageResolve?.();
-          pageResolve = null;
-        }
+        spin.stop();
         break;
       }
 
       case 'page_updating_start': {
-        if (pageQueue !== null) {
-          if (!pageStreamPromise) startPageStream();
-          pageQueue.push(`Updating ${event.pageType}: ${event.name} (${event.slug})...`);
-          pageResolve?.();
-          pageResolve = null;
-        }
+        spin.start(`Updating ${event.pageType}: ${event.name} (${event.slug})`);
         break;
       }
 
       case 'page_updated': {
-        if (pageQueue !== null) {
-          if (!pageStreamPromise) startPageStream();
-          pageQueue.push(' \x1b[32mOK\x1b[39m\n');
-          pageResolve?.();
-          pageResolve = null;
-        }
+        spin.stop();
         break;
       }
 
@@ -233,6 +184,9 @@ export function createCliPresentation(): {
           queueDone = true;
           queueResolve?.();
           queueResolve = null;
+          break;
+        case 'Note':
+          if (item.label) log.step(item.label);
           break;
       }
     }
