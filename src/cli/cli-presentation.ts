@@ -1,15 +1,9 @@
-import { stream, confirm, isCancel, log, box, text } from '@clack/prompts';
+import { stream, box, confirm, isCancel, log, text } from '@clack/prompts';
 import type { PipelineEvent, Question } from '../operations/pipeline-presentation';
 import { SpinnerManager } from './spinner-manager';
 
 /** Display actions the presentation layer can perform for a step transition. */
-type DisplayAction =
-  | 'LogStep'
-  | 'StartSpin'
-  | 'StopSpin'
-  | 'PrepareStream'
-  | 'FinishStream'
-  | 'Note';
+type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -52,8 +46,7 @@ const STEP_DISPLAY: Record<string, StepActions> = {
     start: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
     end: [{ action: 'StopSpin' }],
   },
-  Updating: {
-  },
+  Updating: {},
   Logging: {
     start: [{ action: 'LogStep', label: 'Writing log entry' }],
   },
@@ -184,9 +177,6 @@ export function createCliPresentation(): {
           queueDone = true;
           queueResolve?.();
           queueResolve = null;
-          break;
-        case 'Note':
-          if (item.label) log.step(item.label);
           break;
       }
     }
