@@ -68,14 +68,6 @@ const STEP_DISPLAY: Record<string, StepActions> = {
     start: [{ action: 'StartSpin', label: 'Writing backlinks' }],
     end: [{ action: 'StopSpin' }],
   },
-  GeneratingDashboards: {
-    start: [{ action: 'StartSpin', label: 'Generating dashboards' }],
-    end: [{ action: 'StopSpin' }],
-  },
-  WritingDigests: {
-    start: [{ action: 'StartSpin', label: 'Writing digests' }],
-    end: [{ action: 'StopSpin' }],
-  },
 };
 
 /**
