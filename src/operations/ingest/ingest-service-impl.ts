@@ -142,7 +142,7 @@ export class Ingest implements IngestService {
 
   /** Step 1: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
   private async extract(sourceFilePath: string): Promise<void> {
-    this.emit({ type: 'progress', step: 'ExtractingStart', data: { sourceFilePath } });
+    this.emit({ type: 'step_start', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
     const frontmatter = parseYamlFrontmatter(rawContent);
@@ -171,14 +171,14 @@ export class Ingest implements IngestService {
       },
       'Extraction complete',
     );
-    this.emit({ type: 'progress', step: 'ExtractingEnd', data: { sourceFilePath } });
+    this.emit({ type: 'step_end', step: 'Extracting' });
   }
 
   /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {
     this.emit({
-      type: 'progress',
-      step: 'UpdatingStart',
+      type: 'step_start',
+      step: 'Updating',
       data: { sourceFilePath: this.sourceFilePath },
     });
     const indexEntries = await this.loadIndex();
@@ -202,11 +202,7 @@ export class Ingest implements IngestService {
       sourceRelativePath,
       (item, slug, srcRelPath) => this.createConceptPage(item, slug, srcRelPath),
     );
-    this.emit({
-      type: 'progress',
-      step: 'UpdatingEnd',
-      data: { sourceFilePath: this.sourceFilePath },
-    });
+    this.emit({ type: 'step_end', step: 'Updating' });
   }
 
   /** Updates or creates pages of the given type via two-phase lookup and LLM. */
@@ -349,8 +345,8 @@ export class Ingest implements IngestService {
   /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {
     this.emit({
-      type: 'progress',
-      step: 'LoggingStart',
+      type: 'step_start',
+      step: 'Logging',
       data: { sourceFilePath: this.sourceFilePath },
     });
     const today = new Date().toISOString().slice(0, 10);
@@ -408,27 +404,19 @@ export class Ingest implements IngestService {
     const updatedLog = `${header}\n\n${newEntry}${body}`;
     await writeFile(logPath, updatedLog, 'utf-8');
     this.logger.info({ logPath }, 'Log entry written');
-    this.emit({
-      type: 'progress',
-      step: 'LoggingEnd',
-      data: { sourceFilePath: this.sourceFilePath },
-    });
+    this.emit({ type: 'step_end', step: 'Logging' });
   }
 
   /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
   private async triggerCompile(): Promise<void> {
     this.emit({
-      type: 'progress',
-      step: 'CompilingStart',
+      type: 'step_start',
+      step: 'Compiling',
       data: { sourceFilePath: this.sourceFilePath },
     });
     this.logger.info('Triggering compile operation');
     await this.compileService.compile();
-    this.emit({
-      type: 'progress',
-      step: 'CompilingEnd',
-      data: { sourceFilePath: this.sourceFilePath },
-    });
+    this.emit({ type: 'step_end', step: 'Compiling' });
   }
 
   /** Reads and parses index.md into a registry grouped by page type. */

@@ -1,7 +1,8 @@
 /** Non-blocking events emitted by pipeline operations to signal progress, errors, streamed output, user input requests, and page lifecycle changes. */
 export type PipelineEvent =
   | { type: 'error'; error: Error }
-  | { type: 'progress'; step: string; subStep?: string; data?: unknown }
+  | { type: 'step_start'; step: string; data?: Record<string, unknown> }
+  | { type: 'step_end'; step: string; data?: Record<string, unknown> }
   | { type: 'stream'; chunk: string }
   | { type: 'input_required'; prompt: string; resolve: (val: string) => void }
   | { type: 'page_creating_start'; pageType: 'entity' | 'concept'; name: string; slug: string }

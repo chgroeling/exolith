@@ -292,7 +292,7 @@ describe('Ingest', () => {
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress' && !event.subStep) {
+        if (event.type === 'step_start' || event.type === 'step_end') {
           steps.push(event.step);
         }
       };
@@ -310,14 +310,14 @@ describe('Ingest', () => {
       await ingest.process(filePath);
 
       expect(steps).toEqual([
-        'ExtractingStart',
-        'ExtractingEnd',
-        'UpdatingStart',
-        'UpdatingEnd',
-        'LoggingStart',
-        'LoggingEnd',
-        'CompilingStart',
-        'CompilingEnd',
+        'Extracting',
+        'Extracting',
+        'Updating',
+        'Updating',
+        'Logging',
+        'Logging',
+        'Compiling',
+        'Compiling',
       ]);
     });
 

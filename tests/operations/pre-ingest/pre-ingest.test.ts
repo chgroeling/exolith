@@ -631,7 +631,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress') {
+        if (event.type === 'step_start' || event.type === 'step_end') {
           states.push(event.step);
         }
         if (event.type === 'input_required') {
@@ -651,19 +651,19 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(states).toEqual([
-        'ReadingStart',
-        'ReadingEnd',
-        'DiscussingStart',
-        'StreamingStart',
-        'StreamingEnd',
-        'WaitingForInputStart',
-        'DiscussingEnd',
-        'DiscussionSummaryStart',
-        'DiscussionSummaryEnd',
-        'ExtractingSourcePageStart',
-        'ExtractingSourcePageEnd',
-        'SourcePageWriteStart',
-        'SourcePageWritten',
+        'Reading',
+        'Reading',
+        'Discussing',
+        'Streaming',
+        'Streaming',
+        'WaitingForInput',
+        'Discussing',
+        'DiscussionSummary',
+        'DiscussionSummary',
+        'ExtractingSourcePage',
+        'ExtractingSourcePage',
+        'SourcePageWrite',
+        'SourcePageWrite',
       ]);
     });
 
@@ -676,7 +676,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress') {
+        if ((event.type === 'step_start' || event.type === 'step_end') && event.data?.fileName) {
           fileNames.push(event.data.fileName);
         }
         if (event.type === 'input_required') {
@@ -695,21 +695,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(fileNames).toEqual([
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-        'source.md',
-      ]);
+      expect(fileNames).toEqual(['source.md', 'source.md', 'source.md']);
     });
 
     it('includes sourcePath in state data for source-page-written', async () => {
@@ -721,7 +707,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress' && event.step === 'SourcePageWritten') {
+        if (event.type === 'step_end' && event.step === 'SourcePageWrite') {
           finalData = event.data;
         }
         if (event.type === 'input_required') {
@@ -753,7 +739,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, '# Content', 'utf-8');
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress') {
+        if (event.type === 'step_start' || event.type === 'step_end') {
           states.push(event.step);
         }
       };
@@ -770,12 +756,12 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(states).toEqual([
-        'ReadingStart',
-        'ReadingEnd',
-        'ExtractingSourcePageStart',
-        'ExtractingSourcePageEnd',
-        'SourcePageWriteStart',
-        'SourcePageWritten',
+        'Reading',
+        'Reading',
+        'ExtractingSourcePage',
+        'ExtractingSourcePage',
+        'SourcePageWrite',
+        'SourcePageWrite',
       ]);
     });
 
@@ -788,7 +774,7 @@ describe('PreIngest', () => {
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress') {
+        if (event.type === 'step_start' || event.type === 'step_end') {
           states.push(event.step);
         }
       };
@@ -804,7 +790,7 @@ describe('PreIngest', () => {
 
       await expect(preIngest.process(filePath)).rejects.toThrow();
 
-      expect(states).toEqual(['ReadingStart']);
+      expect(states).toEqual(['Reading']);
     });
   });
 

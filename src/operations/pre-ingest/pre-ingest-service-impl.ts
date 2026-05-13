@@ -93,8 +93,8 @@ export class PreIngest implements PreIngestService {
   private async readRawSource(): Promise<void> {
     const { filePath } = this;
     this.emit({
-      type: 'progress',
-      step: 'ReadingStart',
+      type: 'step_start',
+      step: 'Reading',
       data: { fileName: basename(this.filePath) },
     });
     await access(filePath);
@@ -121,11 +121,7 @@ export class PreIngest implements PreIngestService {
 
     this.rawContent = buffer.toString('utf-8');
     this.logger.info({ filePath, size: buffer.length }, 'Raw source read successfully');
-    this.emit({
-      type: 'progress',
-      step: 'ReadingEnd',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_end', step: 'Reading' });
   }
 
   /**
@@ -135,8 +131,8 @@ export class PreIngest implements PreIngestService {
   private async runDiscussion(): Promise<readonly { role: string; content: string }[]> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
     this.emit({
-      type: 'progress',
-      step: 'DiscussingStart',
+      type: 'step_start',
+      step: 'Discussing',
       data: { fileName: basename(this.filePath) },
     });
 
@@ -152,29 +148,17 @@ export class PreIngest implements PreIngestService {
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
     let response = '';
-    this.emit({
-      type: 'progress',
-      step: 'StreamingStart',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_start', step: 'Streaming' });
     await session.stream((chunk) => {
       response += chunk;
       this.emit({ type: 'stream', chunk });
     });
     session.addAssistantMessage(response);
-    this.emit({
-      type: 'progress',
-      step: 'StreamingEnd',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_end', step: 'Streaming' });
 
     let turn = 1;
     while (true) {
-      this.emit({
-        type: 'progress',
-        step: 'WaitingForInputStart',
-        data: { fileName: basename(this.filePath) },
-      });
+      this.emit({ type: 'step_start', step: 'WaitingForInput' });
       const input = await new Promise<string>((resolve) => {
         this.emit({
           type: 'input_required',
@@ -184,40 +168,24 @@ export class PreIngest implements PreIngestService {
       });
       if (!input) break;
 
-      this.emit({
-        type: 'progress',
-        step: 'WaitingForInputEnd',
-        data: { fileName: basename(this.filePath) },
-      });
+      this.emit({ type: 'step_end', step: 'WaitingForInput' });
 
       turn++;
       this.logger.trace({ turn, input }, 'Discussion: received user input');
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
       response = '';
-      this.emit({
-        type: 'progress',
-        step: 'StreamingStart',
-        data: { fileName: basename(this.filePath) },
-      });
+      this.emit({ type: 'step_start', step: 'Streaming' });
       await session.stream((chunk) => {
         response += chunk;
         this.emit({ type: 'stream', chunk });
       });
       session.addAssistantMessage(response);
-      this.emit({
-        type: 'progress',
-        step: 'StreamingEnd',
-        data: { fileName: basename(this.filePath) },
-      });
+      this.emit({ type: 'step_end', step: 'Streaming' });
     }
 
     this.logger.info({ filePath: this.filePath, turns: turn }, 'Discussion ended');
-    this.emit({
-      type: 'progress',
-      step: 'DiscussingEnd',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_end', step: 'Discussing' });
     return session.getMessages();
   }
 
@@ -228,11 +196,7 @@ export class PreIngest implements PreIngestService {
     messages: readonly { role: string; content: string }[],
   ): Promise<void> {
     this.logger.info({ filePath: this.filePath }, 'Summarizing discussion feedback');
-    this.emit({
-      type: 'progress',
-      step: 'DiscussionSummaryStart',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_start', step: 'DiscussionSummary' });
     const summary = await this.summarizeDiscussion(messages);
     this.discussionSummary = summary;
     await this.archiveToRawSources(summary);
@@ -241,11 +205,7 @@ export class PreIngest implements PreIngestService {
       { filePath: this.filePath, enrichedPath: this.enrichedSourcePath },
       'Discussion summarization complete',
     );
-    this.emit({
-      type: 'progress',
-      step: 'DiscussionSummaryEnd',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_end', step: 'DiscussionSummary' });
   }
 
   /**
@@ -304,11 +264,7 @@ export class PreIngest implements PreIngestService {
   private async extractSourcePage(): Promise<SourcePage> {
     const systemPrompt = this.promptService.render('system-prompt', {});
     const fileName = basename(this.filePath);
-    this.emit({
-      type: 'progress',
-      step: 'ExtractingSourcePageStart',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_start', step: 'ExtractingSourcePage' });
 
     const prompt = this.promptService.render('create-source-page', {
       filePath: this.filePath,
@@ -327,22 +283,14 @@ export class PreIngest implements PreIngestService {
       schemaDescription: 'A processed source page for the wiki vault.',
     });
 
-    this.emit({
-      type: 'progress',
-      step: 'ExtractingSourcePageEnd',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_end', step: 'ExtractingSourcePage' });
     return sourcePage;
   }
 
   /** Formats and writes the extracted source page to the vault. */
   private async writeSourcePageToDisk(sourcePage: SourcePage): Promise<string> {
     const fileName = basename(this.filePath);
-    this.emit({
-      type: 'progress',
-      step: 'SourcePageWriteStart',
-      data: { fileName: basename(this.filePath) },
-    });
+    this.emit({ type: 'step_start', step: 'SourcePageWrite' });
     const sourceId = this.identifier.createId('source', sourcePage.title);
     const slug = this.identifier.decomposeId(sourceId).slug;
     const sourceDir = join(this.config.vaultPath, 'sources');
@@ -366,8 +314,8 @@ export class PreIngest implements PreIngestService {
     this.logger.info({ sourcePath }, 'Source page written');
 
     this.emit({
-      type: 'progress',
-      step: 'SourcePageWritten',
+      type: 'step_end',
+      step: 'SourcePageWrite',
       data: { fileName: basename(this.filePath), sourcePath },
     });
     return sourcePath;

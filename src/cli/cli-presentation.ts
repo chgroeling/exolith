@@ -11,32 +11,51 @@ interface ActionItem {
   label?: string;
 }
 
+/** Display actions for the start and end of each pipeline step. */
+interface StepActions {
+  start?: ActionItem[];
+  end?: ActionItem[];
+}
+
 /** Maps pipeline step names to their display behaviour. */
-const STEP_DISPLAY: Record<string, ActionItem[]> = {
+const STEP_DISPLAY: Record<string, StepActions> = {
   // Pre-ingest states
-  ReadingStart: [{ action: 'LogStep', label: 'Reading' }],
-  ReadingEnd: [],
-  DiscussingStart: [{ action: 'LogStep', label: 'Discussing' }],
-  DiscussingEnd: [],
-  StreamingStart: [{ action: 'PrepareStream' }],
-  StreamingEnd: [],
-  WaitingForInputStart: [{ action: 'FinishStream' }],
-  WaitingForInputEnd: [],
-  DiscussionSummaryStart: [{ action: 'StartSpin', label: 'Summarizing discussion' }],
-  DiscussionSummaryEnd: [{ action: 'StopSpin' }],
-  ExtractingSourcePageStart: [{ action: 'StartSpin', label: 'Extracting source page' }],
-  ExtractingSourcePageEnd: [{ action: 'StopSpin' }],
-  SourcePageWriteStart: [],
-  SourcePageWritten: [],
+  Reading: {
+    start: [{ action: 'LogStep', label: 'Reading' }],
+  },
+  Discussing: {
+    start: [{ action: 'LogStep', label: 'Discussing' }],
+  },
+  Streaming: {
+    start: [{ action: 'PrepareStream' }],
+  },
+  WaitingForInput: {
+    start: [{ action: 'FinishStream' }],
+  },
+  DiscussionSummary: {
+    start: [{ action: 'StartSpin', label: 'Summarizing discussion' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  ExtractingSourcePage: {
+    start: [{ action: 'StartSpin', label: 'Extracting source page' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  SourcePageWrite: {},
   // Ingest steps
-  ExtractingStart: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
-  ExtractingEnd: [{ action: 'StopSpin' }],
-  UpdatingStart: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
-  UpdatingEnd: [{ action: 'StopSpin' }],
-  LoggingStart: [{ action: 'LogStep', label: 'Writing log entry' }],
-  LoggingEnd: [],
-  CompilingStart: [{ action: 'LogStep', label: 'Compiling' }],
-  CompilingEnd: [],
+  Extracting: {
+    start: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  Updating: {
+    start: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  Logging: {
+    start: [{ action: 'LogStep', label: 'Writing log entry' }],
+  },
+  Compiling: {
+    start: [{ action: 'LogStep', label: 'Compiling' }],
+  },
 };
 
 /**
@@ -103,48 +122,19 @@ export function createCliPresentation(): {
         log.error(`Error: ${event.error.message}\n`);
         break;
 
-      case 'progress': {
-        if (event.step === 'UpdatingStart') {
+      case 'step_start': {
+        if (event.step === 'Updating') {
           pageQueue = [];
           pageDone = false;
           pageStreamPromise = null;
         }
+        runActions(STEP_DISPLAY[event.step]?.start, event.data);
+        break;
+      }
 
-        const actions = STEP_DISPLAY[event.step];
-        if (!actions) return;
-
-        for (const item of actions) {
-          switch (item.action) {
-            case 'LogStep': {
-              const d = event.data as Record<string, unknown> | undefined;
-              const label = (d?.sourceFilePath ?? d?.fileName ?? '') as string;
-              log.step(`${item.label}: ${label}`);
-              break;
-            }
-            case 'StartSpin':
-              if (item.label) spin.start(item.label);
-              break;
-            case 'StopSpin':
-              spin.stop();
-              break;
-            case 'PrepareStream':
-              chunkQueue = [];
-              queueDone = false;
-              streamPromise = null;
-              break;
-            case 'FinishStream':
-              queueDone = true;
-              queueResolve?.();
-              queueResolve = null;
-              break;
-          }
-        }
-
-        if (event.subStep) {
-          spin.message(`  ${event.subStep}`);
-        }
-
-        if (event.step === 'UpdatingEnd' && pageQueue !== null) {
+      case 'step_end': {
+        runActions(STEP_DISPLAY[event.step]?.end, event.data);
+        if (event.step === 'Updating' && pageQueue !== null) {
           pageDone = true;
           pageResolve?.();
           pageResolve = null;
@@ -214,6 +204,36 @@ export function createCliPresentation(): {
           promptInput(event.prompt, event.resolve);
         }
         break;
+      }
+    }
+  }
+
+  function runActions(actions: ActionItem[] | undefined, data?: Record<string, unknown>): void {
+    if (!actions) return;
+
+    for (const item of actions) {
+      switch (item.action) {
+        case 'LogStep': {
+          const label = (data?.sourceFilePath ?? data?.fileName ?? '') as string;
+          log.step(`${item.label}: ${label}`);
+          break;
+        }
+        case 'StartSpin':
+          if (item.label) spin.start(item.label);
+          break;
+        case 'StopSpin':
+          spin.stop();
+          break;
+        case 'PrepareStream':
+          chunkQueue = [];
+          queueDone = false;
+          streamPromise = null;
+          break;
+        case 'FinishStream':
+          queueDone = true;
+          queueResolve?.();
+          queueResolve = null;
+          break;
       }
     }
   }
