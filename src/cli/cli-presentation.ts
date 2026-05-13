@@ -1,6 +1,6 @@
-import { stream, box, confirm, isCancel, log, text } from '@clack/prompts';
+import { stream, confirm, isCancel, log, spinner, text } from '@clack/prompts';
+import type { SpinnerResult } from '@clack/prompts';
 import type { PipelineEvent, Question } from '../operations/pipeline-presentation';
-import { SpinnerManager } from './spinner-manager';
 
 /** Display actions the presentation layer can perform for a step transition. */
 type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
@@ -46,7 +46,9 @@ const STEP_DISPLAY: Record<string, StepActions> = {
     start: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
     end: [{ action: 'StopSpin' }],
   },
-  Updating: {},
+  Updating: {
+    start: [{ action: 'LogStep', label: 'Updating Wiki' }],
+  },
   Logging: {
     start: [{ action: 'LogStep', label: 'Writing log entry' }],
   },
@@ -67,7 +69,9 @@ export function createCliPresentation(): {
   emit: (event: PipelineEvent) => void;
   ask: <T>(question: Question<T>) => Promise<T>;
 } {
-  const spin = new SpinnerManager();
+  let spin: SpinnerResult | null = null;
+  let spinLabel = '';
+
   let chunkQueue: string[] | null = null;
   let queueResolve: (() => void) | null = null;
   let queueDone = false;
@@ -107,7 +111,9 @@ export function createCliPresentation(): {
       }
 
       case 'stream':
-        spin.stop();
+        spin?.stop(spinLabel);
+        spin = null;
+        spinLabel = '';
 
         if (chunkQueue) {
           if (!streamPromise) startStream();
@@ -118,22 +124,35 @@ export function createCliPresentation(): {
         break;
 
       case 'page_creating_start': {
-        spin.start(`Creating ${event.pageType}: ${event.name} (${event.slug})`);
+        spin = spinner({ withGuide: false });
+        spinLabel = `▪ Creating ${event.pageType}: ${event.name} (${event.slug})`;
+        spin.start(spinLabel);
         break;
       }
 
       case 'page_created': {
-        spin.stop();
+        spinLabel = `▪ Creating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
+        spin?.clear();
+        spin = null;
+        log.message(spinLabel, { spacing: 0 })
+        spinLabel = '';
         break;
       }
 
       case 'page_updating_start': {
-        spin.start(`Updating ${event.pageType}: ${event.name} (${event.slug})`);
+        spin = spinner({ withGuide: false });
+        spinLabel = `▪ Updating ${event.pageType}: ${event.name} (${event.slug})`;
+        spin.start(spinLabel);
         break;
       }
 
       case 'page_updated': {
-        spin.stop();
+        spinLabel = `▪ Updating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
+        spin?.clear();
+        spin = null;
+        log.message(spinLabel, { spacing: 0 })
+        spin = null;
+        spinLabel = '';
         break;
       }
 
@@ -163,10 +182,16 @@ export function createCliPresentation(): {
           break;
         }
         case 'StartSpin':
-          if (item.label) spin.start(item.label);
+          if (item.label) {
+            spin = spinner();
+            spinLabel = item.label;
+            spin.start(item.label);
+          }
           break;
         case 'StopSpin':
-          spin.stop();
+          spin?.stop(spinLabel);
+          spin = null;
+          spinLabel = '';
           break;
         case 'PrepareStream':
           chunkQueue = [];
@@ -195,6 +220,8 @@ export function createCliPresentation(): {
 
     const trimmed = result.trim();
     if (trimmed) {
+      spin = spinner();
+      spinLabel = 'Thinking';
       spin.start('Thinking');
     }
     resolve(trimmed);
@@ -210,6 +237,8 @@ export function createCliPresentation(): {
       if (isCancel(result)) return false as unknown as T;
 
       if (result) {
+        spin = spinner();
+        spinLabel = 'Thinking';
         spin.start('Thinking');
       }
       return result as unknown as T;
