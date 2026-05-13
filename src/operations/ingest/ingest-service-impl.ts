@@ -193,7 +193,6 @@ export class Ingest implements IngestService {
       indexEntries,
       sourceRelativePath,
       (item, slug, srcRelPath) => this.createEntityPage(item, slug, srcRelPath),
-      'EntityCreated',
     );
 
     await this.updatePages(
@@ -202,7 +201,6 @@ export class Ingest implements IngestService {
       indexEntries,
       sourceRelativePath,
       (item, slug, srcRelPath) => this.createConceptPage(item, slug, srcRelPath),
-      'ConceptCreated',
     );
     this.emit({
       type: 'progress',
@@ -218,7 +216,6 @@ export class Ingest implements IngestService {
     indexEntries: Map<string, IndexEntry[]>,
     sourceRelativePath: string,
     createPage: (item: T, slug: string, sourceRelativePath: string) => Promise<void>,
-    subStepType: string,
   ): Promise<void> {
     const entries = indexEntries.get(pageType) ?? [];
     const systemPrompt = this.promptService.render('system-prompt', {});
@@ -246,12 +243,6 @@ export class Ingest implements IngestService {
           );
           const slug = this.slugifyName(item.name);
           await createPage(item, slug, sourceRelativePath);
-          const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
-          this.emit({
-            type: 'progress',
-            step: 'UpdatingStart',
-            subStep: `Created ${label}: ${item.name} (${slug})`,
-          });
           continue;
         }
 
@@ -267,18 +258,24 @@ export class Ingest implements IngestService {
         });
 
         this.logger.info({ pagePath }, `Updating existing ${pageType} page`);
+        this.emit({
+          type: 'page_updating_start',
+          pageType: pageType as 'entity' | 'concept',
+          name: item.name,
+          slug: matchedSlug,
+        });
         const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
         await writeFile(pagePath, updatedContent, 'utf-8');
         this.updatedPages.push(`${pageType}s/${matchedSlug}.md`);
+        this.emit({
+          type: 'page_updated',
+          pageType: pageType as 'entity' | 'concept',
+          name: item.name,
+          slug: matchedSlug,
+        });
       } else {
         const slug = this.slugifyName(item.name);
         await createPage(item, slug, sourceRelativePath);
-        const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
-        this.emit({
-          type: 'progress',
-          step: 'Updating',
-          subStep: `Created ${label}: ${item.name} (${slug})`,
-        });
       }
     }
   }
@@ -306,12 +303,14 @@ export class Ingest implements IngestService {
     });
 
     this.logger.info({ name: entity.name, slug }, 'Creating new entity page');
+    this.emit({ type: 'page_creating_start', pageType: 'entity', name: entity.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
     const dir = join(this.config.vaultPath, 'entities');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
     await writeFile(pagePath, pageContent, 'utf-8');
     this.createdPages.push(`entities/${slug}.md`);
+    this.emit({ type: 'page_created', pageType: 'entity', name: entity.name, slug });
   }
 
   /** Creates a new concept page via LLM and writes it to the vault. */
@@ -337,12 +336,14 @@ export class Ingest implements IngestService {
     });
 
     this.logger.info({ name: concept.name, slug }, 'Creating new concept page');
+    this.emit({ type: 'page_creating_start', pageType: 'concept', name: concept.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
     const dir = join(this.config.vaultPath, 'concepts');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
     await writeFile(pagePath, pageContent, 'utf-8');
     this.createdPages.push(`concepts/${slug}.md`);
+    this.emit({ type: 'page_created', pageType: 'concept', name: concept.name, slug });
   }
 
   /** Step 3: Writes a summary entry to the vault log. */

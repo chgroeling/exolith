@@ -321,15 +321,20 @@ describe('Ingest', () => {
       ]);
     });
 
-    it('emits subStep events for each created page', async () => {
-      const subSteps: string[] = [];
+    it('emits page_creating_start and page_created events for each created page', async () => {
+      const events: Array<{ type: string; pageType: string; name: string; slug: string }> = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const emit = (event: PipelineEvent) => {
-        if (event.type === 'progress' && event.subStep) {
-          subSteps.push(event.subStep);
+        if (event.type === 'page_creating_start' || event.type === 'page_created') {
+          events.push({
+            type: event.type,
+            pageType: event.pageType,
+            name: event.name,
+            slug: event.slug,
+          });
         }
       };
       const ask = makeMockAsk();
@@ -345,11 +350,55 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(subSteps).toEqual([
-        'Created entity: Seneca (seneca)',
-        'Created entity: Dr. Maria Schneider (dr.-maria-schneider)',
-        'Created concept: Praemeditatio Malorum (praemeditatio-malorum)',
-        'Created concept: Cortisol Reduction Through Meditation (cortisol-reduction-through-meditation)',
+      expect(events).toEqual([
+        {
+          type: 'page_creating_start',
+          pageType: 'entity',
+          name: 'Seneca',
+          slug: 'seneca',
+        },
+        {
+          type: 'page_created',
+          pageType: 'entity',
+          name: 'Seneca',
+          slug: 'seneca',
+        },
+        {
+          type: 'page_creating_start',
+          pageType: 'entity',
+          name: 'Dr. Maria Schneider',
+          slug: 'dr.-maria-schneider',
+        },
+        {
+          type: 'page_created',
+          pageType: 'entity',
+          name: 'Dr. Maria Schneider',
+          slug: 'dr.-maria-schneider',
+        },
+        {
+          type: 'page_creating_start',
+          pageType: 'concept',
+          name: 'Praemeditatio Malorum',
+          slug: 'praemeditatio-malorum',
+        },
+        {
+          type: 'page_created',
+          pageType: 'concept',
+          name: 'Praemeditatio Malorum',
+          slug: 'praemeditatio-malorum',
+        },
+        {
+          type: 'page_creating_start',
+          pageType: 'concept',
+          name: 'Cortisol Reduction Through Meditation',
+          slug: 'cortisol-reduction-through-meditation',
+        },
+        {
+          type: 'page_created',
+          pageType: 'concept',
+          name: 'Cortisol Reduction Through Meditation',
+          slug: 'cortisol-reduction-through-meditation',
+        },
       ]);
     });
   });

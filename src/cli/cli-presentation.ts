@@ -57,6 +57,11 @@ export function createCliPresentation(): {
   let queueDone = false;
   let streamPromise: Promise<void> | null = null;
 
+  let pageQueue: string[] | null = null;
+  let pageResolve: (() => void) | null = null;
+  let pageDone = false;
+  let pageStreamPromise: Promise<void> | null = null;
+
   function startStream() {
     streamPromise = stream.message({
       async *[Symbol.asyncIterator]() {
@@ -74,6 +79,24 @@ export function createCliPresentation(): {
     });
   }
 
+  function startPageStream() {
+    spin.stop();
+    pageStreamPromise = stream.info({
+      async *[Symbol.asyncIterator]() {
+        while (true) {
+          while (pageQueue && pageQueue.length > 0) {
+            const item = pageQueue.shift();
+            if (item !== undefined) yield item;
+          }
+          if (pageDone) return;
+          await new Promise<void>((r) => {
+            pageResolve = r;
+          });
+        }
+      },
+    });
+  }
+
   function emit(event: PipelineEvent): void {
     switch (event.type) {
       case 'error':
@@ -81,6 +104,12 @@ export function createCliPresentation(): {
         break;
 
       case 'progress': {
+        if (event.step === 'UpdatingStart') {
+          pageQueue = [];
+          pageDone = false;
+          pageStreamPromise = null;
+        }
+
         const actions = STEP_DISPLAY[event.step];
         if (!actions) return;
 
@@ -114,6 +143,12 @@ export function createCliPresentation(): {
         if (event.subStep) {
           spin.message(`  ${event.subStep}`);
         }
+
+        if (event.step === 'UpdatingEnd' && pageQueue !== null) {
+          pageDone = true;
+          pageResolve?.();
+          pageResolve = null;
+        }
         break;
       }
 
@@ -127,6 +162,46 @@ export function createCliPresentation(): {
           queueResolve = null;
         }
         break;
+
+      case 'page_creating_start': {
+        if (pageQueue !== null) {
+          if (!pageStreamPromise) startPageStream();
+          pageQueue.push(`Creating ${event.pageType}: ${event.name} (${event.slug})...`);
+          pageResolve?.();
+          pageResolve = null;
+        }
+        break;
+      }
+
+      case 'page_created': {
+        if (pageQueue !== null) {
+          if (!pageStreamPromise) startPageStream();
+          pageQueue.push(' \x1b[32mOK\x1b[39m\n');
+          pageResolve?.();
+          pageResolve = null;
+        }
+        break;
+      }
+
+      case 'page_updating_start': {
+        if (pageQueue !== null) {
+          if (!pageStreamPromise) startPageStream();
+          pageQueue.push(`Updating ${event.pageType}: ${event.name} (${event.slug})...`);
+          pageResolve?.();
+          pageResolve = null;
+        }
+        break;
+      }
+
+      case 'page_updated': {
+        if (pageQueue !== null) {
+          if (!pageStreamPromise) startPageStream();
+          pageQueue.push(' \x1b[32mOK\x1b[39m\n');
+          pageResolve?.();
+          pageResolve = null;
+        }
+        break;
+      }
 
       case 'input_required': {
         if (streamPromise) {
