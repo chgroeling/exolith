@@ -27,7 +27,7 @@ const STEP_DISPLAY: Record<string, ActionItem[]> = {
   ExtractingSourcePageStart: [{ action: 'StartSpin', label: 'Extracting source page' }],
   ExtractingSourcePageEnd: [{ action: 'StopSpin' }],
   SourcePageWriteStart: [],
-  SourcePageWritten: [{ action: 'StopSpin' }],
+  SourcePageWritten: [],
   // Ingest steps
   ExtractingStart: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
   ExtractingEnd: [{ action: 'StopSpin' }],
