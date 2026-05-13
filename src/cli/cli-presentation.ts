@@ -3,7 +3,7 @@ import type { SpinnerResult } from '@clack/prompts';
 import type { PipelineEvent, Question } from '../operations/pipeline-presentation';
 
 /** Display actions the presentation layer can perform for a step transition. */
-type DisplayAction = 'LogStep' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
+type DisplayAction = 'Step' | 'Info' | 'StartSpin' | 'StopSpin' | 'PrepareStream' | 'FinishStream';
 
 /** A single display action with its parameters. */
 interface ActionItem {
@@ -21,10 +21,10 @@ interface StepActions {
 const STEP_DISPLAY: Record<string, StepActions> = {
   // Pre-ingest states
   Reading: {
-    start: [{ action: 'LogStep', label: 'Reading' }],
+    start: [{ action: 'Step', label: 'Reading: {fileName}' }],
   },
   Discussing: {
-    start: [{ action: 'LogStep', label: 'Discussing' }],
+    start: [{ action: 'Step', label: 'Discussing: {fileName}' }],
   },
   Streaming: {
     start: [{ action: 'PrepareStream' }],
@@ -43,17 +43,17 @@ const STEP_DISPLAY: Record<string, StepActions> = {
   SourcePageWrite: {},
   // Ingest steps
   Extracting: {
-    start: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
+    start: [{ action: 'StartSpin', label: 'Extracting knowledge from {sourceFilePath}' }],
     end: [{ action: 'StopSpin' }],
   },
   Updating: {
-    start: [{ action: 'LogStep', label: 'Updating Wiki' }],
+    start: [{ action: 'Info', label: 'Updating Wiki' }],
   },
   Logging: {
-    start: [{ action: 'LogStep', label: 'Writing log entry' }],
+    start: [{ action: 'Step', label: 'Writing log entry' }],
   },
   Compiling: {
-    start: [{ action: 'LogStep', label: 'Compiling' }],
+    start: [{ action: 'Step', label: 'Compiling: {sourceFilePath}' }],
   },
 };
 
@@ -110,6 +110,12 @@ export function createCliPresentation(): {
         break;
       }
 
+      case 'info': {
+        const message = resolveTemplate(event.message, event.data);
+        log.message(message);
+        break;
+      }
+
       case 'stream':
         spin?.stop(spinLabel);
         spin = null;
@@ -134,7 +140,7 @@ export function createCliPresentation(): {
         spin?.clear();
         spin = null;
         const label = `▪ Creating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
-        log.message(label, { spacing: 0 })
+        log.message(label, { spacing: 0 });
         spinLabel = '';
         break;
       }
@@ -150,7 +156,7 @@ export function createCliPresentation(): {
         spin?.clear();
         spin = null;
         const label = `▪ Updating ${event.pageType}: ${event.name} (${event.slug}) ✅`;
-        log.message(label, { spacing: 0 })
+        log.message(label, { spacing: 0 });
         spin = null;
         spinLabel = '';
         break;
@@ -171,21 +177,35 @@ export function createCliPresentation(): {
     }
   }
 
+  /** Replaces `{key}` placeholders with values from the event data record. Missing keys resolve to empty strings. */
+  function resolveTemplate(template: string, data?: Record<string, unknown>): string {
+    if (!data) return template.replace(/\{[\w-]+\}/g, '');
+    return template.replace(/\{([\w-]+)\}/g, (_, key) => {
+      const value = data[key];
+      return value !== undefined ? String(value) : '';
+    });
+  }
+
   function runActions(actions: ActionItem[] | undefined, data?: Record<string, unknown>): void {
     if (!actions) return;
 
     for (const item of actions) {
       switch (item.action) {
-        case 'LogStep': {
-          const label = (data?.sourceFilePath ?? data?.fileName ?? '') as string;
-          log.step(`${item.label}: ${label}`);
+        case 'Step': {
+          const label = resolveTemplate(item.label ?? '', data);
+          log.step(label);
+          break;
+        }
+        case 'Info': {
+          const message = resolveTemplate(item.label ?? '', data);
+          log.message(message);
           break;
         }
         case 'StartSpin':
           if (item.label) {
             spin = spinner();
-            spinLabel = item.label;
-            spin.start(item.label);
+            spinLabel = resolveTemplate(item.label, data);
+            spin.start(spinLabel);
           }
           break;
         case 'StopSpin':

@@ -5,6 +5,7 @@ export type PipelineEvent =
   | { type: 'step_end'; step: string; data?: Record<string, unknown> }
   | { type: 'stream'; chunk: string }
   | { type: 'input_required'; prompt: string; resolve: (val: string) => void }
+  | { type: 'info'; message: string; data?: Record<string, unknown> }
   | { type: 'page_creating_start'; pageType: 'entity' | 'concept'; name: string; slug: string }
   | { type: 'page_created'; pageType: 'entity' | 'concept'; name: string; slug: string }
   | { type: 'page_updating_start'; pageType: 'entity' | 'concept'; name: string; slug: string }
