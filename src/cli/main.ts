@@ -5,7 +5,11 @@ import { cancel, intro, outro } from '@clack/prompts';
 import { program } from 'commander';
 import pino from 'pino';
 import pkg from '../../package.json' with { type: 'json' };
-import { buildIngestFactory, buildPreIngestFactory } from '../composition/root';
+import {
+  buildCompileFactory,
+  buildIngestFactory,
+  buildPreIngestFactory,
+} from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import { CONFIG_FILE_NAME } from '../core/config/config-types';
 import type { ConfigLoadResult, ExolithConfig } from '../core/config/config-types';
@@ -268,6 +272,37 @@ ingestCmd
     }
 
     logger.info('ingest complete');
+  });
+
+program
+  .command('compile')
+  .description('Regenerate index, dashboards, and digests from the vault')
+  .action(async () => {
+    const { vaultPath, logger } = await bootstrap(program.opts());
+
+    intro('Compiling vault');
+    const sigintHandler = () => {
+      cancel('Cancelled.');
+      process.exit(0);
+    };
+    process.once('SIGINT', sigintHandler);
+
+    const factory = buildCompileFactory(logger);
+    const { emit, ask } = createCliPresentation();
+    const service = factory.create({ vaultPath }, emit, ask);
+
+    try {
+      await service.compile();
+      process.off('SIGINT', sigintHandler);
+      outro('Compile complete');
+    } catch (err) {
+      process.off('SIGINT', sigintHandler);
+      logger.error({ err }, 'compile failed');
+      cancel(`Error: ${(err as Error).message}`);
+      process.exit(1);
+    }
+
+    logger.info('compile complete');
   });
 
 export function run(): void {

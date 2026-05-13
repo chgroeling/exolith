@@ -55,6 +55,27 @@ const STEP_DISPLAY: Record<string, StepActions> = {
   Compiling: {
     start: [{ action: 'Step', label: 'Compiling: {sourceFilePath}' }],
   },
+  // Compile phases
+  Parsing: {
+    start: [{ action: 'StartSpin', label: 'Parsing vault pages' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  GeneratingIndex: {
+    start: [{ action: 'StartSpin', label: 'Generating index' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  WritingBacklinks: {
+    start: [{ action: 'StartSpin', label: 'Writing backlinks' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  GeneratingDashboards: {
+    start: [{ action: 'StartSpin', label: 'Generating dashboards' }],
+    end: [{ action: 'StopSpin' }],
+  },
+  WritingDigests: {
+    start: [{ action: 'StartSpin', label: 'Writing digests' }],
+    end: [{ action: 'StopSpin' }],
+  },
 };
 
 /**
