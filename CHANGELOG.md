@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] — 2026-05-13
 
 ### Added
 
@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File-loaded Zod config schema with JSON5 schema descriptor
 - `PreIngestResult` discriminated union type
 - `init` command tests
+- Ingest pipeline with LLM-driven knowledge extraction, page updates, and logging
+- Compile operation (`compile-service`) with factory and tests
+- Nunjucks templates for concept/entity creation, page output, extraction, matching, updating, and entry logging
+- Extraction and match JSON schemas under `schemas/`
+- Ingest sub-steps with action-based display and state-change tracking
+- Page lifecycle events with per-page spinner presentation
 
 ### Changed
 
@@ -35,12 +41,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extract source page output formatting to `templates/source-page-output.njk`
 - Rename `discussKeyTakeaways` to `runDiscussion` for clarity
 - Derive template context from `source-page.schema.json` properties instead of manual enumeration
+- Replace `PipelinePresentation` interface with event-stream `emit`/`ask` functions at operation level
+- Split monolithic progress events into paired `step_start`/`step_end` events
+- Replace page `stream.info()` queue with per-page spinners
+- Rename `LogStep` to `Step`, add `Info` display action
+- Unify pipeline presentation with `onSubStep` callback
+- Inline spinner lifecycle directly (remove `SpinnerManager`)
+- Add dynamic `{key}` label resolution in CLI presentation
 
 ### Deprecated
 
 ### Removed
 
+- `PipelinePresentation` interface — replaced by event-stream emit/ask functions
+- `SpinnerManager` class — spinner lifecycle inlined directly
+- `Note` display action — superfluous
 - `LogSuccess` display action — superfluous, covered by outro
+- `spinLabel` variable — superfluous
 
 ### Fixed
 
@@ -50,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove duplicate error output on failure
 - Fix `LogSuccess` context in pre-ingest process
 - Fix DeepSeek provider test mocks to return valid stream/generate results instead of throwing
+- Remove extra `StopSpin` from `SourcePageWritten` event to prevent double-stop
 
 ### Security
 

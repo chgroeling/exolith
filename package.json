@@ -1,6 +1,6 @@
 {
   "name": "exolith",
-  "version": "0.2.0-alpha",
+  "version": "0.2.0",
   "type": "module",
   "bin": {
     "hello-world": "dist/index.js"
