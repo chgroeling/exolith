@@ -59,16 +59,7 @@ export class PreIngest implements PreIngestService {
     this.logger.info({ filePath }, 'Pre-ingest process started');
 
     try {
-      // 1. Read raw source completely
-      this.emit({ type: 'progress', step: 'Reading', data: { fileName: basename(this.filePath) } });
       await this.readRawSource();
-
-      // 2. Discuss key takeaways with the human (skippable)
-      this.emit({
-        type: 'progress',
-        step: 'Discussing',
-        data: { fileName: basename(this.filePath) },
-      });
 
       let shouldDiscuss = false;
       if (!this.config.skipDiscuss) {
@@ -80,22 +71,9 @@ export class PreIngest implements PreIngestService {
 
       if (shouldDiscuss) {
         const messages = await this.runDiscussion();
-
-        // 3. Summarize the discussion
-        this.emit({
-          type: 'progress',
-          step: 'DiscussionSummary',
-          data: { fileName: basename(this.filePath) },
-        });
         await this.summarizeAndArchive(messages);
       }
 
-      // 4. Extract structured source page from LLM
-      this.emit({
-        type: 'progress',
-        step: 'ExtractingSourcePage',
-        data: { fileName: basename(this.filePath) },
-      });
       const sourcePage = await this.extractSourcePage();
 
       // 5. Write source page to disk
@@ -114,6 +92,7 @@ export class PreIngest implements PreIngestService {
    */
   private async readRawSource(): Promise<void> {
     const { filePath } = this;
+    this.emit({ type: 'progress', step: 'Reading', data: { fileName: basename(this.filePath) } });
     await access(filePath);
     this.logger.info({ filePath }, 'File exists, reading raw source');
 
@@ -146,6 +125,11 @@ export class PreIngest implements PreIngestService {
    */
   private async runDiscussion(): Promise<readonly { role: string; content: string }[]> {
     this.logger.info({ filePath: this.filePath }, 'Starting discussion step');
+    this.emit({
+      type: 'progress',
+      step: 'Discussing',
+      data: { fileName: basename(this.filePath) },
+    });
 
     const systemPrompt = this.promptService.render('system-prompt', {});
 
@@ -214,6 +198,11 @@ export class PreIngest implements PreIngestService {
     messages: readonly { role: string; content: string }[],
   ): Promise<void> {
     this.logger.info({ filePath: this.filePath }, 'Summarizing discussion feedback');
+    this.emit({
+      type: 'progress',
+      step: 'DiscussionSummary',
+      data: { fileName: basename(this.filePath) },
+    });
     const summary = await this.summarizeDiscussion(messages);
     this.discussionSummary = summary;
     await this.archiveToRawSources(summary);
@@ -280,6 +269,11 @@ export class PreIngest implements PreIngestService {
   private async extractSourcePage(): Promise<SourcePage> {
     const systemPrompt = this.promptService.render('system-prompt', {});
     const fileName = basename(this.filePath);
+    this.emit({
+      type: 'progress',
+      step: 'ExtractingSourcePage',
+      data: { fileName: basename(this.filePath) },
+    });
 
     const prompt = this.promptService.render('create-source-page', {
       filePath: this.filePath,

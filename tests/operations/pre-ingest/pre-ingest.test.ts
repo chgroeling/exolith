@@ -757,12 +757,7 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(states).toEqual([
-        'Reading',
-        'Discussing',
-        'ExtractingSourcePage',
-        'SourcePageWritten',
-      ]);
+      expect(states).toEqual(['Reading', 'ExtractingSourcePage', 'SourcePageWritten']);
     });
 
     it('stops at reading when reading throws', async () => {

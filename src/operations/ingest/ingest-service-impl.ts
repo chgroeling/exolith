@@ -129,16 +129,9 @@ export class Ingest implements IngestService {
     this.sourceFilePath = sourceFilePath;
 
     try {
-      this.emit({ type: 'progress', step: 'Extracting', data: { sourceFilePath } });
       await this.extract(sourceFilePath);
-
-      this.emit({ type: 'progress', step: 'Updating', data: { sourceFilePath } });
       await this.updateWikiPages();
-
-      this.emit({ type: 'progress', step: 'Logging', data: { sourceFilePath } });
       await this.writeLogEntry();
-
-      this.emit({ type: 'progress', step: 'Compiling', data: { sourceFilePath } });
       await this.triggerCompile();
     } catch (err) {
       this.emit({ type: 'error', error: err as Error });
@@ -149,6 +142,7 @@ export class Ingest implements IngestService {
 
   /** Step 1: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
   private async extract(sourceFilePath: string): Promise<void> {
+    this.emit({ type: 'progress', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
     const frontmatter = parseYamlFrontmatter(rawContent);
@@ -181,6 +175,11 @@ export class Ingest implements IngestService {
 
   /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {
+    this.emit({
+      type: 'progress',
+      step: 'Updating',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
     const indexEntries = await this.loadIndex();
     const entryCount = [...indexEntries.values()].reduce((s, e) => s + e.length, 0);
     this.logger.info({ indexSize: entryCount }, 'Index loaded');
@@ -342,6 +341,7 @@ export class Ingest implements IngestService {
 
   /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {
+    this.emit({ type: 'progress', step: 'Logging', data: { sourceFilePath: this.sourceFilePath } });
     const today = new Date().toISOString().slice(0, 10);
     const logPath = join(this.config.vaultPath, 'log.md');
 
@@ -401,6 +401,11 @@ export class Ingest implements IngestService {
 
   /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
   private async triggerCompile(): Promise<void> {
+    this.emit({
+      type: 'progress',
+      step: 'Compiling',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
     this.logger.info('Triggering compile operation');
     await this.compileService.compile();
   }
