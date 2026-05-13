@@ -8,7 +8,7 @@ import type { IdentifierService } from '../../../src/core/identifier-service';
 import type { IdentifierType } from '../../../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../../../src/infrastructure/llm/llm-service';
 import type { PromptService } from '../../../src/infrastructure/prompt/prompt-service';
-import type { PipelinePresentation } from '../../../src/operations/pipeline-presentation';
+import type { PipelineEvent, Question } from '../../../src/operations/pipeline-presentation';
 import type { PreIngestConfig } from '../../../src/operations/pre-ingest/pre-ingest-service';
 import { PreIngest } from '../../../src/operations/pre-ingest/pre-ingest-service-impl';
 
@@ -111,16 +111,19 @@ function makeMockPrompt(): PromptService {
   };
 }
 
-function makeMockPresentation(overrides?: Partial<PipelinePresentation>): PipelinePresentation {
-  return {
-    onStep: () => {},
-    onSubStep: () => {},
-    onChunk: () => {},
-    readInput: () => Promise.resolve(''),
-    shouldDiscuss: () => Promise.resolve(true),
-    onError: () => {},
-    ...overrides,
+function makeMockEmit(opts?: {
+  onEmit?: (event: PipelineEvent) => void;
+}): (event: PipelineEvent) => void {
+  return (event: PipelineEvent) => {
+    opts?.onEmit?.(event);
+    if (event.type === 'input_required') {
+      event.resolve('');
+    }
   };
+}
+
+function makeMockAsk<T>(response: T): <U>(question: Question<U>) => Promise<U> {
+  return <U>() => Promise.resolve(response as unknown as U);
 }
 
 function makeConfig(overrides?: Partial<PreIngestConfig>): PreIngestConfig {
@@ -139,13 +142,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'test.md');
       await writeFile(filePath, '# Hello\n\nWorld', 'utf-8');
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
@@ -157,13 +162,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'test.pdf');
       await writeFile(filePath, 'not a pdf', 'utf-8');
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).rejects.toThrow('Unsupported file type');
@@ -175,13 +182,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'big.md');
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).rejects.toThrow('Source file exceeds maximum size');
@@ -195,13 +204,15 @@ describe('PreIngest', () => {
       buf[20] = 0;
       await writeFile(filePath, buf);
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).rejects.toThrow('Source file appears to be binary');
@@ -209,21 +220,21 @@ describe('PreIngest', () => {
   });
 
   describe('runDiscussion', () => {
-    it('skips discussion when shouldDiscuss returns false', async () => {
+    it('skips discussion when ask returns false', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nSome content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        shouldDiscuss: () => Promise.resolve(false),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(false);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
@@ -233,19 +244,46 @@ describe('PreIngest', () => {
       expect(pageContent).toBeTruthy();
     });
 
+    it('skips discussion when skipDiscuss config is set', async () => {
+      const config = makeConfig({ skipDiscuss: true });
+      await mkdir(config.vaultPath, { recursive: true });
+      const filePath = join(config.vaultPath, 'source.md');
+      await writeFile(filePath, '# Test\n\nSome content', 'utf-8');
+
+      let askCalled = false;
+      const emit = makeMockEmit();
+      const ask = <T>() => {
+        askCalled = true;
+        return Promise.resolve(true as unknown as T);
+      };
+      const preIngest = new PreIngest(
+        makeMockLlm(),
+        makeMockIdentifier(),
+        makeMockPrompt(),
+        config,
+        emit,
+        ask,
+      );
+
+      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      expect(askCalled).toBe(false);
+    });
+
     it('completes discussion with no human input (empty loop)', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nSome content', 'utf-8');
 
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
@@ -254,13 +292,14 @@ describe('PreIngest', () => {
     it('handles multiple human inputs in the discussion loop', async () => {
       const inputs = ['This is central', 'Ignore that part', ''];
       let callCount = 0;
-      const presentation = makeMockPresentation({
-        readInput: () => {
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'input_required') {
           const val = inputs[callCount] ?? '';
           callCount++;
-          return Promise.resolve(val);
-        },
-      });
+          event.resolve(val);
+        }
+      };
+      const ask = makeMockAsk(true);
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
@@ -271,7 +310,8 @@ describe('PreIngest', () => {
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
@@ -285,13 +325,15 @@ describe('PreIngest', () => {
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
       const llm = makeMockLlm({ completeResponse: summary });
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         llm,
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -309,15 +351,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        shouldDiscuss: () => Promise.resolve(false),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(false);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -330,12 +372,13 @@ describe('PreIngest', () => {
   describe('summarizeDiscussion', () => {
     it('passes human messages to complete and returns the result', async () => {
       let calls = 0;
-      const presentation = makeMockPresentation({
-        readInput: () => {
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'input_required') {
           calls++;
-          return Promise.resolve(calls === 1 ? 'My feedback' : '');
-        },
-      });
+          event.resolve(calls === 1 ? 'My feedback' : '');
+        }
+      };
+      const ask = makeMockAsk(true);
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
@@ -347,7 +390,8 @@ describe('PreIngest', () => {
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -365,15 +409,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'test.md');
       await writeFile(filePath, '# Test\n\nSource content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -389,15 +433,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -421,15 +465,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'my-article.md');
       await writeFile(filePath, '# Article', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -446,15 +490,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'article.txt');
       await writeFile(filePath, '# Article\n\nBody', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -475,15 +519,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'src.txt');
       await writeFile(filePath, '# Src', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -511,15 +555,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'paper.md');
       await writeFile(filePath, '# Paper content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm({ structuredResponse }),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -542,9 +586,8 @@ describe('PreIngest', () => {
       const rawContent = '# Unique Content\n\nSpecific text for testing context.';
       await writeFile(filePath, rawContent, 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-      });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const llm = makeMockLlm();
       llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
         capturedRequest = req;
@@ -555,7 +598,8 @@ describe('PreIngest', () => {
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -586,18 +630,22 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-        onStep: (state) => {
-          states.push(state);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress') {
+          states.push(event.step);
+        }
+        if (event.type === 'input_required') {
+          event.resolve('');
+        }
+      };
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -621,18 +669,22 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-        onStep: (_state, data) => {
-          fileNames.push(data.fileName);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress') {
+          fileNames.push(event.data.fileName);
+        }
+        if (event.type === 'input_required') {
+          event.resolve('');
+        }
+      };
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -656,20 +708,22 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        readInput: () => Promise.resolve(''),
-        onStep: (state, data) => {
-          if (state === 'SourcePageWritten') {
-            finalData = data;
-          }
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress' && event.step === 'SourcePageWritten') {
+          finalData = event.data;
+        }
+        if (event.type === 'input_required') {
+          event.resolve('');
+        }
+      };
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -686,18 +740,19 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Content', 'utf-8');
 
-      const presentation = makeMockPresentation({
-        shouldDiscuss: () => Promise.resolve(false),
-        onStep: (state) => {
-          states.push(state);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress') {
+          states.push(event.step);
+        }
+      };
+      const ask = makeMockAsk(false);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await preIngest.process(filePath);
@@ -718,17 +773,19 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'big.md');
       await writeFile(filePath, 'x'.repeat(100), 'utf-8');
 
-      const presentation = makeMockPresentation({
-        onStep: (state) => {
-          states.push(state);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress') {
+          states.push(event.step);
+        }
+      };
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).rejects.toThrow();
@@ -744,13 +801,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.txt');
       await writeFile(filePath, '# Full pipeline test', 'utf-8');
 
-      const presentation = makeMockPresentation({ readInput: () => Promise.resolve('') });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
@@ -762,13 +821,15 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.txt');
       await writeFile(filePath, '# Full pipeline test', 'utf-8');
 
-      const presentation = makeMockPresentation({ shouldDiscuss: () => Promise.resolve(false) });
+      const emit = makeMockEmit();
+      const ask = makeMockAsk(false);
       const preIngest = new PreIngest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
       );
 
       await expect(preIngest.process(filePath)).resolves.not.toThrow();

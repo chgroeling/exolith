@@ -11,7 +11,7 @@ import type { PromptService } from '../../../src/infrastructure/prompt/prompt-se
 import type { CompileService } from '../../../src/operations/compile/compile-service';
 import type { IngestConfig } from '../../../src/operations/ingest/ingest-service';
 import { Ingest } from '../../../src/operations/ingest/ingest-service-impl';
-import type { PipelinePresentation } from '../../../src/operations/pipeline-presentation';
+import type { PipelineEvent, Question } from '../../../src/operations/pipeline-presentation';
 
 const defaultExtractionResult = {
   entities: [
@@ -87,31 +87,6 @@ const defaultMatchResult = {
   unmatched: [] as string[],
 };
 
-const defaultPageContent = [
-  '---',
-  'id: entity.seneca',
-  'title: Seneca',
-  'status: active',
-  'tags:',
-  '  - philosophie',
-  '  - stoizismus',
-  'created: 2026-04-15',
-  'updated: 2026-04-15',
-  '---',
-  '',
-  '# Seneca',
-  '',
-  'Lucius Annaeus Seneca was a Roman philosopher.',
-  '',
-  '## Claims',
-  '',
-  '## Verknüpfungen',
-  '',
-  '<!-- exolith:human:start -->',
-  '## Persönliche Notizen',
-  '<!-- exolith:human:end -->',
-].join('\n');
-
 function makeMockLlm(opts?: {
   extractionResult?: Record<string, unknown>;
   matchResult?: Record<string, unknown>;
@@ -184,16 +159,12 @@ function makeMockCompile(): CompileService {
   };
 }
 
-function makeMockPresentation(overrides?: Partial<PipelinePresentation>): PipelinePresentation {
-  return {
-    onStep: (_step, _data) => {},
-    onSubStep: (_message) => {},
-    onChunk: (_chunk) => {},
-    readInput: () => Promise.resolve(''),
-    shouldDiscuss: () => Promise.resolve(true),
-    onError: () => {},
-    ...overrides,
-  };
+function makeMockEmit(): (event: PipelineEvent) => void {
+  return () => {};
+}
+
+function makeMockAsk(): <T>(question: Question<T>) => Promise<T> {
+  return <T>() => Promise.resolve(undefined as unknown as T);
 }
 
 function makeConfig(overrides?: Partial<IngestConfig>): IngestConfig {
@@ -245,13 +216,15 @@ describe('Ingest', () => {
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 
@@ -262,13 +235,15 @@ describe('Ingest', () => {
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 
@@ -284,13 +259,15 @@ describe('Ingest', () => {
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 
@@ -308,23 +285,25 @@ describe('Ingest', () => {
   });
 
   describe('onStep', () => {
-    it('calls onStep with each pipeline step in order', async () => {
+    it('calls emit with each pipeline step in order', async () => {
       const steps: string[] = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
-      const presentation = makeMockPresentation({
-        onStep: (step) => {
-          steps.push(step);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress' && !event.subStep) {
+          steps.push(event.step);
+        }
+      };
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 
@@ -333,23 +312,25 @@ describe('Ingest', () => {
       expect(steps).toEqual(['Extracting', 'Updating', 'Logging', 'Compiling']);
     });
 
-    it('calls onSubStep for each created page', async () => {
+    it('emits subStep events for each created page', async () => {
       const subSteps: string[] = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
-      const presentation = makeMockPresentation({
-        onSubStep: (message) => {
-          subSteps.push(message);
-        },
-      });
+      const emit = (event: PipelineEvent) => {
+        if (event.type === 'progress' && event.subStep) {
+          subSteps.push(event.subStep);
+        }
+      };
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 
@@ -377,13 +358,15 @@ describe('Ingest', () => {
         return defaultExtractionResult as unknown as T;
       };
 
-      const presentation = makeMockPresentation();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk();
       const ingest = new Ingest(
         llm,
         makeMockIdentifier(),
         makeMockPrompt(),
         config,
-        presentation,
+        emit,
+        ask,
         makeMockCompile(),
       );
 

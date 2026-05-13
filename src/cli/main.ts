@@ -169,8 +169,12 @@ preIngestCmd
     process.once('SIGINT', sigintHandler);
 
     const factory = buildPreIngestFactory(logger, config);
-    const presentation = createCliPresentation({ skipDiscuss: options.skipDiscuss });
-    const service = factory.create({ maxSourceSize, vaultPath }, presentation);
+    const { emit, ask } = createCliPresentation();
+    const service = factory.create(
+      { maxSourceSize, vaultPath, skipDiscuss: options.skipDiscuss },
+      emit,
+      ask,
+    );
 
     try {
       const result = await service.process(target.fullPath);
@@ -249,8 +253,8 @@ ingestCmd
     process.once('SIGINT', sigintHandler);
 
     const factory = buildIngestFactory(logger, config);
-    const presentation = createCliPresentation();
-    const service = factory.create({ vaultPath }, presentation);
+    const { emit, ask } = createCliPresentation();
+    const service = factory.create({ vaultPath }, emit, ask);
 
     try {
       await service.process(target.fullPath);

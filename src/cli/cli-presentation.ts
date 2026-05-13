@@ -1,5 +1,5 @@
 import { stream, confirm, isCancel, log, text } from '@clack/prompts';
-import type { PipelinePresentation } from '../operations/pipeline-presentation';
+import type { PipelineEvent, Question } from '../operations/pipeline-presentation';
 import { SpinnerManager } from './spinner-manager';
 
 /** Display actions the presentation layer can perform for a step transition. */
@@ -32,14 +32,17 @@ const STEP_DISPLAY: Record<string, ActionItem[]> = {
 };
 
 /**
- * Creates a {@link PipelinePresentation} that drives terminal output via
+ * Creates `emit` and `ask` functions that drive terminal output via
  * {@link https://clack.cc @clack/prompts} spinners, steps, and streamed text.
  *
  * @remarks
- * Works for both pre-ingest and ingest pipelines. The same presentation object
- * is passed to either operation — unused callbacks are simply never invoked.
+ * Works for both pre-ingest and ingest pipelines. The same functions
+ * are passed to either operation — unused event types are simply never emitted.
  */
-export function createCliPresentation(opts: { skipDiscuss?: boolean } = {}): PipelinePresentation {
+export function createCliPresentation(): {
+  emit: (event: PipelineEvent) => void;
+  ask: <T>(question: Question<T>) => Promise<T>;
+} {
   const spin = new SpinnerManager();
   let chunkQueue: string[] | null = null;
   let queueResolve: (() => void) | null = null;
@@ -63,95 +66,118 @@ export function createCliPresentation(opts: { skipDiscuss?: boolean } = {}): Pip
     });
   }
 
-  return {
-    onStep(step: string, data?: Record<string, unknown>): void {
-      const actions = STEP_DISPLAY[step];
-      if (!actions) return;
+  function emit(event: PipelineEvent): void {
+    switch (event.type) {
+      case 'error':
+        log.error(`Error: ${event.error.message}\n`);
+        break;
 
-      for (const item of actions) {
-        switch (item.action) {
-          case 'LogStep': {
-            const label = (data?.sourceFilePath ?? data?.fileName ?? '') as string;
-            log.step(`${item.label}: ${label}`);
-            break;
+      case 'progress': {
+        const actions = STEP_DISPLAY[event.step];
+        if (!actions) return;
+
+        for (const item of actions) {
+          switch (item.action) {
+            case 'LogStep': {
+              const d = event.data as Record<string, unknown> | undefined;
+              const label = (d?.sourceFilePath ?? d?.fileName ?? '') as string;
+              log.step(`${item.label}: ${label}`);
+              break;
+            }
+            case 'StartSpin':
+              if (item.label) spin.start(item.label);
+              break;
+            case 'StopSpin':
+              spin.stop();
+              break;
+            case 'PrepareStream':
+              chunkQueue = [];
+              queueDone = false;
+              streamPromise = null;
+              break;
+            case 'FinishStream':
+              queueDone = true;
+              queueResolve?.();
+              queueResolve = null;
+              break;
           }
-          case 'StartSpin':
-            if (item.label) spin.start(item.label);
-            break;
-          case 'StopSpin':
-            spin.stop();
-            break;
-          case 'PrepareStream':
-            chunkQueue = [];
-            queueDone = false;
-            streamPromise = null;
-            break;
-          case 'FinishStream':
-            queueDone = true;
-            queueResolve?.();
-            queueResolve = null;
-            break;
         }
-      }
-    },
 
-    onSubStep(message: string): void {
-      spin.message(`  ${message}`);
-    },
-
-    onChunk(chunk: string): void {
-      spin.stop();
-
-      if (chunkQueue) {
-        if (!streamPromise) startStream();
-        chunkQueue.push(chunk);
-        queueResolve?.();
-        queueResolve = null;
-      }
-    },
-
-    async readInput(): Promise<string> {
-      if (streamPromise) {
-        await streamPromise;
-        streamPromise = null;
-        chunkQueue = null;
+        if (event.subStep) {
+          spin.message(`  ${event.subStep}`);
+        }
+        break;
       }
 
-      const result = await text({
-        message: 'Your response (press Enter on empty to finish)',
-        placeholder: 'Type your feedback here...',
-      });
+      case 'stream':
+        spin.stop();
 
-      if (isCancel(result)) return '';
+        if (chunkQueue) {
+          if (!streamPromise) startStream();
+          chunkQueue.push(event.chunk);
+          queueResolve?.();
+          queueResolve = null;
+        }
+        break;
 
-      const trimmed = result.trim();
-      if (trimmed) {
-        spin.start('Thinking');
+      case 'input_required': {
+        if (streamPromise) {
+          streamPromise.then(() => {
+            streamPromise = null;
+            chunkQueue = null;
+            promptInput(event.prompt, event.resolve);
+          });
+        } else {
+          promptInput(event.prompt, event.resolve);
+        }
+        break;
       }
-      return trimmed;
-    },
+    }
+  }
 
-    async shouldDiscuss(): Promise<boolean> {
-      if (opts.skipDiscuss) {
-        log.info('Skipping discussion (--skip-discuss).');
-        return false;
-      }
+  async function promptInput(prompt: string, resolve: (val: string) => void) {
+    const result = await text({
+      message: prompt,
+      placeholder: 'Type your feedback here...',
+    });
 
+    if (isCancel(result)) {
+      resolve('');
+      return;
+    }
+
+    const trimmed = result.trim();
+    if (trimmed) {
+      spin.start('Thinking');
+    }
+    resolve(trimmed);
+  }
+
+  async function ask<T>(question: Question<T>): Promise<T> {
+    if (typeof question.initial === 'boolean') {
       const result = await confirm({
-        message: 'Would you like to discuss the key takeaways with the LLM?',
-        initialValue: true,
+        message: question.message,
+        initialValue: question.initial,
       });
 
-      if (isCancel(result)) return false;
+      if (isCancel(result)) return false as unknown as T;
 
       if (result) {
         spin.start('Thinking');
       }
-      return result;
-    },
+      return result as unknown as T;
+    }
 
-    onError(error: Error): void {
-      log.error(`Error: ${error.message}\n`);
-    },
-  };
+    const result = await text({
+      message: question.message,
+      placeholder: 'Type your answer here...',
+    });
+
+    if (isCancel(result)) return (question.initial ?? '') as unknown as T;
+
+    const trimmed = result.trim();
+    return (trimmed || (question.initial ?? '')) as unknown as T;
+  }
+
+  return { emit, ask };
 }

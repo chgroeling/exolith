@@ -8,7 +8,7 @@ export type PreIngestState =
   | 'ExtractingSourcePage'
   | 'SourcePageWritten';
 
-import type { PipelinePresentation } from '../pipeline-presentation';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 
 /** Context data passed with each state change. */
 export interface PreIngestStateData {
@@ -24,6 +24,8 @@ export interface PreIngestConfig {
   maxSourceSize: number;
   /** Path to the vault directory. */
   vaultPath: string;
+  /** Skip the interactive discussion step when true. */
+  skipDiscuss?: boolean;
 }
 
 /** Result of a successful pre-ingest pipeline run. */
@@ -39,5 +41,9 @@ export interface PreIngestService {
 
 /** Creates {@link PreIngestService} instances configured for a single file. */
 export interface PreIngestServiceFactory {
-  create(config: PreIngestConfig, presentation: PipelinePresentation): PreIngestService;
+  create(
+    config: PreIngestConfig,
+    emit: (event: PipelineEvent) => void,
+    ask: <T>(question: Question<T>) => Promise<T>,
+  ): PreIngestService;
 }

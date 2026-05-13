@@ -9,7 +9,7 @@ import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompileService } from '../compile/compile-service';
-import type { PipelinePresentation } from '../pipeline-presentation';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 import type { IngestConfig, IngestService } from './ingest-service';
 
 /**
@@ -110,7 +110,8 @@ export class Ingest implements IngestService {
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: IngestConfig,
-    private presentation: PipelinePresentation,
+    private emit: (event: PipelineEvent) => void,
+    private ask: <T>(question: Question<T>) => Promise<T>,
     private compileService: CompileService,
     parentLogger?: Logger,
   ) {
@@ -128,19 +129,19 @@ export class Ingest implements IngestService {
     this.sourceFilePath = sourceFilePath;
 
     try {
-      this.presentation.onStep('Extracting', { sourceFilePath });
+      this.emit({ type: 'progress', step: 'Extracting', data: { sourceFilePath } });
       await this.extract(sourceFilePath);
 
-      this.presentation.onStep('Updating', { sourceFilePath });
+      this.emit({ type: 'progress', step: 'Updating', data: { sourceFilePath } });
       await this.updateWikiPages();
 
-      this.presentation.onStep('Logging', { sourceFilePath });
+      this.emit({ type: 'progress', step: 'Logging', data: { sourceFilePath } });
       await this.writeLogEntry();
 
-      this.presentation.onStep('Compiling', { sourceFilePath });
+      this.emit({ type: 'progress', step: 'Compiling', data: { sourceFilePath } });
       await this.triggerCompile();
     } catch (err) {
-      this.presentation.onError(err as Error);
+      this.emit({ type: 'error', error: err as Error });
       this.logger.error({ sourceFilePath, err }, 'Ingest process failed');
       throw err;
     }
@@ -241,7 +242,11 @@ export class Ingest implements IngestService {
           const slug = this.slugifyName(item.name);
           await createPage(item, slug, sourceRelativePath);
           const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
-          this.presentation.onSubStep(`Created ${label}: ${item.name} (${slug})`);
+          this.emit({
+            type: 'progress',
+            step: 'Updating',
+            subStep: `Created ${label}: ${item.name} (${slug})`,
+          });
           continue;
         }
 
@@ -264,7 +269,11 @@ export class Ingest implements IngestService {
         const slug = this.slugifyName(item.name);
         await createPage(item, slug, sourceRelativePath);
         const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
-        this.presentation.onSubStep(`Created ${label}: ${item.name} (${slug})`);
+        this.emit({
+          type: 'progress',
+          step: 'Updating',
+          subStep: `Created ${label}: ${item.name} (${slug})`,
+        });
       }
     }
   }

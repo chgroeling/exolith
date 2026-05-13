@@ -1,7 +1,7 @@
 import type { IdentifierService } from '../../core/identifier-service';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
-import type { PipelinePresentation } from '../pipeline-presentation';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 import type {
   PreIngestConfig,
   PreIngestService,
@@ -18,13 +18,18 @@ export class PreIngestServiceFactoryImpl implements PreIngestServiceFactory {
   ) {}
 
   /** Creates a {@link PreIngestService} wired to this factory's dependencies. */
-  create(config: PreIngestConfig, presentation: PipelinePresentation): PreIngestService {
+  create(
+    config: PreIngestConfig,
+    emit: (event: PipelineEvent) => void,
+    ask: <T>(question: Question<T>) => Promise<T>,
+  ): PreIngestService {
     return new PreIngest(
       this.llmService,
       this.identifier,
       this.promptService,
       config,
-      presentation,
+      emit,
+      ask,
       this.parentLogger,
     );
   }

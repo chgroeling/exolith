@@ -8,7 +8,7 @@ import type { IdentifierService } from '../../core/identifier-service';
 import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
-import type { PipelinePresentation } from '../pipeline-presentation';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 import type { PreIngestConfig, PreIngestResult, PreIngestService } from './pre-ingest-service';
 
 /** Structured output from the LLM for a source page. */
@@ -43,7 +43,8 @@ export class PreIngest implements PreIngestService {
     private identifier: IdentifierService,
     private promptService: PromptService,
     private config: PreIngestConfig,
-    private presentation: PipelinePresentation,
+    private emit: (event: PipelineEvent) => void,
+    private ask: <T>(question: Question<T>) => Promise<T>,
     parentLogger?: Logger,
   ) {
     this.logger = parentLogger?.child({ logger: 'pre-ingest' }) ?? pino({ enabled: false });
@@ -59,25 +60,41 @@ export class PreIngest implements PreIngestService {
 
     try {
       // 1. Read raw source completely
-      this.presentation.onStep('Reading', { fileName: basename(this.filePath) });
+      this.emit({ type: 'progress', step: 'Reading', data: { fileName: basename(this.filePath) } });
       await this.readRawSource();
 
       // 2. Discuss key takeaways with the human (skippable)
-      this.presentation.onStep('Discussing', { fileName: basename(this.filePath) });
-      const shouldDiscuss = await this.presentation.shouldDiscuss();
+      this.emit({
+        type: 'progress',
+        step: 'Discussing',
+        data: { fileName: basename(this.filePath) },
+      });
+
+      let shouldDiscuss = false;
+      if (!this.config.skipDiscuss) {
+        shouldDiscuss = await this.ask<boolean>({
+          message: 'Would you like to discuss the key takeaways with the LLM?',
+          initial: true,
+        });
+      }
+
       if (shouldDiscuss) {
         const messages = await this.runDiscussion();
 
         // 3. Summarize the discussion
-        this.presentation.onStep('DiscussionSummary', {
-          fileName: basename(this.filePath),
+        this.emit({
+          type: 'progress',
+          step: 'DiscussionSummary',
+          data: { fileName: basename(this.filePath) },
         });
         await this.summarizeAndArchive(messages);
       }
 
       // 4. Extract structured source page from LLM
-      this.presentation.onStep('ExtractingSourcePage', {
-        fileName: basename(this.filePath),
+      this.emit({
+        type: 'progress',
+        step: 'ExtractingSourcePage',
+        data: { fileName: basename(this.filePath) },
       });
       const sourcePage = await this.extractSourcePage();
 
@@ -85,7 +102,7 @@ export class PreIngest implements PreIngestService {
       const sourcePath = await this.writeSourcePageToDisk(sourcePage);
       return { sourcePath };
     } catch (err) {
-      this.presentation.onError(err as Error);
+      this.emit({ type: 'error', error: err as Error });
       this.logger.error({ filePath, err }, 'Pre-ingest process failed');
       throw err;
     }
@@ -142,17 +159,31 @@ export class PreIngest implements PreIngestService {
 
     this.logger.debug({ filePath: this.filePath }, 'Discussion: sending initial prompt');
     let response = '';
-    this.presentation.onStep('Streaming', { fileName: basename(this.filePath) });
+    this.emit({
+      type: 'progress',
+      step: 'Streaming',
+      data: { fileName: basename(this.filePath) },
+    });
     await session.stream((chunk) => {
       response += chunk;
-      this.presentation.onChunk(chunk);
+      this.emit({ type: 'stream', chunk });
     });
     session.addAssistantMessage(response);
 
     let turn = 1;
     while (true) {
-      this.presentation.onStep('WaitingForInput', { fileName: basename(this.filePath) });
-      const input = await this.presentation.readInput();
+      this.emit({
+        type: 'progress',
+        step: 'WaitingForInput',
+        data: { fileName: basename(this.filePath) },
+      });
+      const input = await new Promise<string>((resolve) => {
+        this.emit({
+          type: 'input_required',
+          prompt: 'Your response (press Enter on empty to finish)',
+          resolve,
+        });
+      });
       if (!input) break;
 
       turn++;
@@ -160,10 +191,14 @@ export class PreIngest implements PreIngestService {
       session.addUserMessage(input);
       this.logger.debug({ filePath: this.filePath, turn }, 'Discussion: sending follow-up');
       response = '';
-      this.presentation.onStep('Streaming', { fileName: basename(this.filePath) });
+      this.emit({
+        type: 'progress',
+        step: 'Streaming',
+        data: { fileName: basename(this.filePath) },
+      });
       await session.stream((chunk) => {
         response += chunk;
-        this.presentation.onChunk(chunk);
+        this.emit({ type: 'stream', chunk });
       });
       session.addAssistantMessage(response);
     }
@@ -291,9 +326,10 @@ export class PreIngest implements PreIngestService {
     await writeFile(sourcePath, content, 'utf-8');
     this.logger.info({ sourcePath }, 'Source page written');
 
-    this.presentation.onStep('SourcePageWritten', {
-      fileName: basename(this.filePath),
-      sourcePath,
+    this.emit({
+      type: 'progress',
+      step: 'SourcePageWritten',
+      data: { fileName: basename(this.filePath), sourcePath },
     });
     return sourcePath;
   }

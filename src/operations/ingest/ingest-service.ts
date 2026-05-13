@@ -7,7 +7,7 @@ export interface IngestStepData {
   sourceFilePath: string;
 }
 
-import type { PipelinePresentation } from '../pipeline-presentation';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 
 /** Configuration for an ingest pipeline run. */
 export interface IngestConfig {
@@ -22,5 +22,9 @@ export interface IngestService {
 
 /** Creates {@link IngestService} instances configured for a single file. */
 export interface IngestServiceFactory {
-  create(config: IngestConfig, presentation: PipelinePresentation): IngestService;
+  create(
+    config: IngestConfig,
+    emit: (event: PipelineEvent) => void,
+    ask: <T>(question: Question<T>) => Promise<T>,
+  ): IngestService;
 }

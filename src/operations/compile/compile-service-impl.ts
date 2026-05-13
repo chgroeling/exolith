@@ -2,14 +2,16 @@
 
 import pino from 'pino';
 import type { Logger } from 'pino';
-import type { CompileConfig, CompilePresentation, CompileService } from './compile-service';
+import type { PipelineEvent, Question } from '../pipeline-presentation';
+import type { CompileConfig, CompileService } from './compile-service';
 
 export class Compile implements CompileService {
   private logger: Logger;
 
   constructor(
     private config: CompileConfig,
-    private presentation: CompilePresentation,
+    private emit: (event: PipelineEvent) => void,
+    private ask: <T>(question: Question<T>) => Promise<T>,
     parentLogger?: Logger,
   ) {
     this.logger = parentLogger?.child({ logger: 'compile' }) ?? pino({ enabled: false });
@@ -29,7 +31,7 @@ export class Compile implements CompileService {
       await this.generateDashboards();
       await this.writeDigests();
     } catch (err) {
-      this.presentation.onError(err as Error);
+      this.emit({ type: 'error', error: err as Error });
       this.logger.error({ err }, 'Compile process failed');
       throw err;
     }

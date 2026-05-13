@@ -1,9 +1,6 @@
 /** Specification: docs/operations/compile.md */
 
-import type { PipelinePresentation } from '../pipeline-presentation';
-
-/** Presentation callbacks required by the compile pipeline. */
-export interface CompilePresentation extends PipelinePresentation {}
+import type { PipelineEvent, Question } from '../pipeline-presentation';
 
 /** Configuration for a compile pipeline run. */
 export interface CompileConfig {
@@ -18,5 +15,9 @@ export interface CompileService {
 
 /** Creates {@link CompileService} instances configured for a vault. */
 export interface CompileServiceFactory {
-  create(config: CompileConfig, presentation: CompilePresentation): CompileService;
+  create(
+    config: CompileConfig,
+    emit: (event: PipelineEvent) => void,
+    ask: <T>(question: Question<T>) => Promise<T>,
+  ): CompileService;
 }
