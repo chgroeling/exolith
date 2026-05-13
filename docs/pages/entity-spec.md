@@ -19,7 +19,7 @@ Entities provide the canonical layer of meaning in the wiki: pages, claims, disc
 > Documents describe things.
 > Entities are the things being described.
 
-**When does an Entity come into existence?** During extraction (step 4 of ingest), when the LLM recognizes a distinct thing in the source text that does not yet exist in the wiki (two-phase lookup fails → CREATE).
+**When does an Entity come into existence?** During ingest Step 2 (Update), when the LLM recognizes a distinct thing extracted from the source that does not yet exist in the wiki (two-phase lookup fails → CREATE). The LLM then generates the entity page with claims and open questions derived from the source context.
 
 **Structure of an Entity (example):**
 

@@ -42,30 +42,6 @@ const defaultExtractionResult = {
       sourceContext: 'Reduce cortisol levels by 18%',
     },
   ],
-  claims: [
-    {
-      id: 'claim.cortisol-reduction',
-      text: 'Praemeditatio malorum reduces cortisol by 18%',
-      confidence: 0.85,
-      sourceLocation: 'Paragraph 2',
-      evidence: 'Meta-study, n=1,200, Nature Human Behaviour',
-      limitation: 'No effect in participants under 25 years',
-    },
-    {
-      id: 'claim.seneca-anxiety-thesis',
-      text: 'Most anxieties arise from anticipated suffering, not from real events',
-      confidence: 0.3,
-      sourceLocation: 'Paragraph 1',
-      evidence: "Seneca's Letters to Lucilius, 13th letter",
-      limitation: 'Philosophical assertion, 2,000 years old, no empirical evidence',
-    },
-  ],
-  openQuestions: [
-    {
-      question: 'Does the cortisol reduction persist after discontinuing the exercises?',
-      context: 'Only acute effects measured',
-    },
-  ],
 };
 
 const defaultMatchResult = {

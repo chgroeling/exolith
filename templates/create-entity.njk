@@ -9,20 +9,6 @@ You are creating a new entity page for the wiki, following the entity page speci
 ## Source
 - Source page: [[{{ sourcePath }}]]
 
-## Related Claims
-{% for claim in claims %}
-- id:{{ claim.id }} conf:{{ claim.confidence }}
-  {{ claim.text }}
-  Evidence: {{ claim.evidence }} ({{ claim.sourceLocation }})
-  {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
-{% endfor %}
-
-## Open Questions
-{% for q in openQuestions %}
-- {{ q.question }}
-  Context: {{ q.context }}
-{% endfor %}
-
 ## Instructions
 
 Create a complete entity page for "{{ entityName }}". Follow the entity page specification:
@@ -31,10 +17,14 @@ Create a complete entity page for "{{ entityName }}". Follow the entity page spe
 
 2. **Body:** Write a concise encyclopedia-style description (2-3 paragraphs). Weave in the description and source context naturally.
 
-3. **Claims:** Add a `## Claims` section. Format each claim:
+3. **Generate claims:** Based on the entity information and source context above, generate verifiable claims for a `## Claims` section. Each claim must:
+   - Have a unique `id:claim.xxx` derived from the claim text
+   - Include a confidence estimate (0.0-1.0) based on evidence quality
+   - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
+   Format each claim as:
    ```
    - `id:claim.xxx` `conf:0.X` `status:active`
-     Claim text here.
+     Claim text here — assertions about or by this entity.
      *Evidence:* [[{{ sourcePath }}]] (location)
      *Limitation:* any limitations here
    ```
@@ -45,7 +35,7 @@ Create a complete entity page for "{{ entityName }}". Follow the entity page spe
      *Notiz:* context from the claim
    ```
 
-5. **Open Questions:** Add an `## Offene Fragen` section if there are questions.
+5. **Open Questions:** If the information raises unanswered questions, add an `## Offene Fragen` section.
 
 6. Write in the same language as the source content. Be concise and precise.
 

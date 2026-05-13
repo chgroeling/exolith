@@ -3,7 +3,7 @@ You are extracting structured knowledge from a wiki source page. The source page
 Source page content:
 {{ sourceContent }}
 
-Extract all entities, concepts, claims, and open questions from this source. Follow these rules:
+Extract all entities and concepts from this source. Follow these rules:
 
 ## Entities
 Identify distinct, self-standing **things** mentioned in the source — the "nouns" of the text. An entity is a discrete, nameable, referable thing that exists independently of any single document: people, organizations, projects, products, tools, places, works, datasets, events, or systems.
@@ -24,16 +24,3 @@ Identify abstract **ideas, theories, patterns, methods, frameworks, or discoveri
 Examples of concepts: Stoicism, praemeditatio malorum, confirmation bias, agile methodology, double-entry bookkeeping, the MAP kinase pathway.
 
 For each: provide the name, domain (e.g. Philosophy/Psychology), a concise description, and the source context.
-
-## Claims
-Extract verifiable assertions as structured claims. Each claim must have:
-- A unique id following the pattern claim.{slug} — derive the slug from the claim text
-- The assertion text (one sentence, verifiable)
-- A confidence estimate (0.0 - 1.0) based on evidence quality, source reliability, and specificity
-- The source location (e.g. 'Paragraph 2')
-- Evidence details
-
-Claims with strong empirical evidence → 0.8+. Claims based on opinion or philosophical assertion → 0.2-0.4. Claims with moderate evidence → 0.5-0.7.
-
-## Open Questions
-List questions the source raises but does not answer. For each: the question and context.

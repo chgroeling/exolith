@@ -4,7 +4,7 @@ You are updating an existing wiki page with newly extracted knowledge from a sou
 {{ currentPageContent }}
 
 ## New Knowledge to Integrate
-The following information was extracted from the source page [[{{ sourcePath }}]]:
+The following entities and concepts were extracted from the source page [[{{ sourcePath }}]]:
 
 ### Entities relevant to this page
 {% for entity in entities %}
@@ -18,20 +18,6 @@ The following information was extracted from the source page [[{{ sourcePath }}]
   Source context: {{ concept.sourceContext }}
 {% endfor %}
 
-### New Claims
-{% for claim in claims %}
-- id:{{ claim.id }} conf:{{ claim.confidence }}
-  {{ claim.text }}
-  Evidence: {{ claim.evidence }} ({{ claim.sourceLocation }})
-  {% if claim.limitation %}Limitation: {{ claim.limitation }}{% endif %}
-{% endfor %}
-
-### Open Questions
-{% for q in openQuestions %}
-- {{ q.question }}
-  Context: {{ q.context }}
-{% endfor %}
-
 ## Instructions
 
 Update the page above by integrating the new knowledge. Follow these rules precisely:
@@ -40,16 +26,20 @@ Update the page above by integrating the new knowledge. Follow these rules preci
 
 2. **Human Block preservation:** NEVER modify anything between `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Leave these sections exactly as they are.
 
-3. **Claims — decision logic:** For each new claim, scan the existing `## Claims` section:
-   - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace the old claim text/confidence and set old status to `superseded`
-   - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND: add as additional perspective
-   - If claims contradict → CONFLICT: mark both as `contested`
-   - If no similar claim → CREATE: add as new claim entry
+3. **Generate claims:** Based on the extracted entities and concepts above, generate verifiable claims for the `## Claims` section. Each claim must:
+   - Have a unique `id:claim.xxx` derived from the claim text
+   - Include a confidence estimate (0.0-1.0) based on evidence quality
+   - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
+   - Decision logic for existing claims:
+     - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace and set old status to `superseded`
+     - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND as additional perspective
+     - If claims contradict → CONFLICT: mark both as `contested`
+     - If no similar claim → CREATE
    Format each claim as:
    ```
    - `id:claim.xxx` `conf:0.X` `status:active`
      Claim text here.
-     *Evidence:* [[sources/whatever]] (location)
+     *Evidence:* [[{{ sourcePath }}]] (location)
      *Limitation:* any limitations here
    ```
 
@@ -59,7 +49,7 @@ Update the page above by integrating the new knowledge. Follow these rules preci
      *Notiz:* context from the claim
    ```
 
-5. **Open Questions:** Add new questions to the `## Offene Fragen` section. Format as:
+5. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
    ```
    - Question text here?
      *Kontext:* context
