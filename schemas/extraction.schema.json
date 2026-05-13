@@ -6,10 +6,22 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, concept, work, dataset, event, system)" },
-          "entityType": { "type": "string", "description": "Category: person / organization / project / product / tool / place / concept / work / dataset / event / system" },
-          "description": { "type": "string", "description": "1-2 sentence description of who/what this entity is" },
-          "sourceContext": { "type": "string", "description": "Exact quote or context from the source that mentions this entity" }
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, concept, work, dataset, event, system)"
+          },
+          "entityType": {
+            "type": "string",
+            "description": "Category: person / organization / project / product / tool / place / concept / work / dataset / event / system"
+          },
+          "description": {
+            "type": "string",
+            "description": "1-2 sentence description of who/what this entity is"
+          },
+          "sourceContext": {
+            "type": "string",
+            "description": "Exact quote or context from the source that mentions this entity"
+          }
         },
         "required": ["name", "entityType", "description", "sourceContext"],
         "additionalProperties": false
@@ -20,10 +32,22 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Human-readable name of the concept (idea, theory, pattern, method, framework)" },
-          "domain": { "type": "string", "description": "Domain or field the concept belongs to (e.g. 'philosophy/psychology')" },
-          "description": { "type": "string", "description": "1-2 sentence description of the concept" },
-          "sourceContext": { "type": "string", "description": "Exact quote or context from the source that discusses this concept" }
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the concept (idea, theory, pattern, method, framework)"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain or field the concept belongs to (e.g. 'philosophy/psychology')"
+          },
+          "description": {
+            "type": "string",
+            "description": "1-2 sentence description of the concept"
+          },
+          "sourceContext": {
+            "type": "string",
+            "description": "Exact quote or context from the source that discusses this concept"
+          }
         },
         "required": ["name", "domain", "description", "sourceContext"],
         "additionalProperties": false
@@ -34,12 +58,30 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "description": "Unique claim ID following the pattern claim.{slug}" },
-          "text": { "type": "string", "description": "The assertion text — a single, verifiable statement" },
-          "confidence": { "type": "number", "description": "Confidence (0.0 - 1.0) estimated by the LLM" },
-          "sourceLocation": { "type": "string", "description": "Where in the source this claim is found (paragraph, section)" },
-          "evidence": { "type": "string", "description": "Evidence details (e.g. 'Meta-study, n=1,200, Nature Human Behaviour')" },
-          "limitation": { "type": "string", "description": "Methodological or content limitations (optional)" }
+          "id": {
+            "type": "string",
+            "description": "Unique claim ID following the pattern claim.{slug}"
+          },
+          "text": {
+            "type": "string",
+            "description": "The assertion text — a single, verifiable statement"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence (0.0 - 1.0) estimated by the LLM"
+          },
+          "sourceLocation": {
+            "type": "string",
+            "description": "Where in the source this claim is found (paragraph, section)"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Evidence details (e.g. 'Meta-study, n=1,200, Nature Human Behaviour')"
+          },
+          "limitation": {
+            "type": "string",
+            "description": "Methodological or content limitations (optional)"
+          }
         },
         "required": ["id", "text", "confidence", "sourceLocation", "evidence"],
         "additionalProperties": false
@@ -51,9 +93,15 @@
         "type": "object",
         "properties": {
           "source": { "type": "string", "description": "Name of the source entity or concept" },
-          "relation": { "type": "string", "description": "Type of relationship (e.g. defined, provided_empirical_evidence_for, contradicted)" },
+          "relation": {
+            "type": "string",
+            "description": "Type of relationship (e.g. defined, provided_empirical_evidence_for, contradicted)"
+          },
           "target": { "type": "string", "description": "Name of the target entity or concept" },
-          "context": { "type": "string", "description": "Context or evidence for this relationship" }
+          "context": {
+            "type": "string",
+            "description": "Context or evidence for this relationship"
+          }
         },
         "required": ["source", "relation", "target", "context"],
         "additionalProperties": false
@@ -65,7 +113,10 @@
         "type": "object",
         "properties": {
           "question": { "type": "string", "description": "The open question raised by the source" },
-          "context": { "type": "string", "description": "Context for why this question is relevant or what prompted it" }
+          "context": {
+            "type": "string",
+            "description": "Context for why this question is relevant or what prompted it"
+          }
         },
         "required": ["question", "context"],
         "additionalProperties": false

@@ -1,62 +1,62 @@
 {
-    "$schema": "https://lnav.org/schemas/format-v1.schema.json",
-    "exolith_log": {
-        "title": "Exolith CLI Log",
-        "description": "Structured JSON log format (Pino) emitted by the Exolith CLI.",
-        "url": "https://github.com/anomalyco/exolith",
-        "json": true,
-        "file-pattern": "(?:^|/)(?:.*\\.)?exolith(?:\\.log)?$",
-        "timestamp-field": "time",
-        "timestamp-divisor": 1000,
-        "body-field": "msg",
-        "line-format": [
-            {
-                "field": "__timestamp__",
-                "max-width": 13,
-                "timestamp-format": "%H:%M:%S.%L "
-            },
-            {
-                "field": "__level__",
-                "min-width": 7,
-                "text-transform": "uppercase"
-            },
-            {
-                "field": "logger",
-                "default-value": "-",
-                "min-width": 12,
-                "max-width": 12
-            },
-            {
-                "field": "msg"
-            }
-        ],
-        "level-field": "level",
-        "level": {
-            "fatal": 60,
-            "error": 50,
-            "warning": 40,
-            "info": 30,
-            "debug": 20,
-            "trace": 10
-        },
-        "value": {
-            "level": {
-                "kind": "integer",
-                "identifier": true,
-                "hidden": true
-            },
-            "time": {
-                "kind": "integer",
-                "hidden": true,
-                "identifier": false
-            },
-            "logger": {
-                "kind": "string",
-                "identifier": true
-            },
-            "msg": {
-                "kind": "string"
-            }
-        }
+  "$schema": "https://lnav.org/schemas/format-v1.schema.json",
+  "exolith_log": {
+    "title": "Exolith CLI Log",
+    "description": "Structured JSON log format (Pino) emitted by the Exolith CLI.",
+    "url": "https://github.com/anomalyco/exolith",
+    "json": true,
+    "file-pattern": "(?:^|/)(?:.*\\.)?exolith(?:\\.log)?$",
+    "timestamp-field": "time",
+    "timestamp-divisor": 1000,
+    "body-field": "msg",
+    "line-format": [
+      {
+        "field": "__timestamp__",
+        "max-width": 13,
+        "timestamp-format": "%H:%M:%S.%L "
+      },
+      {
+        "field": "__level__",
+        "min-width": 7,
+        "text-transform": "uppercase"
+      },
+      {
+        "field": "logger",
+        "default-value": "-",
+        "min-width": 12,
+        "max-width": 12
+      },
+      {
+        "field": "msg"
+      }
+    ],
+    "level-field": "level",
+    "level": {
+      "fatal": 60,
+      "error": 50,
+      "warning": 40,
+      "info": 30,
+      "debug": 20,
+      "trace": 10
+    },
+    "value": {
+      "level": {
+        "kind": "integer",
+        "identifier": true,
+        "hidden": true
+      },
+      "time": {
+        "kind": "integer",
+        "hidden": true,
+        "identifier": false
+      },
+      "logger": {
+        "kind": "string",
+        "identifier": true
+      },
+      "msg": {
+        "kind": "string"
+      }
     }
+  }
 }

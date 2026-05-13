@@ -7,7 +7,10 @@
         "type": "object",
         "properties": {
           "extractedName": { "type": "string", "description": "The original extracted name" },
-          "matchedSlug": { "type": "string", "description": "The slug of the matching existing page" }
+          "matchedSlug": {
+            "type": "string",
+            "description": "The slug of the matching existing page"
+          }
         },
         "required": ["extractedName", "matchedSlug"],
         "additionalProperties": false
