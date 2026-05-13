@@ -651,12 +651,18 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(states).toEqual([
-        'Reading',
-        'Discussing',
-        'Streaming',
-        'WaitingForInput',
-        'DiscussionSummary',
-        'ExtractingSourcePage',
+        'ReadingStart',
+        'ReadingEnd',
+        'DiscussingStart',
+        'StreamingStart',
+        'StreamingEnd',
+        'WaitingForInputStart',
+        'DiscussingEnd',
+        'DiscussionSummaryStart',
+        'DiscussionSummaryEnd',
+        'ExtractingSourcePageStart',
+        'ExtractingSourcePageEnd',
+        'SourcePageWriteStart',
         'SourcePageWritten',
       ]);
     });
@@ -690,6 +696,12 @@ describe('PreIngest', () => {
       await preIngest.process(filePath);
 
       expect(fileNames).toEqual([
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
+        'source.md',
         'source.md',
         'source.md',
         'source.md',
@@ -757,7 +769,14 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      expect(states).toEqual(['Reading', 'ExtractingSourcePage', 'SourcePageWritten']);
+      expect(states).toEqual([
+        'ReadingStart',
+        'ReadingEnd',
+        'ExtractingSourcePageStart',
+        'ExtractingSourcePageEnd',
+        'SourcePageWriteStart',
+        'SourcePageWritten',
+      ]);
     });
 
     it('stops at reading when reading throws', async () => {
@@ -785,7 +804,7 @@ describe('PreIngest', () => {
 
       await expect(preIngest.process(filePath)).rejects.toThrow();
 
-      expect(states).toEqual(['Reading']);
+      expect(states).toEqual(['ReadingStart']);
     });
   });
 

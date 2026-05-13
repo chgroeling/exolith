@@ -309,7 +309,16 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(steps).toEqual(['Extracting', 'Updating', 'Logging', 'Compiling']);
+      expect(steps).toEqual([
+        'ExtractingStart',
+        'ExtractingEnd',
+        'UpdatingStart',
+        'UpdatingEnd',
+        'LoggingStart',
+        'LoggingEnd',
+        'CompilingStart',
+        'CompilingEnd',
+      ]);
     });
 
     it('emits subStep events for each created page', async () => {

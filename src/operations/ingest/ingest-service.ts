@@ -1,5 +1,13 @@
-/** The four pipeline steps of an ingest run. */
-export type IngestStep = 'Extracting' | 'Updating' | 'Compiling' | 'Logging';
+/** The eight pipeline step transitions of an ingest run. */
+export type IngestStep =
+  | 'ExtractingStart'
+  | 'ExtractingEnd'
+  | 'UpdatingStart'
+  | 'UpdatingEnd'
+  | 'LoggingStart'
+  | 'LoggingEnd'
+  | 'CompilingStart'
+  | 'CompilingEnd';
 
 /** Context data passed with each step transition. */
 export interface IngestStepData {

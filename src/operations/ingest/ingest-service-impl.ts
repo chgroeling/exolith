@@ -142,7 +142,7 @@ export class Ingest implements IngestService {
 
   /** Step 1: Extracts structured knowledge — entities, concepts, claims, relationships, and open questions. */
   private async extract(sourceFilePath: string): Promise<void> {
-    this.emit({ type: 'progress', step: 'Extracting', data: { sourceFilePath } });
+    this.emit({ type: 'progress', step: 'ExtractingStart', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
     const frontmatter = parseYamlFrontmatter(rawContent);
@@ -171,13 +171,14 @@ export class Ingest implements IngestService {
       },
       'Extraction complete',
     );
+    this.emit({ type: 'progress', step: 'ExtractingEnd', data: { sourceFilePath } });
   }
 
   /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {
     this.emit({
       type: 'progress',
-      step: 'Updating',
+      step: 'UpdatingStart',
       data: { sourceFilePath: this.sourceFilePath },
     });
     const indexEntries = await this.loadIndex();
@@ -203,6 +204,11 @@ export class Ingest implements IngestService {
       (item, slug, srcRelPath) => this.createConceptPage(item, slug, srcRelPath),
       'ConceptCreated',
     );
+    this.emit({
+      type: 'progress',
+      step: 'UpdatingEnd',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
   }
 
   /** Updates or creates pages of the given type via two-phase lookup and LLM. */
@@ -243,7 +249,7 @@ export class Ingest implements IngestService {
           const label = subStepType === 'EntityCreated' ? 'entity' : 'concept';
           this.emit({
             type: 'progress',
-            step: 'Updating',
+            step: 'UpdatingStart',
             subStep: `Created ${label}: ${item.name} (${slug})`,
           });
           continue;
@@ -341,7 +347,11 @@ export class Ingest implements IngestService {
 
   /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {
-    this.emit({ type: 'progress', step: 'Logging', data: { sourceFilePath: this.sourceFilePath } });
+    this.emit({
+      type: 'progress',
+      step: 'LoggingStart',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
     const today = new Date().toISOString().slice(0, 10);
     const logPath = join(this.config.vaultPath, 'log.md');
 
@@ -397,17 +407,27 @@ export class Ingest implements IngestService {
     const updatedLog = `${header}\n\n${newEntry}${body}`;
     await writeFile(logPath, updatedLog, 'utf-8');
     this.logger.info({ logPath }, 'Log entry written');
+    this.emit({
+      type: 'progress',
+      step: 'LoggingEnd',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
   }
 
   /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
   private async triggerCompile(): Promise<void> {
     this.emit({
       type: 'progress',
-      step: 'Compiling',
+      step: 'CompilingStart',
       data: { sourceFilePath: this.sourceFilePath },
     });
     this.logger.info('Triggering compile operation');
     await this.compileService.compile();
+    this.emit({
+      type: 'progress',
+      step: 'CompilingEnd',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
   }
 
   /** Reads and parses index.md into a registry grouped by page type. */

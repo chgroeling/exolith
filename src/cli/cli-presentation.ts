@@ -14,21 +14,29 @@ interface ActionItem {
 /** Maps pipeline step names to their display behaviour. */
 const STEP_DISPLAY: Record<string, ActionItem[]> = {
   // Pre-ingest states
-  Reading: [{ action: 'LogStep', label: 'Reading' }],
-  Discussing: [{ action: 'LogStep', label: 'Discussing' }],
-  Streaming: [{ action: 'PrepareStream', label: 'Streaming' }],
-  WaitingForInput: [{ action: 'FinishStream', label: 'Waiting for input' }],
-  DiscussionSummary: [{ action: 'StartSpin', label: 'Summarizing discussion' }],
-  ExtractingSourcePage: [
-    { action: 'StopSpin' },
-    { action: 'StartSpin', label: 'Extracting source page' },
-  ],
+  ReadingStart: [{ action: 'LogStep', label: 'Reading' }],
+  ReadingEnd: [],
+  DiscussingStart: [{ action: 'LogStep', label: 'Discussing' }],
+  DiscussingEnd: [],
+  StreamingStart: [{ action: 'PrepareStream' }],
+  StreamingEnd: [],
+  WaitingForInputStart: [{ action: 'FinishStream' }],
+  WaitingForInputEnd: [],
+  DiscussionSummaryStart: [{ action: 'StartSpin', label: 'Summarizing discussion' }],
+  DiscussionSummaryEnd: [{ action: 'StopSpin' }],
+  ExtractingSourcePageStart: [{ action: 'StartSpin', label: 'Extracting source page' }],
+  ExtractingSourcePageEnd: [{ action: 'StopSpin' }],
+  SourcePageWriteStart: [],
   SourcePageWritten: [{ action: 'StopSpin' }],
   // Ingest steps
-  Extracting: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
-  Updating: [{ action: 'StopSpin' }, { action: 'StartSpin', label: 'Updating wiki pages' }],
-  Logging: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Writing log entry' }],
-  Compiling: [{ action: 'StopSpin' }, { action: 'LogStep', label: 'Compiling' }],
+  ExtractingStart: [{ action: 'StartSpin', label: 'Extracting knowledge' }],
+  ExtractingEnd: [{ action: 'StopSpin' }],
+  UpdatingStart: [{ action: 'StartSpin', label: 'Updating wiki pages' }],
+  UpdatingEnd: [{ action: 'StopSpin' }],
+  LoggingStart: [{ action: 'LogStep', label: 'Writing log entry' }],
+  LoggingEnd: [],
+  CompilingStart: [{ action: 'LogStep', label: 'Compiling' }],
+  CompilingEnd: [],
 };
 
 /**

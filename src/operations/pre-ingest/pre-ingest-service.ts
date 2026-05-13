@@ -1,11 +1,18 @@
 /** Pipeline states for pre-ingest. */
 export type PreIngestState =
-  | 'Reading'
-  | 'Discussing'
-  | 'Streaming'
-  | 'WaitingForInput'
-  | 'DiscussionSummary'
-  | 'ExtractingSourcePage'
+  | 'ReadingStart'
+  | 'ReadingEnd'
+  | 'DiscussingStart'
+  | 'DiscussingEnd'
+  | 'StreamingStart'
+  | 'StreamingEnd'
+  | 'WaitingForInputStart'
+  | 'WaitingForInputEnd'
+  | 'DiscussionSummaryStart'
+  | 'DiscussionSummaryEnd'
+  | 'ExtractingSourcePageStart'
+  | 'ExtractingSourcePageEnd'
+  | 'SourcePageWriteStart'
   | 'SourcePageWritten';
 
 import type { PipelineEvent, Question } from '../pipeline-presentation';
