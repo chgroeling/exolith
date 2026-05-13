@@ -1,6 +1,6 @@
 # Pre-Ingest
 
-Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `sources/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
+Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `inbox/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
 
 ## The Five Steps of Pre-Ingest
 
@@ -8,7 +8,7 @@ Prepares a raw source for later ingest: validates the file, optionally discusses
 2. Discuss key takeaways with the human (interactive, **skippable**)
 3. Summarize the discussion feedback (LLM, **skippable** — only when discussion occurred)
 4. Extract structured source page data (LLM)
-5. Write the source page to `sources/`
+5. Write the source page to `inbox/`
 
 ---
 
@@ -39,11 +39,9 @@ The discussion is a back-and-forth: the LLM responds, the human provides feedbac
 
 ## Step 3 — Summarize Discussion (Skippable)
 
-After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The raw source file is then copied to `raw-sources/` and the summary is appended as a `# Discussion Summary` chapter, preceded by a `---` separator.
+After the discussion ends, the LLM extracts the human's key feedback and calibration decisions into a concise summary. The summary is stored in memory and passed to the source page extraction step. The full discussion transcript is discarded; only the extracted summary is preserved.
 
-This enriched file in `raw-sources/` becomes the canonical reference — it contains both the original content and the human's calibration signals. The full discussion transcript is discarded; only the extracted summary is preserved.
-
-This step only executes when the human accepted the discussion in step 2. When skipped, no archive is written to `raw-sources/` and no discussion summary is generated.
+This step only executes when the human accepted the discussion in step 2. When skipped, no summary is generated.
 
 ---
 
@@ -55,7 +53,7 @@ The LLM analyzes the raw source content (and discussion summary, if available) t
 
 ## Step 5 — Write Source Page
 
-The structured source page data is formatted as a markdown file with YAML frontmatter and written to `sources/{slug}.md`. The file includes an identifier, metadata, and interlinked sections for summary, main points, and wiki page links.
+The structured source page data is formatted as a markdown file with YAML frontmatter and written to `inbox/{slug}.md`. The file includes an identifier, metadata, and interlinked sections for summary, main points, and wiki page links.
 
 ---
 

@@ -317,14 +317,19 @@ describe('PreIngest', () => {
       await expect(preIngest.process(filePath)).resolves.not.toThrow();
     });
 
-    it('archives enriched source with discussion summary', async () => {
+    it('stores discussion summary for source page extraction', async () => {
       const summary = '## Summary\n- Claim X is central\n- Source is credible';
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
+      let capturedRequest: LlmStructuredRequest | undefined;
       const llm = makeMockLlm({ completeResponse: summary });
+      llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
+        capturedRequest = req;
+        return defaultSourcePage as unknown as T;
+      };
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
       const preIngest = new PreIngest(
@@ -338,11 +343,8 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
-      const archived = await readFile(archivedPath, 'utf-8');
-      expect(archived).toContain('# Test');
-      expect(archived).toContain('# Discussion Summary');
-      expect(archived).toContain(summary);
+      const userContent = capturedRequest?.messages?.[0]?.content ?? '';
+      expect(userContent).toContain('discussionSummary: ## Summary');
     });
 
     it('does not archive when discussion is skipped', async () => {
@@ -370,7 +372,7 @@ describe('PreIngest', () => {
   });
 
   describe('summarizeDiscussion', () => {
-    it('passes human messages to complete and returns the result', async () => {
+    it('uses discussion summary in source page extraction', async () => {
       let calls = 0;
       const emit = (event: PipelineEvent) => {
         if (event.type === 'input_required') {
@@ -384,7 +386,12 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nContent', 'utf-8');
 
+      let capturedRequest: LlmStructuredRequest | undefined;
       const llm = makeMockLlm({ completeResponse: 'expected-summary' });
+      llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
+        capturedRequest = req;
+        return defaultSourcePage as unknown as T;
+      };
       const preIngest = new PreIngest(
         llm,
         makeMockIdentifier(),
@@ -396,9 +403,8 @@ describe('PreIngest', () => {
 
       await preIngest.process(filePath);
 
-      const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
-      const archived = await readFile(archivedPath, 'utf-8');
-      expect(archived).toContain('expected-summary');
+      const userContent = capturedRequest?.messages?.[0]?.content ?? '';
+      expect(userContent).toContain('discussionSummary: expected-summary');
     });
   });
 
@@ -658,8 +664,6 @@ describe('PreIngest', () => {
         'Streaming',
         'WaitingForInput',
         'Discussing',
-        'DiscussionSummary',
-        'DiscussionSummary',
         'ExtractingSourcePage',
         'ExtractingSourcePage',
         'SourcePageWrite',

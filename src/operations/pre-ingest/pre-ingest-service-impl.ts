@@ -1,6 +1,6 @@
 // Specification: docs/operations/pre-ingest.md
 
-import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
@@ -34,7 +34,6 @@ const sourcePagePropertyKeys = Object.keys(sourcePageSchema.properties);
 export class PreIngest implements PreIngestService {
   private rawContent = '';
   private filePath = '';
-  private enrichedSourcePath = '';
   private discussionSummary = '';
   private logger: Logger;
 
@@ -71,7 +70,7 @@ export class PreIngest implements PreIngestService {
 
       if (shouldDiscuss) {
         const messages = await this.runDiscussion();
-        await this.summarizeAndArchive(messages);
+        this.discussionSummary = await this.summarizeDiscussion(messages);
       }
 
       const sourcePage = await this.extractSourcePage();
@@ -190,25 +189,6 @@ export class PreIngest implements PreIngestService {
   }
 
   /**
-   * Summarizes the discussion feedback and archives the enriched source to raw-sources/.
-   */
-  private async summarizeAndArchive(
-    messages: readonly { role: string; content: string }[],
-  ): Promise<void> {
-    this.logger.info({ filePath: this.filePath }, 'Summarizing discussion feedback');
-    this.emit({ type: 'step_start', step: 'DiscussionSummary' });
-    const summary = await this.summarizeDiscussion(messages);
-    this.discussionSummary = summary;
-    await this.archiveToRawSources(summary);
-
-    this.logger.info(
-      { filePath: this.filePath, enrichedPath: this.enrichedSourcePath },
-      'Discussion summarization complete',
-    );
-    this.emit({ type: 'step_end', step: 'DiscussionSummary' });
-  }
-
-  /**
    * Asks the LLM to extract the human's key feedback from the full discussion.
    */
   private async summarizeDiscussion(
@@ -240,24 +220,6 @@ export class PreIngest implements PreIngestService {
     const result = await this.llmService.complete(prompt, systemPrompt);
     this.logger.trace({ summary: result }, 'Discussion summary generated');
     return result;
-  }
-
-  /**
-   * Copies the raw source file to raw-sources/ and appends the discussion summary.
-   */
-  private async archiveToRawSources(summary: string): Promise<void> {
-    const rawSourcesDir = `${this.config.vaultPath}/raw-sources`;
-    await mkdir(rawSourcesDir, { recursive: true });
-
-    const destPath = `${rawSourcesDir}/${basename(this.filePath)}`;
-    await copyFile(this.filePath, destPath);
-    this.logger.info({ destPath }, 'Copied raw source to raw-sources');
-
-    const archiveContent = `${this.rawContent}\n\n---\n\n# Discussion Summary\n\n${summary}\n`;
-    await writeFile(destPath, archiveContent, 'utf-8');
-    this.logger.info({ destPath }, 'Appended discussion summary');
-
-    this.enrichedSourcePath = destPath;
   }
 
   /** Calls the LLM to extract structured source page data from the raw content. */
