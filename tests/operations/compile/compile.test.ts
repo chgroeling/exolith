@@ -458,5 +458,52 @@ Ein Test.
       expect(stepNames).toContain('GeneratingIndex');
       expect(stepNames).toContain('WritingBacklinks');
     });
+
+    it('lists all claims in the ## Claims section of index.md', async () => {
+      const config = makeConfig();
+      const emit = makeMockEmit();
+      const ask = makeMockAsk();
+
+      await setupVault(config.vaultPath, {
+        'entities/seneca.md': ENTITY_SENECA,
+        'entities/maria-schneider.md': ENTITY_MARIA,
+        'concepts/stoizismus.md': CONCEPT_STOIZISMUS,
+        'concepts/praemeditatio-malorum.md': CONCEPT_PRAEMEDITATIO,
+        'sources/briefe-an-lucilius.md': SOURCE_BRIEFE,
+        'sources/schneider-metastudie-2024.md': SOURCE_SCHNEIDER,
+      });
+
+      const compile = new Compile(config, emit, ask);
+      await compile.compile();
+
+      const indexContent = await readFile(join(config.vaultPath, 'index.md'), 'utf-8');
+
+      expect(indexContent).toContain('## Claims');
+
+      expect(indexContent).toContain(
+        '`id:claim.cortisol-senkung` `conf:0.85` `status:active` → [[entities/seneca]]',
+      );
+      expect(indexContent).toContain(
+        '`id:claim.praemeditatio-cortisol` `conf:0.85` `status:active` → [[concepts/praemeditatio-malorum]]',
+      );
+      expect(indexContent).toContain(
+        '`id:claim.praemeditatio-definition` `conf:0.9` `status:active` → [[concepts/praemeditatio-malorum]]',
+      );
+      expect(indexContent).toContain(
+        '`id:claim.schneider-meta-study` `conf:0.8` `status:active` → [[entities/maria-schneider]]',
+      );
+      expect(indexContent).toContain(
+        '`id:claim.seneca-angst-these` `conf:0.3` `status:uncertain` → [[entities/seneca]]',
+      );
+      expect(indexContent).toContain(
+        '`id:claim.stoizismus-grundprinzip` `conf:0.9` `status:active` → [[concepts/stoizismus]]',
+      );
+
+      expect(indexContent).toContain('Praemeditatio malorum reduces cortisol by an average of 18%');
+
+      const claimsSectionIndex = indexContent.indexOf('## Claims');
+      const sourcesSectionIndex = indexContent.indexOf('## Sources');
+      expect(claimsSectionIndex).toBeGreaterThan(sourcesSectionIndex);
+    });
   });
 });

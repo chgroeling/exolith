@@ -53,6 +53,11 @@ Index generation is Phase 2 of compile — and the heart of structural integrity
    - Empty categories are not output
    - Sort alphabetically by `title` within each category
 
+6. **List all claims:**
+   - After all categories, a `## Claims` section lists every parsed claim individually
+   - Each claim entry: `- \`claim.id\` \`conf:X.X\` \`status:xxx\` → [[source/page]]` followed by the claim text
+   - Claims are sorted alphabetically by claim ID
+
 **Data flow sketch:**
 
 ```
@@ -66,6 +71,7 @@ Input: All wiki pages (.md files)
          │
          ├── Group pages by pageType
          ├── Format index line per page
+         ├── Collect and sort all claims → ## Claims section
          └── Output as categorized index.md
 ```
 

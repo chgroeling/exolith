@@ -475,6 +475,23 @@ export class Compile implements CompileService {
       }
     }
 
+    const allClaims = Array.from(this.pages.values())
+      .filter((p) => p.claims.length > 0)
+      .flatMap((p) => p.claims.map((c) => ({ claim: c, sourcePath: p.path })))
+      .sort((a, b) => a.claim.id.localeCompare(b.claim.id));
+
+    if (allClaims.length > 0) {
+      indexContent += '## Claims\n\n';
+      for (const { claim, sourcePath } of allClaims) {
+        const wikiPath = sourcePath.replace(/\.md$/, '');
+        indexContent += `- \`${claim.id}\` \`conf:${claim.confidence}\` \`status:${claim.status}\` → [[${wikiPath}]]\n`;
+        if (claim.text) {
+          indexContent += `  ${claim.text}\n`;
+        }
+        indexContent += '\n';
+      }
+    }
+
     const indexPath = join(this.config.vaultPath, 'index.md');
     await writeFile(indexPath, indexContent, 'utf-8');
 
