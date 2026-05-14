@@ -22,6 +22,7 @@ Step 1 is the heart of ingest — here the curated source becomes machine-readab
 ### Name Constraints
 
 - The `name` must be the shortest possible designation that uniquely identifies the entity or concept. The name is a label, not a definition — strip all unnecessary words.
+- No abbreviations or acronyms are allowed. Always use the full, expanded term. "MOC" is forbidden — use "Map of Content" instead.
 - No parenthetical annotations are allowed after the name. "Struktur Notiz (MOC)" is forbidden — use just "Struktur Notiz". The name must stand on its own without parenthetical suffixes of any kind.
 
 **Concrete Example — Output (Extraction):**
