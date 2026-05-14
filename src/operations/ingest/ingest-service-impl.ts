@@ -292,10 +292,11 @@ export class Ingest implements IngestService {
         try {
           currentContent = await readFile(pagePath, 'utf-8');
         } catch (err) {
-          if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-          log.warn({ pagePath }, `Matched ${pageType} page not found on disk, treating as create`);
-          await createPage(item, item.slug, sourceRelativePath);
-          continue;
+          log.error(
+            { pagePath, err },
+            `Matched ${pageType} page not found on disk — index may be stale`,
+          );
+          throw err;
         }
 
         const updatePrompt = this.promptService.render('update-page', {
