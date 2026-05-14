@@ -8,7 +8,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, work, dataset, event, system)"
+            "description": "Human-readable name of the entity — the shortest possible label uniquely identifying it, without parenthetical annotations or disambiguation qualifiers (e.g. 'Struktur Notiz' not 'Struktur Notiz (MOC)')"
           },
           "entityType": {
             "type": "string",
@@ -34,7 +34,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Human-readable name of the concept (idea, theory, pattern, method, framework)"
+            "description": "Human-readable name of the concept — the shortest possible label uniquely identifying it, without parenthetical annotations or disambiguation qualifiers (e.g. 'Struktur Notiz' not 'Struktur Notiz (MOC)')"
           },
           "domain": {
             "type": "string",

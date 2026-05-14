@@ -19,6 +19,11 @@ Step 1 is the heart of ingest — here the curated source becomes machine-readab
 
 **Important:** The LLM works **exclusively with the source page** from `sources/`. The raw text is never used — the LLM context contains only what is in the source.
 
+### Name Constraints
+
+- The `name` must be the shortest possible designation that uniquely identifies the entity or concept. The name is a label, not a definition — strip all unnecessary words.
+- No parenthetical annotations are allowed after the name. "Struktur Notiz (MOC)" is forbidden — use just "Struktur Notiz". The name must stand on its own without parenthetical suffixes of any kind.
+
 **Concrete Example — Output (Extraction):**
 
 ```
