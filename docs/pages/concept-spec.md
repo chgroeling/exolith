@@ -41,12 +41,17 @@ Lucilius. In 2024 it was empirically confirmed by Dr. Maria Schneider
   *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 4)
   *Limitation:* Age threshold not granularly examined (only </≥25)
 
-## Links
+- `id:claim.defined-by-seneca` `conf:0.9` `status:active`
+  Praemeditatio malorum was defined by Seneca in his 13th Letter to Lucilius
+  *Evidence:* [[entities/seneca]]
 
-- `defined_by` → [[entities/seneca]]
-- `empirically_confirmed_by` → [[entities/maria-schneider]]
-- `belongs_to` → [[concepts/stoicism]]
-- `related_to` → [[concepts/dichotomy-of-control]]
+- `id:claim.schneider-confirmation` `conf:0.85` `status:active`
+  Empirically confirmed by Dr. Maria Schneider in a 2024 meta-study
+  *Evidence:* [[entities/maria-schneider]]
+
+- `id:claim.belongs-to-stoicism` `conf:0.95` `status:active`
+  Praemeditatio malorum belongs to the Stoic philosophical tradition
+  *Evidence:* [[concepts/stoicism]]
 
 ## Open Questions
 
@@ -66,7 +71,7 @@ presentations. The empirical confirmation makes it more credible for me.
 **Special Characteristics:**
 
 - Concepts collect claims just like entities — every pattern, every method can be supported by empirical or theoretical claims.
-- Concepts are the core of knowledge interconnection — they link entities and other concepts.
+- Concepts are the core of knowledge interconnection — relationship claims in `## Claims` link entities and other concepts via evidence links (e.g. `*Evidence:* [[entities/seneca]]`).
 - A concept without empirical evidence is valid but receives lower confidence.
 - Concepts grow with each new source — they are Evergreen Notes in the classic sense.
 - Everything outside the human block markers is implicitly LLM-managed.

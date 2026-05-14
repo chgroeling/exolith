@@ -39,10 +39,16 @@ Create a complete entity page for "{{ entityName }}". Follow the entity page spe
    - Connections between this entity and extracted concepts
    - Connections between this entity and the source
 
+   Every claim carries exactly one `*Evidence:*` link. The link target depends on what the claim asserts:
+   - Claims derived from the source → `*Evidence:* [[{{ sourcePath }}]]`
+   - Claims asserting a connection to another entity → `*Evidence:* [[entities/other-entity-slug]]`
+   - Claims asserting a connection to a concept → `*Evidence:* [[concepts/concept-slug]]`
+
    Each claim must:
    - Have a unique `id:claim.xxx` derived from the claim text
    - Include a confidence estimate (0.0-1.0) based on evidence quality
-   - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
+   - Have exactly one `*Evidence:*` wikilink — never more than one
+
    Format each claim as:
    ```
    - `id:claim.xxx` `conf:0.X` `status:active`
@@ -51,14 +57,8 @@ Create a complete entity page for "{{ entityName }}". Follow the entity page spe
      *Limitation:* any limitations here
    ```
 
-4. **Claims as relationships:** Claims are the mechanism for establishing relationships. When a claim asserts a connection between this entity and another wiki element (concept, entity, or source), add a `## Verknüpfungen` section. For each relationship-bearing claim, add an entry pointing to the target:
-   ```
-   - claim reference → [[pageType/slug]]
-     *Notiz:* context from the claim
-   ```
+4. **Open Questions:** If the information raises unanswered questions, add an `## Offene Fragen` section.
 
-5. **Open Questions:** If the information raises unanswered questions, add an `## Offene Fragen` section.
-
-6. Write in the same language as the source content. Be concise and precise.
+5. Write in the same language as the source content. Be concise and precise.
 
 Return the complete page content (including YAML frontmatter) as a single string.

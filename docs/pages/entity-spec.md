@@ -62,12 +62,14 @@ bestätigt: tägliche Übungen senken den Cortisol-Spiegel um 18%.
   *Beleg:* [[sources/schneider-metastudie-2024]] (Absatz 3, n=1.200)
   *Einschränkung:* Keine Wirkung bei Teilnehmern unter 25 Jahren
 
-## Verknüpfungen
+- `id:claim.definierte-praemeditatio` `conf:0.9` `status:active`
+  Seneca definierte die praemeditatio malorum als stoische Übung
+  gegen Angst im 13. Brief an Lucilius
+  *Evidence:* [[concepts/praemeditatio-malorum]]
 
-- `definierte` → [[concepts/praemeditatio-malorum]]
-- `praktizierte` → [[concepts/stoizismus]]
-- `wurde_empirisch_bestätigt_durch` → [[entities/maria-schneider]]
-  *Notiz:* Schneiders Metastudie (2024) belegt Senecas These
+- `id:claim.bestaetigt-durch-schneider` `conf:0.85` `status:active`
+  Senecas Übung wurde 2024 von Dr. Maria Schneider empirisch bestätigt
+  *Evidence:* [[entities/maria-schneider]]
 
 ## Offene Fragen
 
@@ -85,7 +87,7 @@ Selbstbetrachtungen — weniger kryptisch, direkter anwendbar.
 **Special characteristics:**
 
 - Entities collect claims that *concern* a person/organization — not only statements *by* them.
-- `## Verknüpfungen` lists connections to other Entities and Concepts established through claims. Claims are the mechanism for asserting relationships — a claim can connect an entity to a concept (e.g. "Seneca defined praemeditatio malorum"), to another entity, or to a source. Format: `claim reference → [[pageType/slug]]`.
+- Relationship claims live in `## Claims` alongside factual claims. A claim asserting a connection to another entity or concept carries its evidence link pointing to the target page (e.g. `*Evidence:* [[entities/maria-schneider]]` for an entity connection, or `*Evidence:* [[concepts/praemeditatio-malorum]]` for a concept connection). Every claim has exactly one evidence link.
 - An Entity can reference claims from different Sources — each claim carries its own reference.
 - Everything outside of `<!-- exolith:human:start -->` / `<!-- exolith:human:end -->` is implicitly LLM-managed.
 

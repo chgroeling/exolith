@@ -171,12 +171,13 @@ Behavioral Therapy draws on central Stoic concepts).
   *Beleg:* [[sources/schneider-metastudie-2024]] (Paragraph 3, n=1,200)
   *Einschränkung:* No effect in participants under 25 years
 
-## Verknüpfungen
+- `id:claim.definierte-praemeditatio` `conf:0.9` `status:active`
+  Seneca defined praemeditatio malorum as a Stoic exercise
+  *Evidence:* [[concepts/praemeditatio-malorum]]
 
-- `praktizierte` → [[concepts/stoizismus]]
-- `definierte` → [[concepts/praemeditatio-malorum]]
-- `wurde_empirisch_bestätigt_durch` → [[entities/maria-schneider]]
-  *Notiz:* Schneider's meta-study (2024) confirms the cortisol reduction
+- `id:claim.bestaetigt-durch-schneider` `conf:0.85` `status:active`
+  Seneca's technique was empirically confirmed by Dr. Maria Schneider
+  *Evidence:* [[entities/maria-schneider]]
 
 <!-- exolith:human:start -->
 ## Persönliche Notizen
@@ -189,7 +190,7 @@ Meditations — less cryptic, more directly applicable.
 
 1. **Prose merge:** The "Teachings" section was expanded with two new paragraphs — praemeditatio definition, empirical evidence, limitation.
 2. **Structured claim:** Seneca's anxiety thesis with `id:claim.seneca-angst-these`, `confidence: 0.3` and `status: uncertain` — explicitly marked as a philosophical assertion.
-3. **Claims as connections:** Claims establish relationships between entities, concepts, and sources. A claim about an entity may link it to a concept or another entity, forming the knowledge graph.
+3. **Claims as connections:** Claims establish relationships between entities, concepts, and sources. A claim about an entity may link it to a concept or another entity via its evidence field (e.g. `*Evidence:* [[concepts/praemeditatio-malorum]]`), forming the knowledge graph.
 4. **Human block untouched:** The personal note remained exactly preserved.
 
 **Other affected pages (analogous):**

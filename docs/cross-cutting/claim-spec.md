@@ -20,10 +20,12 @@ Every claim in the `## Claims` chapter has:
 
 The `*Evidence:*` field is the mandatory provenance record of every claim. No claim without evidence — this is the key discipline that separates the wiki from speculation. Every claim carries its own provenance directly with it, rather than referencing a separate source list. This makes traceability granular and precise.
 
-Evidence is always a wikilink to a Source page, optionally with a location reference (paragraph, line number, page):
+Evidence is always a wikilink — to a Source page for factual claims, or to an entity/concept page for relationship claims. Optionally with a location reference (paragraph, line number, page):
 
 ```
 *Evidence:* [[sources/schneider-meta-study-2024]] (paragraph 3, n=1,200)
+*Evidence:* [[entities/seneca]]
+*Evidence:* [[concepts/praemeditatio-malorum]]
 ```
 
 Claims without evidence are reported by lint as `claim-missing-evidence`.

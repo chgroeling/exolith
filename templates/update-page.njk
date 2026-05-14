@@ -29,7 +29,10 @@ Update the page above by integrating the new knowledge. Follow these rules preci
 3. **Generate claims:** Based on the extracted entities and concepts above, generate verifiable claims for the `## Claims` section. Each claim must:
    - Have a unique `id:claim.xxx` derived from the claim text
    - Include a confidence estimate (0.0-1.0) based on evidence quality
-   - Reference the source with `*Evidence:* [[{{ sourcePath }}]]`
+   - Have exactly one `*Evidence:*` wikilink — never more than one:
+     - Claims derived from the source → `*Evidence:* [[{{ sourcePath }}]]`
+     - Claims asserting a connection to another entity → `*Evidence:* [[entities/entity-slug]]`
+     - Claims asserting a connection to another concept → `*Evidence:* [[concepts/concept-slug]]`
    - Decision logic for existing claims:
      - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace and set old status to `superseded`
      - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND as additional perspective
@@ -43,18 +46,12 @@ Update the page above by integrating the new knowledge. Follow these rules preci
      *Limitation:* any limitations here
    ```
 
-4. **Claims as relationships:** Claims are the mechanism for establishing relationships between wiki elements. When a claim asserts a connection (e.g. between an entity and a concept, between two entities, or between a concept and a source), add it to the `## Verknüpfungen` or `## Links` section using the claim as the anchor. Format as:
-   ```
-   - claim reference → [[pageType/slug]]
-     *Notiz:* context from the claim
-   ```
-
-5. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
+4. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
    ```
    - Question text here?
      *Kontext:* context
    ```
 
-6. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
+5. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
 
 Return the complete updated page content (including YAML frontmatter) as a single string.
