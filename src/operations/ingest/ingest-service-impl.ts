@@ -108,6 +108,14 @@ const PAGE_TYPE_MAP: Record<string, string> = {
   Reports: 'report',
 };
 
+const PAGE_DIRS: Record<string, string> = {
+  entity: 'entities',
+  concept: 'concepts',
+  source: 'sources',
+  synthesis: 'syntheses',
+  report: 'reports',
+};
+
 const extractionSchema = loadSchemaFile<Record<string, unknown>>('extraction.schema.json');
 const matchSchema = loadSchemaFile<Record<string, unknown>>('match.schema.json');
 const entityPageSchema = loadSchemaFile<Record<string, unknown>>('entity-page.schema.json');
@@ -273,7 +281,7 @@ export class Ingest implements IngestService {
     );
 
     log.debug({ matches: Object.fromEntries(matches) }, 'Resolution matches');
-    const pagesDir = join(this.config.vaultPath, `${pageType}s`);
+    const pagesDir = join(this.config.vaultPath, PAGE_DIRS[pageType]);
 
     for (const item of items) {
       const matchedSlug = matches.get(item.name);
@@ -283,7 +291,8 @@ export class Ingest implements IngestService {
         let currentContent = '';
         try {
           currentContent = await readFile(pagePath, 'utf-8');
-        } catch {
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
           log.warn({ pagePath }, `Matched ${pageType} page not found on disk, treating as create`);
           await createPage(item, item.slug, sourceRelativePath);
           continue;
@@ -307,7 +316,7 @@ export class Ingest implements IngestService {
         const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
         log.debug({ prompt: updatePrompt, response: updatedContent }, 'LLM update page call');
         await writeFile(pagePath, updatedContent, 'utf-8');
-        this.updatedPages.push(`${pageType}s/${matchedSlug}.md`);
+        this.updatedPages.push(`${PAGE_DIRS[pageType]}/${matchedSlug}.md`);
         this.emit({
           type: 'page_updated',
           pageType: pageType as 'entity' | 'concept',
@@ -353,7 +362,7 @@ export class Ingest implements IngestService {
       schemaName: 'EntityPage',
       schemaDescription: 'A complete entity page for the wiki vault.',
     });
-    log.debug({ prompt: createPrompt, response: entityPage }, 'LLM create entity call');
+    log.trace({ prompt: createPrompt, response: entityPage }, 'LLM create entity call');
 
     const confidence =
       entityPage.claims.length > 0
@@ -375,11 +384,11 @@ export class Ingest implements IngestService {
       openQuestions: entityPage.openQuestions ?? [],
     });
 
-    const dir = join(this.config.vaultPath, 'entities');
+    const dir = join(this.config.vaultPath, PAGE_DIRS.entity);
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
     await writeFile(pagePath, pageContent, 'utf-8');
-    this.createdPages.push(`entities/${slug}.md`);
+    this.createdPages.push(`${PAGE_DIRS.entity}/${slug}.md`);
     this.emit({ type: 'page_created', pageType: 'entity', name: entity.name, slug });
   }
 
@@ -421,7 +430,7 @@ export class Ingest implements IngestService {
       schemaName: 'ConceptPage',
       schemaDescription: 'A complete concept page for the wiki vault.',
     });
-    log.debug({ prompt: createPrompt, response: conceptPage }, 'LLM create concept call');
+    log.trace({ prompt: createPrompt, response: conceptPage }, 'LLM create concept call');
 
     const confidence =
       conceptPage.claims.length > 0
@@ -443,11 +452,11 @@ export class Ingest implements IngestService {
       openQuestions: conceptPage.openQuestions ?? [],
     });
 
-    const dir = join(this.config.vaultPath, 'concepts');
+    const dir = join(this.config.vaultPath, PAGE_DIRS.concept);
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
     await writeFile(pagePath, pageContent, 'utf-8');
-    this.createdPages.push(`concepts/${slug}.md`);
+    this.createdPages.push(`${PAGE_DIRS.concept}/${slug}.md`);
     this.emit({ type: 'page_created', pageType: 'concept', name: concept.name, slug });
   }
 
