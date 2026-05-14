@@ -1,0 +1,18 @@
+{
+  // RelevanceFilter structured output schema.
+  // The LLM determines which existing wiki pages are relevant to an entity or concept being updated.
+  // Used between the create and update phases to filter the index so only relevant pages'
+  // full content is passed to the update template.
+  "type": "object",
+  "properties": {
+    "relevantSlugs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Slugs of entities and concepts from the index that have meaningful relevance to the item being updated."
+    }
+  },
+  "required": ["relevantSlugs"],
+  "additionalProperties": false,
+}

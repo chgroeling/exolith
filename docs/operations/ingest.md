@@ -4,12 +4,14 @@ The core workflow. A **source page** from `sources/` is not just indexed, but **
 
 Source pages are created by the [Pre-Ingest](pre-ingest.md) operation (or placed manually in `sources/`).
 
-## The Four Steps of Ingest
+## The Steps of Ingest
 
 1. **Extracts** entities and concepts **exclusively from the source**
-2. **Updates all affected wiki pages** — a single source can touch 10-15 pages. During update or creation, the LLM generates claims and open questions for each page.
-3. **Writes an entry** in `log.md`
-4. **Triggers the [compile](compile.md) operation** — a separate operation that regenerates index.md, backlinks, and dashboards
+2. **Creates skeleton pages** for all new entities and concepts — no claims, no cross-connections, only the page structure (title + tags + body)
+3. **Rebuilds the index** if any pages were created (ensures new pages appear for the update phase)
+4. **Updates all affected wiki pages** — every extracted entity and concept (including newly created ones) goes through the update step. During update, the LLM filters relevant pages from the index, reads their full content, and generates claims, cross-connections, and open questions.
+5. **Writes an entry** in `log.md`
+6. **Triggers the [compile](compile.md) operation** — a separate operation that regenerates index.md, backlinks, and dashboards
 
 ---
 
@@ -39,63 +41,88 @@ Cortisol reduction through meditation | neurobiology | measurable effect of ment
 
 ---
 
-## Step 2 — Update
+## Step 2 — Create Skeleton Pages
 
-Step 2 is the actual wiki work — here the LLM decides for each extracted knowledge element *where* it belongs and *how* it is integrated.
+Step 2 creates minimal page skeletons for every extracted entity and concept that has no existing match in the wiki. Skeletons contain only the core page structure — title, tags, and a body description derived from the source context. No claims, no cross-connections, no open questions are generated at this stage.
 
-### Process — Index-First with Two-Phase Lookup
+The create phase uses the same two-phase lookup (exact slug match + LLM semantic match) as the update phase to determine which items already have pages. Items with an existing match are skipped — they will be enriched during the update phase. Items without any match receive a skeleton page with `confidence: 0.50` (a neutral default, since no claims exist yet to compute an average from).
 
-The update step does not begin with a filesystem scan, but with a **two-phase index lookup**: first exact slug match (string comparison), then semantic summary match (LLM-based).
+### Process — Create-Only
 
 ```
-1. READ index.md (one file, ~12 KB)
+1. READ index.md
    ↓
 2. For each extracted element:
    ┌─ PHASE 1: Exact Slug Match (string comparison, no LLM)
-   │  entity.seneca ↔ slug "seneca" → HIT ✓
-   │  concept.praemeditatio-malorum ↔ slug
-   │    "praemeditatio-malorum" → HIT ✓
-   │  "Dr. Maria Schneider" ↔ slug "maria-schneider"
-   │    → NO slug hit → continue to Phase 2
-   │  "Cortisol reduction" → slugs → NO hit → continue to Phase 2
+   │  entity.seneca ↔ slug "seneca" → HIT ✓ → skip (already exists)
    │
    └─ PHASE 2: Semantic Summary Match (LLM-based)
-
-       Only for elements without a Phase 1 hit:
-        LLM receives all summaries and claims of the matching category
-        from the index and checks semantic similarity.
-       "Dr. Maria Schneider" → all entity summaries → "none"
-       "Cortisol reduction" → all concept summaries →
-         "cortisol-senkung-durch-meditation" → HIT ✓
+        Only for elements without a Phase 1 hit:
+        "Cortisol reduction" → all concept summaries →
+          "cortisol-senkung-durch-meditation" → HIT ✓ → skip (will update existing)
+        "Dr. Maria Schneider" → all entity summaries → NO HIT → CREATE SKELETON
    ↓
-3. Only on HITS: load the corresponding page and update
-   On NO HIT: generate a new page from template
-   → Result: 3-4 pages loaded (not all 27)
+3. For each NO-HIT element: generate skeleton page via LLM structured output
+   → title + tags + body only
+   → no claims, no open questions, no cross-connections
 ```
 
-### The Decision Logic
+---
+
+## Step 3 — Rebuild Index
+
+If any skeleton pages were created in step 2, the compile operation is triggered to regenerate `index.md`. This is critical because the update phase (step 4) needs the freshly created pages to appear in the index for matching and relevance filtering.
+
+If no pages were created, this step is skipped.
+
+---
+
+## Step 4 — Update All Pages
+
+Step 4 is the actual wiki work — here every extracted entity and concept is enriched with claims, cross-connections, and open questions. All items go through this phase, including those whose skeleton was just created in step 2.
+
+### Process — Relevance-Filtered Update
+
+For each entity and concept, the update step:
+
+1. **Resolves** the item to its page file via two-phase lookup (should find a match for every item now — newly created pages match via phase 1 exact slug)
+2. **Filters** the index for relevant pages: passes the item (name, type, description, source context) and all entity/concept index summaries to the LLM, which returns only the slugs of semantically relevant pages
+3. **Reads** the full content of all relevant pages
+4. **Updates** the page via LLM `complete()` — the LLM receives the current page content, the item being updated, all relevant pages' full content, and the source page. It generates claims with cross-connections to relevant pages and open questions.
+
+```
+For each extracted entity/concept:
+   ├─ Resolve page file (two-phase lookup)
+   ├─ FILTER: LLM determines which pages are relevant to this item
+   │    Current item + all entity/concept index summaries
+   │    → returns slugs of semantically relevant pages
+   ├─ READ: Full content of all relevant pages
+   └─ UPDATE: LLM receives current page + item + all relevant pages + source
+        → generates claims connecting to relevant pages
+        → weaves new knowledge into prose
+        → preserves human blocks
+        → generates open questions
+```
+
+### The Decision Logic (Lookup)
 
 ```
 For each extracted entity:
   ├─ Phase 1: Exact slug match?
   │   ├─ YES → LOAD PAGE → UPDATE
   │   └─ NO → Phase 2: Semantic summary match (LLM)?
-  │       ├─ YES → LOAD PAGE → UPDATE (possibly merge two similar pages)
-  │       └─ NO → CREATE: New page from entity template
+  │       ├─ YES → LOAD PAGE → UPDATE
+  │       └─ NO → should not happen — page was already created in step 2
 
 For each extracted concept:
   ├─ Phase 1: Exact slug match?
   │   ├─ YES → LOAD PAGE → UPDATE
   │   └─ NO → Phase 2: Semantic summary match (LLM)?
-  │       ├─ YES → LOAD PAGE → check whether merge or separate concept
-  │       └─ NO → CREATE: New page from concept template
+  │       ├─ YES → LOAD PAGE → UPDATE
+  │       └─ NO → should not happen — page was already created in step 2
 ```
 
-Claims and open questions are not extracted from the source — they are generated by the LLM during page creation or update. The LLM receives the full extraction context: all extracted entities, all extracted concepts, and the source page. This ensures claims can establish connections between the entity/concept being created and any other extracted element.
-
-When creating a new entity page, the LLM sees all entities and concepts to form claims connecting the new entity to related entities (e.g. "Maria Schneider authored the 2024 meta-study"), to concepts (e.g. "Seneca defined praemeditatio malorum"), and to the source. The same applies for concept creation.
-
-When updating an existing page, the LLM receives the entities and concepts relevant to that page and generates claims and open questions that weave the new knowledge into the existing page structure.
+Claims and open questions are not extracted from the source — they are generated by the LLM during the update phase. The LLM receives the current item, all relevant pages' full content, and the source page. This ensures claims can establish connections between the item being updated and any other relevant entity or concept.
 
 ### Before/After — Example on the `entity.seneca` Page
 
@@ -200,18 +227,18 @@ Meditations — less cryptic, more directly applicable.
 4. **Human block untouched:** The personal note remained exactly preserved.
 
 **Other affected pages (analogous):**
-- `entity.maria-schneider` — newly created with research profile
-- `concept.praemeditatio-malorum` — expanded with empirical evidence
-- `concept.cortisol-senkung-durch-meditation` — newly created
-- `entity.uni-tuebingen` — newly created or expanded
+- `entity.maria-schneider` — created as skeleton, then updated with research profile and claims
+- `concept.praemeditatio-malorum` — created as skeleton, then updated with empirical evidence and entity connections
+- `concept.cortisol-senkung-durch-meditation` — created as skeleton, then updated
+- `entity.uni-tuebingen` — created as skeleton, then updated
 
 In total, a single source touched **8-10 pages** — exactly Karpathy's "a single source might touch 10-15 wiki pages."
 
-## Step 3 — Log
+## Step 5 — Log
 
 Writes a summary entry to `log.md` documenting what was processed and which pages were created or modified.
 
-## Step 4 — Compile
+## Step 6 — Compile
 
 Triggers the [compile](compile.md) operation — a separate operation that regenerates index.md, backlinks, dashboards, and machine-readable digests from the updated vault.
 
@@ -221,4 +248,4 @@ Triggers the [compile](compile.md) operation — a separate operation that regen
 * [pre-ingest.md](pre-ingest.md) — the pre-ingest operation (creates source pages in `sources/`)
 * [../pages/source-spec.md](../pages/source-spec.md) — source page specification
 * [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification
-* [compile.md](compile.md) — compile operation (triggered in step 4)
+* [compile.md](compile.md) — compile operation (triggered in step 6)

@@ -60,44 +60,29 @@ interface SemanticMatchResult {
   unmatched: string[];
 }
 
-/** Structured output from the LLM for a new entity page. */
-interface EntityPage {
-  title: string;
-  tags: string[];
-  body: string;
-  claims: Array<{
-    slug: string;
-    confidence: number;
-    status: string;
-    text: string;
-    evidence: string;
-    evidenceLocation?: string;
-    limitation?: string;
-  }>;
-  openQuestions?: Array<{
-    question: string;
-    context?: string;
-  }>;
+/** Unified view of an entity or concept being updated — used across filter and update steps. */
+interface ItemToUpdate {
+  name: string;
+  type: string;
+  description: string;
+  sourceContext: string;
+  slug: string;
+  pageType: 'entity' | 'concept';
 }
 
-/** Structured output from the LLM for a new concept page. */
-interface ConceptPage {
+/** Structured output from the LLM for a new page skeleton (simplified — no claims, no open questions). */
+interface PageSkeleton {
   title: string;
   tags: string[];
   body: string;
-  claims: Array<{
-    slug: string;
-    confidence: number;
-    status: string;
-    text: string;
-    evidence: string;
-    evidenceLocation?: string;
-    limitation?: string;
-  }>;
-  openQuestions?: Array<{
-    question: string;
-    context?: string;
-  }>;
+}
+
+/** A relevant page fully read for the update template context. */
+interface RelevantPage {
+  slug: string;
+  title: string;
+  path: string;
+  content: string;
 }
 
 const PAGE_TYPE_MAP: Record<string, string> = {
@@ -120,6 +105,9 @@ const extractionSchema = loadSchemaFile<Record<string, unknown>>('extraction.sch
 const matchSchema = loadSchemaFile<Record<string, unknown>>('match.schema.json');
 const entityPageSchema = loadSchemaFile<Record<string, unknown>>('entity-page.schema.json');
 const conceptPageSchema = loadSchemaFile<Record<string, unknown>>('concept-page.schema.json');
+const relevanceFilterSchema = loadSchemaFile<Record<string, unknown>>(
+  'relevance-filter.schema.json',
+);
 
 export class Ingest implements IngestService {
   private logger: Logger;
@@ -171,7 +159,9 @@ export class Ingest implements IngestService {
 
     try {
       await this.extract(newSourcePath);
-      await this.updateWikiPages();
+      await this.createPages();
+      await this.compileIndex();
+      await this.updateAllPages();
       await this.writeLogEntry();
       await this.triggerCompile();
     } catch (err) {
@@ -230,113 +220,62 @@ export class Ingest implements IngestService {
     this.emit({ type: 'step_end', step: 'Extracting' });
   }
 
-  /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
-  private async updateWikiPages(): Promise<void> {
-    const log = this.logger.child({ step: 'update' });
+  /**
+   * Step 2a: Creates skeleton pages for all unmatched entities and concepts.
+   * Skeletons contain only title, tags, and body — no claims, no cross-connections.
+   * Pages that already exist in the index are skipped (they will be updated later).
+   */
+  private async createPages(): Promise<void> {
+    const log = this.logger.child({ step: 'createPages' });
     this.emit({
       type: 'step_start',
-      step: 'Updating',
+      step: 'Creating',
       data: { sourceFilePath: this.sourceFilePath },
     });
-    const indexEntries = await this.loadIndex();
-    const entryCount = [...indexEntries.values()].reduce((s, e) => s + e.length, 0);
-    log.info({ indexSize: entryCount }, 'Index loaded');
 
+    const index = await this.loadIndex();
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
 
-    await this.updatePages(
-      this.extractionResult.entities,
+    const entityMatches = await this.resolveMatches(
+      this.extractionResult.entities.map((e) => ({ name: e.name, slug: e.slug })),
+      index.get('entity') ?? [],
       'entity',
-      indexEntries,
-      sourceRelativePath,
-      (item, slug, srcRelPath) => this.createEntityPage(item, slug, srcRelPath),
     );
 
-    await this.updatePages(
-      this.extractionResult.concepts,
-      'concept',
-      indexEntries,
-      sourceRelativePath,
-      (item, slug, srcRelPath) => this.createConceptPage(item, slug, srcRelPath),
-    );
-    this.emit({ type: 'step_end', step: 'Updating' });
-  }
-
-  /** Updates or creates pages of the given type via two-phase lookup and LLM. */
-  private async updatePages<T extends { name: string; slug: string }>(
-    items: T[],
-    pageType: string,
-    indexEntries: Map<string, IndexEntry[]>,
-    sourceRelativePath: string,
-    createPage: (item: T, slug: string, sourceRelativePath: string) => Promise<void>,
-  ): Promise<void> {
-    const log = this.logger.child({ step: 'updatePages', pageType });
-    const entries = indexEntries.get(pageType) ?? [];
-    const systemPrompt = this.promptService.render('system-prompt', {});
-    const today = new Date().toISOString().slice(0, 10);
-    const matches = await this.resolveMatches(
-      items.map((i) => ({ name: i.name, slug: i.slug })),
-      entries,
-      pageType,
-    );
-
-    log.debug({ matches: Object.fromEntries(matches) }, 'Resolution matches');
-    const pagesDir = join(this.config.vaultPath, PAGE_DIRS[pageType]);
-
-    for (const item of items) {
-      const matchedSlug = matches.get(item.name);
-
-      if (matchedSlug) {
-        const pagePath = join(pagesDir, `${matchedSlug}.md`);
-        let currentContent = '';
-        try {
-          currentContent = await readFile(pagePath, 'utf-8');
-        } catch (err) {
-          log.error(
-            { pagePath, err },
-            `Matched ${pageType} page not found on disk — index may be stale`,
-          );
-          throw err;
-        }
-
-        const updatePrompt = this.promptService.render('update-page', {
-          currentPageContent: currentContent,
-          sourcePath: sourceRelativePath,
-          entities: this.extractionResult.entities,
-          concepts: this.extractionResult.concepts,
-          today,
-        });
-
-        log.info({ pagePath, name: item.name }, `Updating existing ${pageType} page`);
-        this.emit({
-          type: 'page_updating_start',
-          pageType: pageType as 'entity' | 'concept',
-          name: item.name,
-          slug: matchedSlug,
-        });
-        const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
-        log.debug({ prompt: updatePrompt, response: updatedContent }, 'LLM update page call');
-        await writeFile(pagePath, updatedContent, 'utf-8');
-        this.updatedPages.push(`${PAGE_DIRS[pageType]}/${matchedSlug}.md`);
-        this.emit({
-          type: 'page_updated',
-          pageType: pageType as 'entity' | 'concept',
-          name: item.name,
-          slug: matchedSlug,
-        });
-      } else {
-        await createPage(item, item.slug, sourceRelativePath);
+    for (const entity of this.extractionResult.entities) {
+      if (!entityMatches.has(entity.name)) {
+        await this.createEntitySkeleton(entity, entity.slug, sourceRelativePath);
       }
     }
+
+    const conceptMatches = await this.resolveMatches(
+      this.extractionResult.concepts.map((c) => ({ name: c.name, slug: c.slug })),
+      index.get('concept') ?? [],
+      'concept',
+    );
+
+    for (const concept of this.extractionResult.concepts) {
+      if (!conceptMatches.has(concept.name)) {
+        await this.createConceptSkeleton(concept, concept.slug, sourceRelativePath);
+      }
+    }
+
+    log.info({ createdCount: this.createdPages.length }, 'Create phase complete');
+    this.emit({ type: 'step_end', step: 'Creating' });
   }
 
-  /** Creates a new entity page via LLM structured output and template rendering. */
-  private async createEntityPage(
+  /** Creates a skeleton entity page via LLM structured output — no claims, no cross-connections. */
+  private async createEntitySkeleton(
     entity: ExtractedEntity,
     slug: string,
     sourceRelativePath: string,
   ): Promise<void> {
-    const log = this.logger.child({ step: 'create', pageType: 'entity', name: entity.name, slug });
+    const log = this.logger.child({
+      step: 'create',
+      pageType: 'entity',
+      name: entity.name,
+      slug,
+    });
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
 
@@ -345,44 +284,30 @@ export class Ingest implements IngestService {
       entityType: entity.entityType,
       description: entity.description,
       sourceContext: entity.sourceContext,
-      slug,
       sourcePath: sourceRelativePath,
       sourceContent: this.sourceContent,
-      entities: this.extractionResult.entities,
-      concepts: this.extractionResult.concepts,
-      today,
     });
 
-    log.info('Creating new entity page');
+    log.info('Creating new entity page skeleton');
     this.emit({ type: 'page_creating_start', pageType: 'entity', name: entity.name, slug });
 
-    const entityPage = await this.llmService.generateStructured<EntityPage>({
+    const skeleton = await this.llmService.generateStructured<PageSkeleton>({
       systemPrompt,
       messages: [{ role: 'user', content: createPrompt }],
       schema: entityPageSchema,
       schemaName: 'EntityPage',
-      schemaDescription: 'A complete entity page for the wiki vault.',
+      schemaDescription: 'A skeleton entity page for the wiki vault.',
     });
-    log.trace({ prompt: createPrompt, response: entityPage }, 'LLM create entity call');
-
-    const confidence =
-      entityPage.claims.length > 0
-        ? (
-            entityPage.claims.reduce((sum, c) => sum + c.confidence, 0) / entityPage.claims.length
-          ).toFixed(2)
-        : '0.50';
 
     const pageContent = this.promptService.render('entity-page-output', {
       id: entity.id,
-      title: entityPage.title,
+      title: skeleton.title,
       status: 'review',
-      tags: entityPage.tags ?? [],
-      confidence,
+      tags: skeleton.tags ?? [],
+      confidence: '0.50',
       created: today,
       updated: today,
-      body: entityPage.body,
-      claims: entityPage.claims,
-      openQuestions: entityPage.openQuestions ?? [],
+      body: skeleton.body,
     });
 
     const dir = join(this.config.vaultPath, PAGE_DIRS.entity);
@@ -393,8 +318,8 @@ export class Ingest implements IngestService {
     this.emit({ type: 'page_created', pageType: 'entity', name: entity.name, slug });
   }
 
-  /** Creates a new concept page via LLM structured output and template rendering. */
-  private async createConceptPage(
+  /** Creates a skeleton concept page via LLM structured output — no claims, no cross-connections. */
+  private async createConceptSkeleton(
     concept: ExtractedConcept,
     slug: string,
     sourceRelativePath: string,
@@ -413,44 +338,35 @@ export class Ingest implements IngestService {
       domain: concept.domain,
       description: concept.description,
       sourceContext: concept.sourceContext,
-      slug,
       sourcePath: sourceRelativePath,
       sourceContent: this.sourceContent,
-      entities: this.extractionResult.entities,
-      concepts: this.extractionResult.concepts,
-      today,
     });
 
-    log.info('Creating new concept page');
-    this.emit({ type: 'page_creating_start', pageType: 'concept', name: concept.name, slug });
+    log.info('Creating new concept page skeleton');
+    this.emit({
+      type: 'page_creating_start',
+      pageType: 'concept',
+      name: concept.name,
+      slug,
+    });
 
-    const conceptPage = await this.llmService.generateStructured<ConceptPage>({
+    const skeleton = await this.llmService.generateStructured<PageSkeleton>({
       systemPrompt,
       messages: [{ role: 'user', content: createPrompt }],
       schema: conceptPageSchema,
       schemaName: 'ConceptPage',
-      schemaDescription: 'A complete concept page for the wiki vault.',
+      schemaDescription: 'A skeleton concept page for the wiki vault.',
     });
-    log.trace({ prompt: createPrompt, response: conceptPage }, 'LLM create concept call');
-
-    const confidence =
-      conceptPage.claims.length > 0
-        ? (
-            conceptPage.claims.reduce((sum, c) => sum + c.confidence, 0) / conceptPage.claims.length
-          ).toFixed(2)
-        : '0.50';
 
     const pageContent = this.promptService.render('concept-page-output', {
       id: concept.id,
-      title: conceptPage.title,
+      title: skeleton.title,
       status: 'review',
-      tags: conceptPage.tags ?? [],
-      confidence,
+      tags: skeleton.tags ?? [],
+      confidence: '0.50',
       created: today,
       updated: today,
-      body: conceptPage.body,
-      claims: conceptPage.claims,
-      openQuestions: conceptPage.openQuestions ?? [],
+      body: skeleton.body,
     });
 
     const dir = join(this.config.vaultPath, PAGE_DIRS.concept);
@@ -459,6 +375,223 @@ export class Ingest implements IngestService {
     await writeFile(pagePath, pageContent, 'utf-8');
     this.createdPages.push(`${PAGE_DIRS.concept}/${slug}.md`);
     this.emit({ type: 'page_created', pageType: 'concept', name: concept.name, slug });
+  }
+
+  /**
+   * Step 2b: Rebuilds the index if any page skeletons were created.
+   * This ensures the freshly created pages appear in the index for the update phase.
+   */
+  private async compileIndex(): Promise<void> {
+    if (this.createdPages.length === 0) {
+      this.logger.debug('No pages created, skipping index rebuild');
+      return;
+    }
+
+    const log = this.logger.child({ step: 'compileIndex' });
+    this.emit({
+      type: 'step_start',
+      step: 'RebuildingIndex',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
+    log.info(
+      { createdCount: this.createdPages.length },
+      'Rebuilding index due to newly created pages',
+    );
+    await this.compileService.compile();
+    this.emit({ type: 'step_end', step: 'RebuildingIndex' });
+  }
+
+  /**
+   * Step 2c: Updates ALL wiki pages touched by the extracted knowledge.
+   * For each entity and concept, filters the index for relevant pages, reads
+   * their full content, and passes everything to the update template where
+   * claims, cross-connections, and open questions are generated.
+   */
+  private async updateAllPages(): Promise<void> {
+    const log = this.logger.child({ step: 'updateAllPages' });
+    this.emit({
+      type: 'step_start',
+      step: 'Updating',
+      data: { sourceFilePath: this.sourceFilePath },
+    });
+
+    const index = await this.loadIndex();
+    const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
+
+    for (const entity of this.extractionResult.entities) {
+      const item: ItemToUpdate = {
+        name: entity.name,
+        type: entity.entityType,
+        description: entity.description,
+        sourceContext: entity.sourceContext,
+        slug: entity.slug,
+        pageType: 'entity',
+      };
+      await this.updateSinglePage(item, 'entity', sourceRelativePath, index);
+    }
+
+    for (const concept of this.extractionResult.concepts) {
+      const item: ItemToUpdate = {
+        name: concept.name,
+        type: concept.domain,
+        description: concept.description,
+        sourceContext: concept.sourceContext,
+        slug: concept.slug,
+        pageType: 'concept',
+      };
+      await this.updateSinglePage(item, 'concept', sourceRelativePath, index);
+    }
+
+    this.emit({ type: 'step_end', step: 'Updating' });
+  }
+
+  /** Updates a single entity or concept page: resolves match, filters relevant pages, reads them, and calls LLM. */
+  private async updateSinglePage(
+    item: ItemToUpdate,
+    pageType: 'entity' | 'concept',
+    sourceRelativePath: string,
+    index: Map<string, IndexEntry[]>,
+  ): Promise<void> {
+    const log = this.logger.child({
+      step: 'updateSinglePage',
+      pageType,
+      name: item.name,
+    });
+    const entries = index.get(pageType) ?? [];
+    const systemPrompt = this.promptService.render('system-prompt', {});
+    const today = new Date().toISOString().slice(0, 10);
+
+    const matches = await this.resolveMatches(
+      [{ name: item.name, slug: item.slug }],
+      entries,
+      pageType,
+    );
+
+    const matchedSlug = matches.get(item.name);
+    if (!matchedSlug) {
+      log.error(
+        { name: item.name, slug: item.slug },
+        'No match found for update — page was not created',
+      );
+      throw new Error(`No match found for update: ${item.name}`);
+    }
+
+    const pagesDir = join(this.config.vaultPath, PAGE_DIRS[pageType]);
+    const pagePath = join(pagesDir, `${matchedSlug}.md`);
+    let currentContent = '';
+    try {
+      currentContent = await readFile(pagePath, 'utf-8');
+    } catch (err) {
+      log.error({ pagePath, err }, 'Page not found on disk for update');
+      throw err;
+    }
+
+    const allEntries = [...(index.get('entity') ?? []), ...(index.get('concept') ?? [])];
+    const relevantSlugs = await this.filterRelevantPages(item, allEntries);
+    log.debug({ relevantSlugs }, 'Relevant pages filtered');
+
+    const relevantPages = await this.readRelevantPages(relevantSlugs, index);
+
+    const updatePrompt = this.promptService.render('update-page', {
+      itemName: item.name,
+      itemType: item.type,
+      itemDescription: item.description,
+      itemSourceContext: item.sourceContext,
+      currentPageContent: currentContent,
+      sourcePath: sourceRelativePath,
+      relevantPages,
+      today,
+    });
+
+    log.info({ pagePath, name: item.name }, `Updating ${pageType} page`);
+    this.emit({
+      type: 'page_updating_start',
+      pageType,
+      name: item.name,
+      slug: matchedSlug,
+    });
+    const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
+    log.debug({ response: updatedContent }, 'LLM update page call');
+    await writeFile(pagePath, updatedContent, 'utf-8');
+    this.updatedPages.push(`${PAGE_DIRS[pageType]}/${matchedSlug}.md`);
+    this.emit({
+      type: 'page_updated',
+      pageType,
+      name: item.name,
+      slug: matchedSlug,
+    });
+  }
+
+  /**
+   * Determines which existing wiki pages are relevant to the item being updated.
+   * Passes the item and all entity/concept index summaries to the LLM,
+   * which returns only the slugs of semantically relevant pages.
+   */
+  private async filterRelevantPages(
+    item: ItemToUpdate,
+    indexEntries: IndexEntry[],
+  ): Promise<string[]> {
+    const log = this.logger.child({ step: 'filterRelevantPages', name: item.name });
+
+    if (indexEntries.length === 0) return [];
+
+    const systemPrompt = this.promptService.render('system-prompt', {});
+    const prompt = this.promptService.render('filter-relevant-pages', {
+      itemName: item.name,
+      itemType: item.type,
+      itemDescription: item.description,
+      itemSourceContext: item.sourceContext,
+      indexEntries: indexEntries.map((e) => ({
+        slug: e.slug,
+        pageType: e.pageType,
+        summary: e.summary,
+      })),
+    });
+
+    const result = await this.llmService.generateStructured<{ relevantSlugs: string[] }>({
+      systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+      schema: relevanceFilterSchema,
+      schemaName: 'RelevanceFilter',
+      schemaDescription:
+        'Filter determining which existing wiki pages are relevant to an item being updated.',
+    });
+
+    log.debug({ relevantSlugs: result.relevantSlugs }, 'Filter result');
+    return result.relevantSlugs;
+  }
+
+  /**
+   * Reads the full content of the pages identified as relevant by the filter step.
+   * Returns an array of {@link RelevantPage} for use in the update template context.
+   */
+  private async readRelevantPages(
+    slugs: string[],
+    index: Map<string, IndexEntry[]>,
+  ): Promise<RelevantPage[]> {
+    const log = this.logger.child({ step: 'readRelevantPages' });
+    const relevantPages: RelevantPage[] = [];
+    const allEntries = [...index.values()].flat();
+
+    for (const slug of slugs) {
+      const entry = allEntries.find((e) => e.slug === slug);
+      if (!entry) continue;
+
+      const pagePath = join(this.config.vaultPath, entry.path);
+      try {
+        const rawContent = await readFile(pagePath, 'utf-8');
+        relevantPages.push({
+          slug,
+          title: entry.title,
+          path: entry.path,
+          content: rawContent,
+        });
+      } catch (err) {
+        log.warn({ slug, pagePath, err }, 'Could not read relevant page');
+      }
+    }
+
+    return relevantPages;
   }
 
   /** Step 3: Writes a summary entry to the vault log. */

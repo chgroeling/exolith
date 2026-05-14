@@ -75,6 +75,6 @@
       }
     }
   },
-  "required": ["title", "body", "claims"],
+  "required": ["title", "body"],
   "additionalProperties": false,
 }

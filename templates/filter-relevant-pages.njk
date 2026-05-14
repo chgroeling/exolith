@@ -1,0 +1,27 @@
+You are determining which existing wiki pages are relevant to an entity or concept being updated.
+
+## Item Being Updated
+
+**Name:** {{ itemName }}
+**Type:** {{ itemType }}
+**Description:** {{ itemDescription }}
+**Source context:** {{ itemSourceContext }}
+
+## Existing Wiki Pages (from index)
+
+{% for entry in indexEntries %}
+- slug: {{ entry.slug }}
+  type: {{ entry.pageType }}
+  summary: {{ entry.summary }}
+{% endfor %}
+
+## Instructions
+
+Determine which of the existing pages listed above have meaningful relevance to "{{ itemName }}". Include pages that:
+- Discuss the same topic, person, or idea
+- The item might connect to (e.g. a philosopher connects to their concepts, a concept connects to the entities that use it)
+- Belong to the same domain, category, or historical context
+
+Exclude pages that have no meaningful semantic connection whatsoever.
+
+Return ONLY the slugs of the relevant pages as a JSON object with a single field `relevantSlugs` containing an array of slug strings. If no pages are relevant, return an empty array.

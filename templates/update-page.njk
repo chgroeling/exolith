@@ -1,22 +1,26 @@
 You are updating an existing wiki page with newly extracted knowledge from a source.
 
+## Current Item Being Added
+**Name:** {{ itemName }}
+**Type:** {{ itemType }}
+**Description:** {{ itemDescription }}
+**Source context:** {{ itemSourceContext }}
+
 ## Current Page Content
 {{ currentPageContent }}
 
-## New Knowledge to Integrate
-The following entities and concepts were extracted from the source page [[{{ sourcePath }}]]:
+{% if relevantPages and relevantPages.length > 0 %}
+## Relevant Existing Wiki Pages
+These are existing wiki pages that are semantically relevant to {{ itemName }}. Their full content is provided so you can establish cross-connections and claims between this page and those pages.
 
-### Entities relevant to this page
-{% for entity in entities %}
-- {{ entity.name }} ({{ entity.entityType }}): {{ entity.description }}
-  Source context: {{ entity.sourceContext }}
+{% for page in relevantPages %}
+### {{ page.title }} ({{ page.path }})
+{{ page.content }}
 {% endfor %}
+{% endif %}
 
-### Concepts relevant to this page
-{% for concept in concepts %}
-- {{ concept.name }} ({{ concept.domain }}): {{ concept.description }}
-  Source context: {{ concept.sourceContext }}
-{% endfor %}
+## Source Page
+New knowledge was extracted from: [[{{ sourcePath }}]]
 
 ## Instructions
 
@@ -26,7 +30,7 @@ Update the page above by integrating the new knowledge. Follow these rules preci
 
 2. **Human Block preservation:** NEVER modify anything between `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Leave these sections exactly as they are.
 
-3. **Generate claims:** Based on the extracted entities and concepts above, generate verifiable claims for the `## Claims` section. Each claim must:
+3. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims for the `## Claims` section. Each claim must:
    - Have a unique `id:claim.xxx` derived from the claim text
    - Include a confidence estimate (0.0-1.0) based on evidence quality
    - Have exactly one `*Evidence:*` wikilink — never more than one:
@@ -46,12 +50,14 @@ Update the page above by integrating the new knowledge. Follow these rules preci
      *Limitation:* any limitations here
    ```
 
-4. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
+4. **Cross-connections:** Use the relevant pages above to establish connections. If {{ itemName }} relates to any of those pages, create claims that link to them via the evidence field.
+
+5. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
    ```
    - Question text here?
      *Kontext:* context
    ```
 
-5. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
+6. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
 
 Return the complete updated page content (including YAML frontmatter) as a single string.

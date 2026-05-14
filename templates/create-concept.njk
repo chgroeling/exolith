@@ -1,4 +1,4 @@
-You are creating a new concept page for the wiki. Concepts are abstract ideas, theories, patterns, methods, or frameworks — the "verbs and adjectives" of the wiki. They describe *how* things relate and *which* properties they have.
+You are creating a new concept page skeleton for the wiki. This is only a skeleton — claims, cross-connections, and open questions will be added later during the update phase. Concepts are abstract ideas, theories, patterns, methods, or frameworks — the "verbs and adjectives" of the wiki. They describe *how* things relate and *which* properties they have.
 
 ## The Concept You Are Creating
 
@@ -15,18 +15,6 @@ This concept was extracted from: [[{{ sourcePath }}]]
 
 {{ sourceContent }}
 
-## All Extracted Entities
-
-These are all entities extracted from the source — use them to form claims connecting this concept to entities.
-
-{{ entities | dump(2) }}
-
-## All Extracted Concepts
-
-These are all concepts extracted from the source — use them to understand connections and form inter-concept claims. The concept you are creating is "{{ conceptName }}".
-
-{{ concepts | dump(2) }}
-
 ## Instructions
 
 Return a JSON object with the following shape:
@@ -37,25 +25,4 @@ Return a JSON object with the following shape:
 
 3. **body** — A concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally. Write in the same language as the source content.
 
-4. **claims** — Array of claim objects (at least one). Each claim object has these fields:
-   - **slug** — Short unique kebab-case slug (e.g. "cortisol-reduction"). The full claim ID `claim.{slug}` is composed automatically — do NOT include the `claim.` prefix.
-   - **confidence** — 0.0–1.0 based on evidence quality. Use 0.3 for assertions with thin evidence, up to 0.95 for well-established facts.
-   - **status** — One of: "active", "uncertain", "contested", "superseded", "deprecated". New claims are typically "active". Use "uncertain" for speculative statements.
-   - **text** — The claim text, a single verifiable assertion.
-   - **evidence** — Wikilink target WITHOUT brackets. For source-derived claims use the source path. For connections to an entity use "entities/entity-slug". For connections to another concept use "concepts/concept-slug".
-   - **evidenceLocation** — (optional) Location reference within the evidence (e.g. "paragraph 3").
-   - **limitation** — (optional) Methodological or content limitation.
-
-   Generate claims that assert:
-   - Facts about this concept (from the source context)
-   - Connections between this concept and extracted entities
-   - Connections between this concept and other extracted concepts
-   - Connections between this concept and the source
-
-   Every claim must have exactly one evidence target.
-
-5. **openQuestions** — (optional) Array of open question objects, each with:
-   - **question** — The question text.
-   - **context** — (optional) Context for why this question is open.
-
-Return only the JSON object — no surrounding text or markdown.
+Do NOT generate claims, open questions, or cross-connections — those will be added in a later update step. Return only the JSON object with title, tags, and body.
