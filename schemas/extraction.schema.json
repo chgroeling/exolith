@@ -8,11 +8,11 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, concept, work, dataset, event, system)"
+            "description": "Human-readable name of the entity — a distinct, identifiable thing (person, organization, project, product, tool, place, work, dataset, event, system)"
           },
           "entityType": {
             "type": "string",
-            "description": "Category: person / organization / project / product / tool / place / concept / work / dataset / event / system"
+            "description": "Category: person / organization / project / product / tool / place / work / dataset / event / system"
           },
           "description": {
             "type": "string",
