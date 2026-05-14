@@ -108,6 +108,22 @@ function parseFrontmatter(rawContent: string): Record<string, unknown> {
 
 /** Extracts the first sentence after the first # heading as the page summary. */
 function extractSummary(body: string): string {
+  const summarySection = extractSection(body, /\n##\s+Summary\s*\n/i);
+  if (summarySection) {
+    const mainPointsSection = extractSection(body, /\n##\s+Main\s+Points\s*\n/i);
+    const parts: string[] = [summarySection.trim()];
+    if (mainPointsSection) {
+      const points = mainPointsSection
+        .split('\n')
+        .map((l) => l.replace(/^-\s+/, '').trim())
+        .filter(Boolean);
+      if (points.length > 0) {
+        parts.push(points.join(', '));
+      }
+    }
+    return parts.join(' ').slice(0, 200);
+  }
+
   const headingMatch = body.match(/^#\s+.+$/m);
   if (!headingMatch) return '';
 
@@ -121,7 +137,7 @@ function extractSummary(body: string): string {
       if (text) break;
       continue;
     }
-    if (line.startsWith('*') && line.endsWith(':*')) continue;
+    if (line.startsWith('*') && /^\*[^:]+:\*/.test(line)) continue;
     text += (text ? ' ' : '') + line;
 
     if (/[.!?]\s/.test(line) || /[.!?]$/.test(line)) {
