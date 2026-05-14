@@ -141,6 +141,7 @@ export class Ingest implements IngestService {
       schemaName: 'ExtractionResult',
       schemaDescription: 'Structured extraction of entities and concepts from a wiki source page.',
     });
+    this.logger.debug({ prompt, response: this.extractionResult }, 'LLM extract knowledge call');
 
     this.logger.info(
       {
@@ -200,6 +201,7 @@ export class Ingest implements IngestService {
       pageType,
     );
 
+    this.logger.debug({ matches: Object.fromEntries(matches) }, 'Resolution matches');
     const pagesDir = join(this.config.vaultPath, `${pageType}s`);
 
     for (const item of items) {
@@ -275,6 +277,7 @@ export class Ingest implements IngestService {
     this.logger.info({ name: entity.name, slug }, 'Creating new entity page');
     this.emit({ type: 'page_creating_start', pageType: 'entity', name: entity.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
+    this.logger.debug({ prompt: createPrompt, response: pageContent }, 'LLM create entity call');
     const dir = join(this.config.vaultPath, 'entities');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
@@ -307,6 +310,7 @@ export class Ingest implements IngestService {
     this.logger.info({ name: concept.name, slug }, 'Creating new concept page');
     this.emit({ type: 'page_creating_start', pageType: 'concept', name: concept.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
+    this.logger.debug({ prompt: createPrompt, response: pageContent }, 'LLM create concept call');
     const dir = join(this.config.vaultPath, 'concepts');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
@@ -374,7 +378,16 @@ export class Ingest implements IngestService {
 
     const updatedLog = `${header}\n\n${newEntry}${body}`;
     await writeFile(logPath, updatedLog, 'utf-8');
-    this.logger.info({ logPath }, 'Log entry written');
+    this.logger.debug(
+      {
+        logPath,
+        createdPages: this.createdPages,
+        updatedPages: this.updatedPages,
+        entityCount: this.extractionResult.entities.length,
+        conceptCount: this.extractionResult.concepts.length,
+      },
+      'Log entry written',
+    );
     this.emit({ type: 'step_end', step: 'Logging' });
   }
 
