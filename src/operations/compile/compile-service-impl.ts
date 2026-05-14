@@ -7,19 +7,6 @@ import type { Logger } from 'pino';
 import type { PipelineEvent, Question } from '../pipeline-presentation';
 import type { CompileConfig, CompileService } from './compile-service';
 
-/** A parsed claim from the ## Claims chapter. */
-interface ParsedClaim {
-  id: string;
-  confidence: number;
-  status: string;
-  text: string;
-  evidence: string;
-  evidenceLocation: string;
-  limitation: string;
-  context: string;
-  updated: string;
-}
-
 /** A parsed open question from the ## Offene Fragen chapter. */
 interface ParsedQuestion {
   question: string;
@@ -34,15 +21,12 @@ interface WikiPage {
   pageType: string;
   summary: string;
   path: string;
-  claims: ParsedClaim[];
-  claimIds: string[];
   hasOpenQuestions: boolean;
   openQuestions: ParsedQuestion[];
   confidence: number | null;
   status: string;
   tags: string[];
   updatedAt: string;
-  linkedSources: string[];
 }
 
 const CONTENT_DIRS = ['sources', 'entities', 'concepts', 'syntheses'];
@@ -170,99 +154,6 @@ function extractSection(body: string, headingPattern: RegExp): string {
   return remaining;
 }
 
-/** Parses claims from the ## Claims chapter. */
-function parseClaims(body: string): ParsedClaim[] {
-  const section = extractSection(body, /\n##\s+Claims\s*\n/i);
-  if (!section) return [];
-
-  const normalizedSection = section.startsWith('\n') ? section : `\n${section}`;
-  const claims: ParsedClaim[] = [];
-  const claimBlocks = normalizedSection.split(/\n-\s+(?=`id:claim\.)/);
-
-  for (let i = 1; i < claimBlocks.length; i++) {
-    const block = claimBlocks[i];
-    const lines = block.split('\n');
-
-    const metadataLine = lines[0] ?? '';
-    let claimId = '';
-    let claimConfidence = 0;
-    let claimStatus = 'active';
-
-    const idMatch = metadataLine.match(/`(id:claim\.[^`]+)`/);
-    if (idMatch) claimId = idMatch[1];
-
-    const confMatch = metadataLine.match(/`conf:([\d.]+)`/);
-    if (confMatch) claimConfidence = Number(confMatch[1]);
-
-    const statusMatch = metadataLine.match(/`status:(\w+)`/);
-    if (statusMatch) claimStatus = statusMatch[1];
-
-    if (!claimId) continue;
-
-    const metaEnd = metadataLine.lastIndexOf('`');
-    let textAfterMeta = '';
-    if (metaEnd >= 0) {
-      textAfterMeta = metadataLine.slice(metaEnd + 1).trim();
-    }
-
-    const textLines: string[] = [];
-    if (textAfterMeta) textLines.push(textAfterMeta);
-
-    let evidence = '';
-    let evidenceLocation = '';
-    let limitation = '';
-    let context = '';
-    let updated = '';
-
-    for (let j = 1; j < lines.length; j++) {
-      const line = lines[j].trim();
-      if (!line) continue;
-
-      if (/^\*(Evidence|Beleg):\*/i.test(line) || /^\*(Evidence|Beleg):/i.test(line)) {
-        const evMatch = line.match(/\[\[([^\]]+)\]\]/);
-        if (evMatch) evidence = evMatch[1];
-        const locMatch = line.match(/\]\]\s*(.*)/);
-        if (locMatch?.[1]) evidenceLocation = locMatch[1].trim();
-        continue;
-      }
-
-      if (
-        /^\*(Limitation|Einschränkung):\*/i.test(line) ||
-        /^\*(Limitation|Einschränkung):/i.test(line)
-      ) {
-        limitation = line.replace(/^\*(Limitation|Einschränkung):[\s*]*/i, '').trim();
-        continue;
-      }
-
-      if (/^\*(Context|Kontext):\*/i.test(line) || /^\*(Context|Kontext):/i.test(line)) {
-        context = line.replace(/^\*(Context|Kontext):[\s*]*/i, '').trim();
-        continue;
-      }
-
-      if (/^\*(updated|aktualisiert):\*/i.test(line) || /^\*(updated|aktualisiert):/i.test(line)) {
-        updated = line.replace(/^\*(updated|aktualisiert):[\s*]*/i, '').trim();
-        continue;
-      }
-
-      textLines.push(line);
-    }
-
-    claims.push({
-      id: claimId,
-      confidence: claimConfidence,
-      status: claimStatus,
-      text: textLines.join(' ').trim(),
-      evidence,
-      evidenceLocation,
-      limitation,
-      context,
-      updated,
-    });
-  }
-
-  return claims;
-}
-
 /** Parses open questions from the ## Offene Fragen (or ## Open Questions) chapter. */
 function parseOpenQuestions(body: string): ParsedQuestion[] {
   const section =
@@ -297,17 +188,6 @@ function parseOpenQuestions(body: string): ParsedQuestion[] {
   }
 
   return questions;
-}
-
-/** Extracts source wikilinks that a page's claims reference. */
-function extractLinkedSources(claims: ParsedClaim[]): string[] {
-  const sources = new Set<string>();
-  for (const claim of claims) {
-    if (claim.evidence?.startsWith('sources/')) {
-      sources.add(claim.evidence);
-    }
-  }
-  return Array.from(sources).sort();
 }
 
 export class Compile implements CompileService {
@@ -372,10 +252,7 @@ export class Compile implements CompileService {
 
           const body = extractBodyAfterFrontmatter(rawContent);
           const summary = extractSummary(body);
-          const claims = parseClaims(body);
-          const claimIds = claims.map((c) => c.id);
           const openQuestions = parseOpenQuestions(body);
-          const linkedSources = extractLinkedSources(claims);
 
           this.pages.set(pagePath, {
             id,
@@ -384,15 +261,12 @@ export class Compile implements CompileService {
             pageType,
             summary,
             path: pagePath,
-            claims,
-            claimIds,
             hasOpenQuestions: openQuestions.length > 0,
             openQuestions,
             confidence,
             status,
             tags,
             updatedAt,
-            linkedSources,
           });
         }
       } catch {
@@ -426,15 +300,11 @@ export class Compile implements CompileService {
 
     const totalPages = this.pages.size;
     const sourceCount = (grouped.get('source') ?? []).length;
-    const totalClaims = Array.from(this.pages.values()).reduce(
-      (sum, p) => sum + p.claims.length,
-      0,
-    );
 
     const generatedAt = new Date().toISOString();
 
     let indexContent = '# Wiki Index\n\n';
-    indexContent += `> Auto-generated at ${generatedAt} | ${totalPages} pages | ${sourceCount} sources | ${totalClaims} claims\n\n`;
+    indexContent += `> Auto-generated at ${generatedAt} | ${totalPages} pages | ${sourceCount} sources\n\n`;
 
     for (const pageType of categoryOrder) {
       const pages = grouped.get(pageType);
@@ -448,8 +318,6 @@ export class Compile implements CompileService {
         indexContent += `- [[${wikiPath}]]\n`;
 
         const metaParts: string[] = [];
-        const claimWord = page.claims.length === 1 ? 'claim' : 'claims';
-        metaParts.push(`\`${page.claims.length} ${claimWord}\``);
 
         if (page.hasOpenQuestions) metaParts.push('`❓`');
         if (page.confidence !== null) metaParts.push(`\`conf:${page.confidence}\``);
@@ -471,23 +339,6 @@ export class Compile implements CompileService {
           indexContent += `  — ${page.summary}\n`;
         }
 
-        indexContent += '\n';
-      }
-    }
-
-    const allClaims = Array.from(this.pages.values())
-      .filter((p) => p.claims.length > 0)
-      .flatMap((p) => p.claims.map((c) => ({ claim: c, sourcePath: p.path })))
-      .sort((a, b) => a.claim.id.localeCompare(b.claim.id));
-
-    if (allClaims.length > 0) {
-      indexContent += '## Claims\n\n';
-      for (const { claim, sourcePath } of allClaims) {
-        const wikiPath = sourcePath.replace(/\.md$/, '');
-        indexContent += `- \`${claim.id}\` \`conf:${claim.confidence}\` \`status:${claim.status}\` → [[${wikiPath}]]\n`;
-        if (claim.text) {
-          indexContent += `  ${claim.text}\n`;
-        }
         indexContent += '\n';
       }
     }

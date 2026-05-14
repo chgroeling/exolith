@@ -52,8 +52,6 @@ interface IndexEntry {
   pageType: string;
   summary: string;
   path: string;
-  claimIds: string[];
-  claimTexts: string[];
 }
 
 /** Semantic match result from the LLM. */
@@ -604,7 +602,6 @@ export class Ingest implements IngestService {
         slug: e.slug,
         title: e.title,
         summary: e.summary,
-        claimTexts: e.claimTexts,
       })),
     });
 
@@ -675,8 +672,6 @@ function parseIndex(content: string): Map<string, IndexEntry[]> {
   const result = new Map<string, IndexEntry[]>();
   const sections = content.split(/\n(?=## )/);
 
-  const claimsByPath = parseClaimSection(content);
-
   for (const section of sections) {
     const headingMatch = section.match(/^## (\w+)/);
     if (!headingMatch) continue;
@@ -706,7 +701,6 @@ function parseIndex(content: string): Map<string, IndexEntry[]> {
       }
 
       const fullPath = `${path}.md`;
-      const pageClaims = claimsByPath.get(fullPath) ?? { ids: [], texts: [] };
 
       entries.push({
         slug,
@@ -714,56 +708,10 @@ function parseIndex(content: string): Map<string, IndexEntry[]> {
         pageType,
         summary,
         path: fullPath,
-        claimIds: pageClaims.ids,
-        claimTexts: pageClaims.texts,
       });
     }
 
     result.set(pageType, entries);
-  }
-
-  return result;
-}
-
-/** Parses the ## Claims section of index.md into a map from page path to claim summary. */
-function parseClaimSection(content: string): Map<string, { ids: string[]; texts: string[] }> {
-  const result = new Map<string, { ids: string[]; texts: string[] }>();
-  const claimsMatch = content.match(/\n## Claims\n/);
-  if (!claimsMatch || claimsMatch.index === undefined) return result;
-
-  const claimsStart = claimsMatch.index + claimsMatch[0].length;
-  const remaining = content.slice(claimsStart);
-  const nextHeadingMatch = remaining.match(/\n##(?!#)/);
-  const claimsSection = nextHeadingMatch ? remaining.slice(0, nextHeadingMatch.index) : remaining;
-
-  const claimBlocks = claimsSection.split(/\n- /);
-  for (let i = 1; i < claimBlocks.length; i++) {
-    const block = claimBlocks[i];
-    const lines = block.split('\n');
-
-    const metaLine = lines[0] ?? '';
-    const idMatch = metaLine.match(/`(id:claim\.[^`]+)`/);
-    if (!idMatch) continue;
-
-    const linkMatch = metaLine.match(/→\s*\[\[([^\]]+)\]\]/);
-    if (!linkMatch) continue;
-
-    const sourcePath = `${linkMatch[1]}.md`;
-    let text = '';
-    if (lines.length > 1) {
-      text = lines[1].trim();
-    }
-
-    const entry = result.get(sourcePath);
-    if (entry) {
-      entry.ids.push(idMatch[1]);
-      if (text) entry.texts.push(text);
-    } else {
-      result.set(sourcePath, {
-        ids: [idMatch[1]],
-        texts: text ? [text] : [],
-      });
-    }
   }
 
   return result;
