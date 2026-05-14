@@ -165,8 +165,6 @@ async function createTestSourceFile(vaultPath: string): Promise<string> {
     '## Main Points',
     '- Seneca defined praemeditatio malorum as an anxiety exercise',
     '- Cortisol reduction was empirically confirmed by Schneider',
-    '',
-    '## Linked Wiki Pages',
   ].join('\n');
   await writeFile(filePath, content, 'utf-8');
   return filePath;

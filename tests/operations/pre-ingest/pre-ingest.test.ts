@@ -100,8 +100,6 @@ function makeMockPrompt(): PromptService {
           '## Main Points',
           ...(context.mainPoints as string[]).map((p: string) => `- ${p}`),
           '',
-          '## Linked Wiki Pages',
-          '',
         ].join('\n');
       }
       return Object.entries(context)
@@ -517,31 +515,6 @@ describe('PreIngest', () => {
       expect(pageContent).toContain('## Main Points');
       expect(pageContent).toContain('- Main point 1');
       expect(pageContent).toContain('- Main point 2');
-    });
-
-    it('includes Linked Wiki Pages section (empty — maintained by compile)', async () => {
-      const config = makeConfig();
-      await mkdir(config.vaultPath, { recursive: true });
-      const filePath = join(config.vaultPath, 'src.txt');
-      await writeFile(filePath, '# Src', 'utf-8');
-
-      const emit = makeMockEmit();
-      const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
-        makeMockLlm(),
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        emit,
-        ask,
-      );
-
-      await preIngest.process(filePath);
-
-      const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
-      const pageContent = await readFile(sourcePath, 'utf-8');
-
-      expect(pageContent).toContain('## Linked Wiki Pages');
     });
 
     it('uses source page type metadata in the body', async () => {

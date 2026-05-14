@@ -162,10 +162,6 @@ Seneca reflects on the nature of fear and anxiety in the 13th letter to Lucilius
 ## Main Points
 - Most anxieties arise from anticipated suffering, not real suffering
 - Philosophy as practical tool for daily life
-
-## Linked Wiki Pages
-- [[entities/seneca]] (2 Claims)
-- [[concepts/praemeditatio-malorum]] (1 Claim)
 `;
 
 const SOURCE_SCHNEIDER = `---
@@ -193,11 +189,6 @@ Meta-study on the effectiveness of praemeditatio malorum with n=1,200 participan
 ## Main Points
 - Praemeditatio malorum reduces cortisol by 18%
 - No effect in participants under 25 years
-
-## Linked Wiki Pages
-- [[entities/maria-schneider]] (1 Claim)
-- [[entities/seneca]] (1 Claim)
-- [[concepts/praemeditatio-malorum]] (1 Claim)
 `;
 
 function makeMockEmit(): (event: PipelineEvent) => void {

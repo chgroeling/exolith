@@ -34,10 +34,6 @@ updated: 2026-05-01
 ## Main Points
 - Main Point 1
 - Main Point 2
-
-## Linked Wiki Pages
-- [[entities/seneca]] (2 Claims)
-- [[concepts/praemeditatio-malorum]] (1 Claim)
 ```
 
 **Template for Source Pages:**
@@ -68,23 +64,18 @@ updated: {YYYY-MM-DD}
 - Main Point 1
 - Main Point 2
 - ...
-
-## Linked Wiki Pages
-- [[entities/seneca]] (2 Claims)
-- [[concepts/praemeditatio-malorum]] (1 Claim)
 ```
 
 **Main Points** are the central claims *of the author* — neutral, descriptive, objective. They answer the question: "What does the source state as key claims?" They are calibrated by the discussion feedback: the human's confidence signals, priority hints, and nuance flags determine which claims are emphasized, de-emphasized, or contextually framed.
 
 **Special Characteristics:**
 
-- The `## Linked Wiki Pages` list is maintained **exclusively by the compile**, not by the LLM during ingest.
 - All other page types (entity, concept, synthesis) link exclusively to sources.
 - The source is the processed foundation: What is not stated here does not exist for the LLM. It is the bottleneck through which all raw knowledge flows and is verified.
 - The source itself has no Human Block — it is entirely LLM-managed.
-- Main Points do not change after the source is created. They are calibrated by discussion feedback. They are part of the source page, which — with the exception of the `## Linked Wiki Pages` list — remains stable and is never overwritten by the LLM.
+- Main Points do not change after the source is created. They are calibrated by discussion feedback. They are part of the source page and remain stable — the source is never overwritten by the LLM after first ingest.
 
-The source page is never modified by the LLM after the first ingest — with one exception: The list of linked wiki pages is automatically updated during the compile. It contains all Entities, Concepts, and Syntheses that reference at least one claim from this source. The number in parentheses indicates how deeply the source is anchored in the respective page.
+The source page is never modified by the LLM after the enqueue step.
 
 ## See Also
 
