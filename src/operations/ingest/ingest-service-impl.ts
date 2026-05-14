@@ -548,7 +548,9 @@ export class Ingest implements IngestService {
       log.info('No index.md found, treating all elements as new pages');
       return new Map();
     }
-    return parseIndex(content);
+    const index = parseIndex(content);
+    log.trace({ index: Object.fromEntries(index) }, 'Index parse result');
+    return index;
   }
 
   /**
