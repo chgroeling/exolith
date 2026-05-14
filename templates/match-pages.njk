@@ -14,6 +14,9 @@ Determine which existing pages (if any) semantically match the extracted names, 
 - slug: {{ entry.slug }}
   title: {{ entry.title }}
   summary: {{ entry.summary }}
+{% if entry.claimTexts | length -%}
+  claims: {{ entry.claimTexts | join('; ') }}
+{% endif %}
 {% endfor %}
 
 For each extracted name, decide: does it match any existing page semantically? If yes, provide the slug. If no, mark as unmatched.

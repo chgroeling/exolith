@@ -61,8 +61,8 @@ The update step does not begin with a filesystem scan, but with a **two-phase in
    └─ PHASE 2: Semantic Summary Match (LLM-based)
 
        Only for elements without a Phase 1 hit:
-       LLM receives all summaries of the matching category
-       and checks semantic similarity.
+        LLM receives all summaries and claims of the matching category
+        from the index and checks semantic similarity.
        "Dr. Maria Schneider" → all entity summaries → "none"
        "Cortisol reduction" → all concept summaries →
          "cortisol-senkung-durch-meditation" → HIT ✓
