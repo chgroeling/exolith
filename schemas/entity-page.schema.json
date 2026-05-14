@@ -1,0 +1,80 @@
+{
+  // EntityPage structured output schema.
+  // Defines the expected JSON shape for LLM entity page generation.
+  // The final markdown is rendered programmatically from this JSON via entity-page-output.njk.
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The canonical name of the entity."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Lowercase tags based on the entity type and domain (e.g. ['philosophie', 'antike'])."
+    },
+    "body": {
+      "type": "string",
+      "description": "Concise encyclopedia-style description (2-3 paragraphs) weaving in the source context naturally. Written in the same language as the source content."
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "A short, unique, kebab-case slug for this claim within the page (e.g. 'cortisol-senkung'). The full claim ID is composed programmatically as 'claim.{slug}'."
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence estimate (0.0-1.0) based on evidence quality."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "uncertain", "contested", "superseded", "deprecated"],
+            "description": "Claim status. Use 'active' for well-supported claims, 'uncertain' for speculative or philosophical assertions."
+          },
+          "text": {
+            "type": "string",
+            "description": "The claim text — a single verifiable assertion."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Wikilink target without brackets. For source-derived claims: the source page path (e.g. 'sources/schneider-2024'). For entity connections: 'entities/entity-slug'. For concept connections: 'concepts/concept-slug'."
+          },
+          "evidenceLocation": {
+            "type": "string",
+            "description": "Optional location reference within the evidence (e.g. 'paragraph 3', 'n=1,200')."
+          },
+          "limitation": {
+            "type": "string",
+            "description": "Optional methodological or content limitation."
+          }
+        },
+        "required": ["slug", "confidence", "status", "text", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "An unanswered question raised by the information."
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional context explaining why the question matters."
+          }
+        },
+        "required": ["question"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["title", "body", "claims"],
+  "additionalProperties": false,
+}

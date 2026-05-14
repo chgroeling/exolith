@@ -13,6 +13,39 @@ import type { IngestConfig } from '../../../src/operations/ingest/ingest-service
 import { Ingest } from '../../../src/operations/ingest/ingest-service-impl';
 import type { PipelineEvent, Question } from '../../../src/operations/pipeline-presentation';
 
+const defaultEntityPage = {
+  title: 'Seneca',
+  tags: ['philosophie', 'stoizismus'],
+  body: 'Lucius Annaeus Seneca was a Roman philosopher and statesman.',
+  claims: [
+    {
+      slug: 'seneca-philosophy',
+      confidence: 0.9,
+      status: 'active',
+      text: 'Seneca was a prominent Stoic philosopher.',
+      evidence: 'sources/test-source',
+      evidenceLocation: 'paragraph 1',
+    },
+  ],
+  openQuestions: [],
+};
+
+const defaultConceptPage = {
+  title: 'Praemeditatio Malorum',
+  tags: ['stoicism', 'psychology'],
+  body: 'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios.',
+  claims: [
+    {
+      slug: 'cortisol-reduction',
+      confidence: 0.85,
+      status: 'active',
+      text: 'Praemeditatio malorum reduces cortisol by 18%.',
+      evidence: 'sources/test-source',
+    },
+  ],
+  openQuestions: [],
+};
+
 const defaultExtractionResult = {
   entities: [
     {
@@ -52,6 +85,8 @@ const defaultMatchResult = {
 function makeMockLlm(opts?: {
   extractionResult?: Record<string, unknown>;
   matchResult?: Record<string, unknown>;
+  entityPage?: Record<string, unknown>;
+  conceptPage?: Record<string, unknown>;
   completeResponse?: string;
 }): LlmService {
   return {
@@ -85,6 +120,12 @@ function makeMockLlm(opts?: {
       }
       if (schemaName === 'SemanticMatchResult') {
         return (opts?.matchResult ?? defaultMatchResult) as unknown as T;
+      }
+      if (schemaName === 'EntityPage') {
+        return (opts?.entityPage ?? defaultEntityPage) as unknown as T;
+      }
+      if (schemaName === 'ConceptPage') {
+        return (opts?.conceptPage ?? defaultConceptPage) as unknown as T;
       }
       return {} as unknown as T;
     },
@@ -212,7 +253,7 @@ describe('Ingest', () => {
       const senecaPage = join(config.vaultPath, 'entities', 'seneca.md');
       await expect(
         import('node:fs/promises').then((fs) => fs.readFile(senecaPage, 'utf-8')),
-      ).resolves.toContain('Updated page content');
+      ).resolves.toContain('entity.seneca');
     });
 
     it('writes a log entry to log.md', async () => {
@@ -365,15 +406,24 @@ describe('Ingest', () => {
 
   describe('extract', () => {
     it('reads the source page and calls LLM for extraction', async () => {
-      let capturedRequest: LlmStructuredRequest | undefined;
+      const capturedRequests: LlmStructuredRequest[] = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const llm = makeMockLlm();
       llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
-        capturedRequest = req;
-        return defaultExtractionResult as unknown as T;
+        capturedRequests.push(req);
+        if (req.schemaName === 'ExtractionResult') {
+          return defaultExtractionResult as unknown as T;
+        }
+        if (req.schemaName === 'EntityPage') {
+          return defaultEntityPage as unknown as T;
+        }
+        if (req.schemaName === 'ConceptPage') {
+          return defaultConceptPage as unknown as T;
+        }
+        return defaultMatchResult as unknown as T;
       };
 
       const emit = makeMockEmit();
@@ -390,10 +440,11 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      expect(capturedRequest).toBeDefined();
-      expect(capturedRequest?.schemaName).toBe('ExtractionResult');
-      expect(capturedRequest?.messages[0].content).toContain('Seneca');
-      expect(capturedRequest?.messages[0].content).toContain('praemeditatio malorum');
+      expect(capturedRequests.length).toBeGreaterThanOrEqual(1);
+      const extractionRequest = capturedRequests.find((r) => r.schemaName === 'ExtractionResult');
+      expect(extractionRequest).toBeDefined();
+      expect(extractionRequest?.messages[0].content).toContain('Seneca');
+      expect(extractionRequest?.messages[0].content).toContain('praemeditatio malorum');
     });
   });
 });

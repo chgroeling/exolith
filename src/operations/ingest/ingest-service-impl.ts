@@ -62,6 +62,46 @@ interface SemanticMatchResult {
   unmatched: string[];
 }
 
+/** Structured output from the LLM for a new entity page. */
+interface EntityPage {
+  title: string;
+  tags: string[];
+  body: string;
+  claims: Array<{
+    slug: string;
+    confidence: number;
+    status: string;
+    text: string;
+    evidence: string;
+    evidenceLocation?: string;
+    limitation?: string;
+  }>;
+  openQuestions?: Array<{
+    question: string;
+    context?: string;
+  }>;
+}
+
+/** Structured output from the LLM for a new concept page. */
+interface ConceptPage {
+  title: string;
+  tags: string[];
+  body: string;
+  claims: Array<{
+    slug: string;
+    confidence: number;
+    status: string;
+    text: string;
+    evidence: string;
+    evidenceLocation?: string;
+    limitation?: string;
+  }>;
+  openQuestions?: Array<{
+    question: string;
+    context?: string;
+  }>;
+}
+
 const PAGE_TYPE_MAP: Record<string, string> = {
   Sources: 'source',
   Entities: 'entity',
@@ -72,6 +112,8 @@ const PAGE_TYPE_MAP: Record<string, string> = {
 
 const extractionSchema = loadSchemaFile<Record<string, unknown>>('extraction.schema.json');
 const matchSchema = loadSchemaFile<Record<string, unknown>>('match.schema.json');
+const entityPageSchema = loadSchemaFile<Record<string, unknown>>('entity-page.schema.json');
+const conceptPageSchema = loadSchemaFile<Record<string, unknown>>('concept-page.schema.json');
 
 export class Ingest implements IngestService {
   private logger: Logger;
@@ -280,7 +322,7 @@ export class Ingest implements IngestService {
     }
   }
 
-  /** Creates a new entity page via LLM and writes it to the vault. */
+  /** Creates a new entity page via LLM structured output and template rendering. */
   private async createEntityPage(
     entity: ExtractedEntity,
     slug: string,
@@ -305,8 +347,36 @@ export class Ingest implements IngestService {
 
     log.info('Creating new entity page');
     this.emit({ type: 'page_creating_start', pageType: 'entity', name: entity.name, slug });
-    const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
-    log.debug({ prompt: createPrompt, response: pageContent }, 'LLM create entity call');
+
+    const entityPage = await this.llmService.generateStructured<EntityPage>({
+      systemPrompt,
+      messages: [{ role: 'user', content: createPrompt }],
+      schema: entityPageSchema,
+      schemaName: 'EntityPage',
+      schemaDescription: 'A complete entity page for the wiki vault.',
+    });
+    log.debug({ prompt: createPrompt, response: entityPage }, 'LLM create entity call');
+
+    const confidence =
+      entityPage.claims.length > 0
+        ? (
+            entityPage.claims.reduce((sum, c) => sum + c.confidence, 0) / entityPage.claims.length
+          ).toFixed(2)
+        : '0.50';
+
+    const pageContent = this.promptService.render('entity-page-output', {
+      id: entity.id,
+      title: entityPage.title,
+      status: 'review',
+      tags: entityPage.tags ?? [],
+      confidence,
+      created: today,
+      updated: today,
+      body: entityPage.body,
+      claims: entityPage.claims,
+      openQuestions: entityPage.openQuestions ?? [],
+    });
+
     const dir = join(this.config.vaultPath, 'entities');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
@@ -315,7 +385,7 @@ export class Ingest implements IngestService {
     this.emit({ type: 'page_created', pageType: 'entity', name: entity.name, slug });
   }
 
-  /** Creates a new concept page via LLM and writes it to the vault. */
+  /** Creates a new concept page via LLM structured output and template rendering. */
   private async createConceptPage(
     concept: ExtractedConcept,
     slug: string,
@@ -345,8 +415,36 @@ export class Ingest implements IngestService {
 
     log.info('Creating new concept page');
     this.emit({ type: 'page_creating_start', pageType: 'concept', name: concept.name, slug });
-    const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
-    log.debug({ prompt: createPrompt, response: pageContent }, 'LLM create concept call');
+
+    const conceptPage = await this.llmService.generateStructured<ConceptPage>({
+      systemPrompt,
+      messages: [{ role: 'user', content: createPrompt }],
+      schema: conceptPageSchema,
+      schemaName: 'ConceptPage',
+      schemaDescription: 'A complete concept page for the wiki vault.',
+    });
+    log.debug({ prompt: createPrompt, response: conceptPage }, 'LLM create concept call');
+
+    const confidence =
+      conceptPage.claims.length > 0
+        ? (
+            conceptPage.claims.reduce((sum, c) => sum + c.confidence, 0) / conceptPage.claims.length
+          ).toFixed(2)
+        : '0.50';
+
+    const pageContent = this.promptService.render('concept-page-output', {
+      id: concept.id,
+      title: conceptPage.title,
+      status: 'review',
+      tags: conceptPage.tags ?? [],
+      confidence,
+      created: today,
+      updated: today,
+      body: conceptPage.body,
+      claims: conceptPage.claims,
+      openQuestions: conceptPage.openQuestions ?? [],
+    });
+
     const dir = join(this.config.vaultPath, 'concepts');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);

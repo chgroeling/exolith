@@ -2,8 +2,6 @@ You are creating a new concept page for the wiki. Concepts are abstract ideas, t
 
 ## The Concept You Are Creating
 
-This is the concept you must create a page for:
-
 **Name:** {{ conceptName }}
 **Domain:** {{ domain }}
 **Description:** {{ description }}
@@ -31,38 +29,33 @@ These are all concepts extracted from the source — use them to understand conn
 
 ## Instructions
 
-Create a complete concept page for "{{ conceptName }}". Follow the concept page specification:
+Return a JSON object with the following shape:
 
-1. **YAML frontmatter:** Use id: concept.{{ slug }}, set title to the concept name, status: review (new page, not yet reviewed), confidence as average of claim confidences, today's date ({{ today }}) for created and updated. Include relevant lowercase tags based on the domain.
+1. **title** — The canonical name of the concept.
 
-2. **Body:** Write a concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally.
+2. **tags** — Array of lowercase tags based on the concept domain (e.g. ["stoicism", "psychology", "anxiety-management"]).
 
-3. **Generate claims:** Based on ALL the context above — the concept being created, the entities, the other concepts, and the source — generate verifiable claims for a `## Claims` section. Claims can assert:
+3. **body** — A concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally. Write in the same language as the source content.
+
+4. **claims** — Array of claim objects (at least one). Each claim object has these fields:
+   - **slug** — Short unique kebab-case slug (e.g. "cortisol-reduction"). The full claim ID `claim.{slug}` is composed automatically — do NOT include the `claim.` prefix.
+   - **confidence** — 0.0–1.0 based on evidence quality. Use 0.3 for assertions with thin evidence, up to 0.95 for well-established facts.
+   - **status** — One of: "active", "uncertain", "contested", "superseded", "deprecated". New claims are typically "active". Use "uncertain" for speculative statements.
+   - **text** — The claim text, a single verifiable assertion.
+   - **evidence** — Wikilink target WITHOUT brackets. For source-derived claims use the source path. For connections to an entity use "entities/entity-slug". For connections to another concept use "concepts/concept-slug".
+   - **evidenceLocation** — (optional) Location reference within the evidence (e.g. "paragraph 3").
+   - **limitation** — (optional) Methodological or content limitation.
+
+   Generate claims that assert:
    - Facts about this concept (from the source context)
    - Connections between this concept and extracted entities
    - Connections between this concept and other extracted concepts
    - Connections between this concept and the source
 
-   Every claim carries exactly one `*Evidence:*` link. The link target depends on what the claim asserts:
-   - Claims derived from the source → `*Evidence:* [[{{ sourcePath }}]]`
-   - Claims asserting a connection to an entity → `*Evidence:* [[entities/entity-slug]]`
-   - Claims asserting a connection to another concept → `*Evidence:* [[concepts/other-concept-slug]]`
+   Every claim must have exactly one evidence target.
 
-   Each claim must:
-   - Have a unique `id:claim.xxx` derived from the claim text
-   - Include a confidence estimate (0.0-1.0) based on evidence quality
-   - Have exactly one `*Evidence:*` wikilink — never more than one
+5. **openQuestions** — (optional) Array of open question objects, each with:
+   - **question** — The question text.
+   - **context** — (optional) Context for why this question is open.
 
-   Format each claim as:
-   ```
-   - `id:claim.xxx` `conf:0.X` `status:active`
-     Claim text here.
-     *Evidence:* [[{{ sourcePath }}]] (location)
-     *Limitation:* any limitations here
-   ```
-
-4. **Open Questions:** If the information raises unanswered questions, add an `## Open Questions` section.
-
-5. Write in the same language as the source content. Be concise and precise.
-
-Return the complete page content (including YAML frontmatter) as a single string.
+Return only the JSON object — no surrounding text or markdown.
