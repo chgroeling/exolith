@@ -84,6 +84,7 @@ export class Ingest implements IngestService {
   private sourceFileName = '';
   private sourceFilePath = '';
   private sourceTitle = '';
+  private sourceContent = '';
 
   constructor(
     private llmService: LlmService,
@@ -138,6 +139,7 @@ export class Ingest implements IngestService {
     this.emit({ type: 'step_start', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
+    this.sourceContent = body;
     const frontmatter = parseYamlFrontmatter(rawContent);
     this.sourceTitle = (frontmatter.title as string) ?? this.sourceFileName;
 
@@ -295,6 +297,7 @@ export class Ingest implements IngestService {
       sourceContext: entity.sourceContext,
       slug,
       sourcePath: sourceRelativePath,
+      sourceContent: this.sourceContent,
       entities: this.extractionResult.entities,
       concepts: this.extractionResult.concepts,
       today,
@@ -334,6 +337,7 @@ export class Ingest implements IngestService {
       sourceContext: concept.sourceContext,
       slug,
       sourcePath: sourceRelativePath,
+      sourceContent: this.sourceContent,
       entities: this.extractionResult.entities,
       concepts: this.extractionResult.concepts,
       today,
