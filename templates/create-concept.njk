@@ -15,20 +15,15 @@ This concept was extracted from: [[{{ sourcePath }}]]
 
 ## All Extracted Entities
 
-These are all entities extracted from the source — use them to form claims connecting this concept to entities:
+These are all entities extracted from the source — use them to form claims connecting this concept to entities.
 
-{% for e in entities %}
-- **{{ e.name }}** ({{ e.entityType }}): {{ e.description }}
-{% endfor %}
+{{ entities | dump(2) }}
 
 ## All Extracted Concepts
 
-These are all concepts extracted from the source — use them to understand connections and form inter-concept claims:
+These are all concepts extracted from the source — use them to understand connections and form inter-concept claims. The concept you are creating is "{{ conceptName }}".
 
-{% for c in concepts %}
-- **{{ c.name }}** ({{ c.domain }}): {{ c.description }}
-  {% if c.name == conceptName %}← THIS IS THE CONCEPT YOU ARE CREATING{% endif %}
-{% endfor %}
+{{ concepts | dump(2) }}
 
 ## Instructions
 

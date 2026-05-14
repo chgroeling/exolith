@@ -15,20 +15,15 @@ This entity was extracted from: [[{{ sourcePath }}]]
 
 ## All Extracted Entities
 
-These are all entities extracted from the source — use them to understand connections and form inter-entity claims:
+These are all entities extracted from the source — use them to understand connections and form inter-entity claims. The entity you are creating is "{{ entityName }}".
 
-{% for e in entities %}
-- **{{ e.name }}** ({{ e.entityType }}): {{ e.description }}
-  {% if e.name == entityName %}← THIS IS THE ENTITY YOU ARE CREATING{% endif %}
-{% endfor %}
+{{ entities | dump(2) }}
 
 ## All Extracted Concepts
 
-These are all concepts extracted from the source — use them to form claims connecting this entity to concepts:
+These are all concepts extracted from the source — use them to form claims connecting this entity to concepts.
 
-{% for c in concepts %}
-- **{{ c.name }}** ({{ c.domain }}): {{ c.description }}
-{% endfor %}
+{{ concepts | dump(2) }}
 
 ## Instructions
 
