@@ -21,6 +21,10 @@ interface ExtractedEntity {
   entityType: string;
   description: string;
   sourceContext: string;
+  /** Canonical slug computed programmatically after extraction — stable, never recomputed. */
+  slug: string;
+  /** Canonical identifier: `entity.{slug}`. */
+  id: string;
 }
 
 /** Extracted concept from a source page. */
@@ -29,6 +33,10 @@ interface ExtractedConcept {
   domain: string;
   description: string;
   sourceContext: string;
+  /** Canonical slug computed programmatically after extraction — stable, never recomputed. */
+  slug: string;
+  /** Canonical identifier: `concept.{slug}`. */
+  id: string;
 }
 
 /** Structured extraction result from the LLM. */
@@ -124,6 +132,7 @@ export class Ingest implements IngestService {
 
   /** Step 1: Extracts structured knowledge — entities and concepts from the source. */
   private async extract(sourceFilePath: string): Promise<void> {
+    const log = this.logger.child({ step: 'extract', sourceFilePath });
     this.emit({ type: 'step_start', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
@@ -133,17 +142,33 @@ export class Ingest implements IngestService {
     const systemPrompt = this.promptService.render('system-prompt', {});
     const prompt = this.promptService.render('extract-knowledge', { sourceContent: body });
 
-    this.logger.info({ sourceFilePath }, 'Extracting knowledge from source page');
-    this.extractionResult = await this.llmService.generateStructured<ExtractionResult>({
+    log.info('Extracting knowledge from source page');
+    const rawResult = await this.llmService.generateStructured<{
+      entities: Omit<ExtractedEntity, 'slug' | 'id'>[];
+      concepts: Omit<ExtractedConcept, 'slug' | 'id'>[];
+    }>({
       systemPrompt,
       messages: [{ role: 'user', content: prompt }],
       schema: extractionSchema,
       schemaName: 'ExtractionResult',
       schemaDescription: 'Structured extraction of entities and concepts from a wiki source page.',
     });
-    this.logger.debug({ prompt, response: this.extractionResult }, 'LLM extract knowledge call');
 
-    this.logger.info(
+    for (const entity of rawResult.entities) {
+      const fullId = this.identifier.createId('entity', entity.name);
+      (entity as ExtractedEntity).slug = this.identifier.decomposeId(fullId).slug;
+      (entity as ExtractedEntity).id = fullId;
+    }
+    for (const concept of rawResult.concepts) {
+      const fullId = this.identifier.createId('concept', concept.name);
+      (concept as ExtractedConcept).slug = this.identifier.decomposeId(fullId).slug;
+      (concept as ExtractedConcept).id = fullId;
+    }
+
+    this.extractionResult = rawResult as unknown as ExtractionResult;
+    log.debug({ prompt, response: this.extractionResult }, 'LLM extract knowledge call');
+
+    log.info(
       {
         entities: this.extractionResult.entities.length,
         concepts: this.extractionResult.concepts.length,
@@ -155,6 +180,7 @@ export class Ingest implements IngestService {
 
   /** Step 2: Updates all wiki pages touched by the extracted knowledge. */
   private async updateWikiPages(): Promise<void> {
+    const log = this.logger.child({ step: 'update' });
     this.emit({
       type: 'step_start',
       step: 'Updating',
@@ -162,7 +188,7 @@ export class Ingest implements IngestService {
     });
     const indexEntries = await this.loadIndex();
     const entryCount = [...indexEntries.values()].reduce((s, e) => s + e.length, 0);
-    this.logger.info({ indexSize: entryCount }, 'Index loaded');
+    log.info({ indexSize: entryCount }, 'Index loaded');
 
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
 
@@ -185,23 +211,24 @@ export class Ingest implements IngestService {
   }
 
   /** Updates or creates pages of the given type via two-phase lookup and LLM. */
-  private async updatePages<T extends { name: string }>(
+  private async updatePages<T extends { name: string; slug: string }>(
     items: T[],
     pageType: string,
     indexEntries: Map<string, IndexEntry[]>,
     sourceRelativePath: string,
     createPage: (item: T, slug: string, sourceRelativePath: string) => Promise<void>,
   ): Promise<void> {
+    const log = this.logger.child({ step: 'updatePages', pageType });
     const entries = indexEntries.get(pageType) ?? [];
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
     const matches = await this.resolveMatches(
-      items.map((i) => i.name),
+      items.map((i) => ({ name: i.name, slug: i.slug })),
       entries,
       pageType,
     );
 
-    this.logger.debug({ matches: Object.fromEntries(matches) }, 'Resolution matches');
+    log.debug({ matches: Object.fromEntries(matches) }, 'Resolution matches');
     const pagesDir = join(this.config.vaultPath, `${pageType}s`);
 
     for (const item of items) {
@@ -213,12 +240,8 @@ export class Ingest implements IngestService {
         try {
           currentContent = await readFile(pagePath, 'utf-8');
         } catch {
-          this.logger.warn(
-            { pagePath },
-            `Matched ${pageType} page not found on disk, treating as create`,
-          );
-          const slug = this.slugifyName(item.name);
-          await createPage(item, slug, sourceRelativePath);
+          log.warn({ pagePath }, `Matched ${pageType} page not found on disk, treating as create`);
+          await createPage(item, item.slug, sourceRelativePath);
           continue;
         }
 
@@ -230,7 +253,7 @@ export class Ingest implements IngestService {
           today,
         });
 
-        this.logger.info({ pagePath }, `Updating existing ${pageType} page`);
+        log.info({ pagePath, name: item.name }, `Updating existing ${pageType} page`);
         this.emit({
           type: 'page_updating_start',
           pageType: pageType as 'entity' | 'concept',
@@ -238,6 +261,7 @@ export class Ingest implements IngestService {
           slug: matchedSlug,
         });
         const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
+        log.debug({ prompt: updatePrompt, response: updatedContent }, 'LLM update page call');
         await writeFile(pagePath, updatedContent, 'utf-8');
         this.updatedPages.push(`${pageType}s/${matchedSlug}.md`);
         this.emit({
@@ -247,8 +271,7 @@ export class Ingest implements IngestService {
           slug: matchedSlug,
         });
       } else {
-        const slug = this.slugifyName(item.name);
-        await createPage(item, slug, sourceRelativePath);
+        await createPage(item, item.slug, sourceRelativePath);
       }
     }
   }
@@ -259,6 +282,7 @@ export class Ingest implements IngestService {
     slug: string,
     sourceRelativePath: string,
   ): Promise<void> {
+    const log = this.logger.child({ step: 'create', pageType: 'entity', name: entity.name, slug });
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
 
@@ -274,10 +298,10 @@ export class Ingest implements IngestService {
       today,
     });
 
-    this.logger.info({ name: entity.name, slug }, 'Creating new entity page');
+    log.info('Creating new entity page');
     this.emit({ type: 'page_creating_start', pageType: 'entity', name: entity.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
-    this.logger.debug({ prompt: createPrompt, response: pageContent }, 'LLM create entity call');
+    log.debug({ prompt: createPrompt, response: pageContent }, 'LLM create entity call');
     const dir = join(this.config.vaultPath, 'entities');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
@@ -292,6 +316,12 @@ export class Ingest implements IngestService {
     slug: string,
     sourceRelativePath: string,
   ): Promise<void> {
+    const log = this.logger.child({
+      step: 'create',
+      pageType: 'concept',
+      name: concept.name,
+      slug,
+    });
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
 
@@ -307,10 +337,10 @@ export class Ingest implements IngestService {
       today,
     });
 
-    this.logger.info({ name: concept.name, slug }, 'Creating new concept page');
+    log.info('Creating new concept page');
     this.emit({ type: 'page_creating_start', pageType: 'concept', name: concept.name, slug });
     const pageContent = await this.llmService.complete(createPrompt, systemPrompt);
-    this.logger.debug({ prompt: createPrompt, response: pageContent }, 'LLM create concept call');
+    log.debug({ prompt: createPrompt, response: pageContent }, 'LLM create concept call');
     const dir = join(this.config.vaultPath, 'concepts');
     await mkdir(dir, { recursive: true });
     const pagePath = join(dir, `${slug}.md`);
@@ -321,6 +351,7 @@ export class Ingest implements IngestService {
 
   /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {
+    const log = this.logger.child({ step: 'log' });
     this.emit({
       type: 'step_start',
       step: 'Logging',
@@ -378,7 +409,7 @@ export class Ingest implements IngestService {
 
     const updatedLog = `${header}\n\n${newEntry}${body}`;
     await writeFile(logPath, updatedLog, 'utf-8');
-    this.logger.debug(
+    log.debug(
       {
         logPath,
         createdPages: this.createdPages,
@@ -393,63 +424,56 @@ export class Ingest implements IngestService {
 
   /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
   private async triggerCompile(): Promise<void> {
+    const log = this.logger.child({ step: 'compile' });
     this.emit({
       type: 'step_start',
       step: 'Compiling',
       data: { sourceFilePath: this.sourceFilePath },
     });
-    this.logger.info('Triggering compile operation');
+    log.info('Triggering compile operation');
     await this.compileService.compile();
     this.emit({ type: 'step_end', step: 'Compiling' });
   }
 
   /** Reads and parses index.md into a registry grouped by page type. */
   private async loadIndex(): Promise<Map<string, IndexEntry[]>> {
+    const log = this.logger.child({ step: 'loadIndex' });
     const indexPath = join(this.config.vaultPath, 'index.md');
     let content: string;
     try {
       content = await readFile(indexPath, 'utf-8');
     } catch {
-      this.logger.info('No index.md found, treating all elements as new pages');
+      log.info('No index.md found, treating all elements as new pages');
       return new Map();
     }
     return parseIndex(content);
   }
 
-  /** Slugifies a name for exact matching against index slugs. */
-  private slugifyName(name: string): string {
-    const id = this.identifier.createId('entity', name);
-    return this.identifier.decomposeId(id).slug;
-  }
-
   /**
-   * Resolves extracted names to existing page slugs using two-phase lookup:
-   * Phase 1 — exact slug match; Phase 2 — LLM-based semantic match.
-   * Returns a map from name to matched slug, or null if no match was found.
+   * Resolves extracted items to existing page slugs using two-phase lookup:
+   * Phase 1 — exact slug match (uses pre-computed item slug); Phase 2 — LLM-based semantic match.
+   * Returns a map from name to matched slug.
    */
   private async resolveMatches(
-    names: string[],
+    items: { name: string; slug: string }[],
     entries: IndexEntry[],
     pageType: string,
   ): Promise<Map<string, string>> {
+    const log = this.logger.child({ step: 'resolveMatches', pageType });
     const result = new Map<string, string>();
     const unmatchedNames: string[] = [];
 
-    for (const name of names) {
-      const candidateSlug = this.slugifyName(name);
-      const found = entries.find((e) => e.slug === candidateSlug);
+    for (const item of items) {
+      const found = entries.find((e) => e.slug === item.slug);
       if (found) {
-        result.set(name, found.slug);
+        result.set(item.name, found.slug);
       } else {
-        unmatchedNames.push(name);
+        unmatchedNames.push(item.name);
       }
     }
 
     if (unmatchedNames.length > 0 && entries.length > 0) {
-      this.logger.info(
-        { pageType, unmatchedCount: unmatchedNames.length },
-        'Running Phase 2 semantic match',
-      );
+      log.info({ unmatchedCount: unmatchedNames.length }, 'Running Phase 2 semantic match');
       const semanticMatches = await this.semanticMatch(unmatchedNames, entries, pageType);
       for (const sm of semanticMatches.matches) {
         if (!result.has(sm.extractedName)) {
@@ -467,6 +491,7 @@ export class Ingest implements IngestService {
     entries: IndexEntry[],
     pageType: string,
   ): Promise<SemanticMatchResult> {
+    const log = this.logger.child({ step: 'semanticMatch', pageType });
     const systemPrompt = this.promptService.render('system-prompt', {});
     const prompt = this.promptService.render('match-pages', {
       pageType,
@@ -478,7 +503,7 @@ export class Ingest implements IngestService {
       })),
     });
 
-    return this.llmService.generateStructured<SemanticMatchResult>({
+    const result = await this.llmService.generateStructured<SemanticMatchResult>({
       systemPrompt,
       messages: [{ role: 'user', content: prompt }],
       schema: matchSchema,
@@ -486,6 +511,8 @@ export class Ingest implements IngestService {
       schemaDescription:
         'Result of semantic matching between extracted names and existing wiki page summaries.',
     });
+    log.debug({ prompt, response: result }, 'LLM semantic match call');
+    return result;
   }
 }
 
