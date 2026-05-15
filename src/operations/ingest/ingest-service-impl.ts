@@ -254,6 +254,14 @@ export class Ingest implements IngestService {
       'concept',
     );
 
+    log.trace(
+      {
+        entityMatches: Object.fromEntries(entityMatches),
+        conceptMatches: Object.fromEntries(conceptMatches),
+      },
+      'Resolved entity and concept matches',
+    );
+
     for (const concept of this.extractionResult.concepts) {
       if (!conceptMatches.has(concept.name)) {
         await this.createConceptSkeleton(concept, concept.slug, sourceRelativePath);
@@ -714,17 +722,25 @@ export class Ingest implements IngestService {
       const found = entries.find((e) => e.slug === item.slug);
       if (found) {
         result.set(item.name, found.slug);
+        log.trace(
+          { name: item.name, slug: found.slug, method: 'ExactSlugMatch' },
+          'Matched via exact slug',
+        );
       } else {
         unmatchedNames.push(item.name);
       }
     }
 
     if (unmatchedNames.length > 0 && entries.length > 0) {
-      log.info({ unmatchedCount: unmatchedNames.length }, 'Running Phase 2 semantic match');
+      log.debug({ unmatchedCount: unmatchedNames.length }, 'Running Phase 2 semantic match');
       const semanticMatches = await this.semanticMatch(unmatchedNames, entries, pageType);
       for (const sm of semanticMatches.matches) {
         if (!result.has(sm.extractedName)) {
           result.set(sm.extractedName, sm.matchedSlug);
+          log.trace(
+            { name: sm.extractedName, slug: sm.matchedSlug, method: 'SemanticMatch' },
+            'Matched via semantic match',
+          );
         }
       }
     }
@@ -758,7 +774,8 @@ export class Ingest implements IngestService {
       schemaDescription:
         'Result of semantic matching between extracted names and existing wiki page summaries.',
     });
-    log.debug({ prompt, response: result }, 'LLM semantic match call');
+
+    log.trace({ prompt, response: result }, 'LLM semantic match call');
     return result;
   }
 }
