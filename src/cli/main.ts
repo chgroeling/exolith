@@ -35,12 +35,7 @@ async function bootstrap(
     maxSourceSize?: string;
   } = {},
 ) {
-  const logFilePath = globalOpts.logFile ?? 'exolith.log';
-  const logLevel = globalOpts.logLevel ?? 'info';
-  const logStream = createWriteStream(logFilePath, { flags: 'w' });
-  const logger = pino({ level: logLevel, base: undefined }, logStream);
-
-  const configLoader = new ConfigLoaderServiceImpl(logger);
+  const configLoader = new ConfigLoaderServiceImpl();
 
   let result: ConfigLoadResult;
 
@@ -56,7 +51,12 @@ async function bootstrap(
   const { config, rootDir } = result;
   const vaultPath = rootDir;
 
+  const logFilePath = globalOpts.logFile ?? resolve(rootDir, 'exolith.log');
+  const logLevel = globalOpts.logLevel ?? 'info';
   const maxSourceSize = Number(cmdOpts.maxSourceSize ?? config.maxSourceSize ?? 10485760);
+
+  const logStream = createWriteStream(logFilePath, { flags: 'w' });
+  const logger = pino({ level: logLevel, base: undefined }, logStream);
 
   logger.info({ rootDir }, 'CLI started');
   logger.trace({ config }, 'current configuration');
