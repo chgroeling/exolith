@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
+import { parseNote } from '../../core/note-parser';
 import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
@@ -559,6 +560,8 @@ export class Ingest implements IngestService {
 
     const humanBlockContent = extractHumanBlock(currentContent);
     const frontmatter = parseYamlFrontmatter(currentContent);
+    const currentNote = parseNote(currentContent);
+    const cleanPageContent = stripHumanBlock(currentContent);
 
     const allEntries = [...(index.get('entity') ?? []), ...(index.get('concept') ?? [])];
     const relevantSlugs = await this.filterRelevantPages(item, allEntries);
@@ -571,7 +574,8 @@ export class Ingest implements IngestService {
       itemType: item.type,
       itemDescription: item.description,
       itemSourceContext: item.sourceContext,
-      currentPageContent: currentContent,
+      currentPageContent: cleanPageContent,
+      currentNote: JSON.stringify(currentNote, null, 2),
       sourcePath: sourceRelativePath,
       relevantPages,
       today,
@@ -1039,4 +1043,15 @@ function extractHumanBlock(content: string): string {
   let inner = content.slice(startIndex + startMarker.length, endIndex);
   inner = inner.trim();
   return inner;
+}
+
+/** Removes the human block (comment markers and content between them) from a page. */
+function stripHumanBlock(content: string): string {
+  const startMarker = '<!-- exolith:human:start -->';
+  const endMarker = '<!-- exolith:human:end -->';
+  const startIndex = content.indexOf(startMarker);
+  if (startIndex === -1) return content;
+  const endIndex = content.indexOf(endMarker, startIndex);
+  if (endIndex === -1) return content;
+  return (content.slice(0, startIndex) + content.slice(endIndex + endMarker.length)).trim();
 }
