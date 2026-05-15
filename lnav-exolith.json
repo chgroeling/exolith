@@ -23,9 +23,19 @@
       {
         "field": "logger",
         "default-value": "-",
-        "min-width": 12,
-        "max-width": 12
+        "min-width": 15,
+        "max-width": 15,
+        "overflow": "abbrev"
       },
+      " ",
+      {
+        "field": "step",
+        "default-value": "-",
+        "min-width": 15,
+        "max-width": 15,
+        "overflow": "truncate"
+      },
+      " ",
       {
         "field": "msg"
       }
@@ -51,6 +61,10 @@
         "identifier": false
       },
       "logger": {
+        "kind": "string",
+        "identifier": true
+      },
+      "step": {
         "kind": "string",
         "identifier": true
       },
