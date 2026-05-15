@@ -9,13 +9,15 @@ import {
   buildCompileFactory,
   buildIngestFactory,
   buildPreIngestFactory,
+  resolveTemplateDir,
 } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
 import { CONFIG_FILE_NAME } from '../core/config/config-types';
-import type { ConfigLoadResult, ExolithConfig } from '../core/config/config-types';
+import type { ConfigLoadResult } from '../core/config/config-types';
 import { FileListServiceImpl } from '../core/file-list-service-impl';
 import type { TableFormatter } from '../core/table-formatter';
 import { TableFormatterImpl } from '../core/table-formatter-impl';
+import { PromptServiceImpl } from '../infrastructure/prompt/prompt-service-impl';
 import { createCliPresentation } from './cli-presentation';
 
 (globalThis as Record<string, unknown>).AI_SDK_LOG_WARNINGS = false;
@@ -107,13 +109,16 @@ program
       process.exit(1);
     } catch {}
 
-    const config: ExolithConfig = {
-      model: options.model,
-      reasoningLevel: options.reasoningLevel as ExolithConfig['reasoningLevel'],
-    };
+    const configContent = new PromptServiceImpl(resolveTemplateDir(import.meta.url)).render(
+      'init-config',
+      {
+        model: options.model,
+        reasoningLevel: options.reasoningLevel,
+      },
+    );
 
     await mkdir(targetDir, { recursive: true });
-    await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+    await writeFile(configPath, configContent, 'utf-8');
     process.stderr.write(`Created ${configPath}\n`);
   });
 

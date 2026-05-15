@@ -1,0 +1,17 @@
+{
+  // Exolith vault configuration (JSON5).
+  // Supports comments, trailing commas, and unquoted keys.
+  //
+  // Model identifier in "provider/model-id" format.
+  // The first segment selects the LLM gateway ("deepseek" or "openrouter").
+  // Examples: "deepseek/deepseek-v4-flash", "openrouter/deepseek/deepseek-v4-pro"
+  model: "{{ model }}",
+
+  // Reasoning effort level for the LLM.
+  // Supported values: "off" (default), "low", "medium", "high", "max".
+  reasoningLevel: "{{ reasoningLevel }}",
+
+  // Maximum allowed source file size in bytes (optional).
+  // Defaults to 10485760 (10 MB).
+  // maxSourceSize: 10485760,
+}
