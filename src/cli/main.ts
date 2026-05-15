@@ -79,6 +79,11 @@ program
   .command('init')
   .description('Initialize a new exolith vault by writing exolith.json')
   .option('--provider <provider>', 'LLM provider', 'deepseek')
+  .option(
+    '--reasoning-level <level>',
+    'reasoning effort level (off, low, medium, high, max)',
+    'off',
+  )
   .action(async (options) => {
     const globalOpts = program.opts();
     const targetDir = resolve(globalOpts.vaultDir ?? process.cwd());
@@ -91,6 +96,14 @@ program
       process.exit(1);
     }
 
+    const validLevels = ['off', 'low', 'medium', 'high', 'max'];
+    if (!validLevels.includes(options.reasoningLevel)) {
+      process.stderr.write(
+        `Error: reasoning-level must be one of ${validLevels.join(', ')}, got "${options.reasoningLevel}"\n`,
+      );
+      process.exit(1);
+    }
+
     try {
       await access(configPath);
       process.stderr.write(
@@ -99,7 +112,10 @@ program
       process.exit(1);
     } catch {}
 
-    const config: ExolithConfig = { provider: options.provider };
+    const config: ExolithConfig = {
+      provider: options.provider,
+      reasoningLevel: options.reasoningLevel as ExolithConfig['reasoningLevel'],
+    };
 
     await mkdir(targetDir, { recursive: true });
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');

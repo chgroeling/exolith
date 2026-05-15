@@ -15,7 +15,7 @@ Below is a JSON object containing two arrays:
 
 1. For each extracted name in `unmatchedItems`, compare it against ALL entries in `indexEntries`.
 2. For each comparison, first classify the relationship as one of:
-   - **Equivalent** — the extracted name and the index entry refer to the exact same real-world entity or concept (synonyms, direct translations, alternate spellings). Example: "Cortisol reduction" ↔ "cortisol-senkung-durch-meditation".
+   - **Equivalent** — the extracted name and the index entry refer to the exact same real-world entity or concept (synonyms, direct translations, alternate spellings). Example: "Strukturnotiz" ↔ "Struktur Notiz".
    - **PartOf** — the extracted name is a component, subset, or sub-technique of the index entry, or vice versa. Example: "Engine" is PartOf "Car". "Atomic Note" is PartOf "Zettelkasten".
    - **Related** — the two share a domain but describe different, distinct concepts.
 3. **ONLY output a match when the relationship is Equivalent.** Do NOT output matches for PartOf or Related relationships.

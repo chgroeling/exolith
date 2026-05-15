@@ -10,6 +10,8 @@ export interface ExolithConfig {
   logFile?: string;
   /** Log level for Pino. */
   logLevel?: string;
+  /** Reasoning effort level for the LLM. Defaults to "off". */
+  reasoningLevel?: 'off' | 'low' | 'medium' | 'high' | 'max';
 }
 
 /** Result of a successful configuration load via bubble-up search. */

@@ -19,6 +19,9 @@ import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-fa
 import type { PreIngestServiceFactory } from '../operations/pre-ingest/pre-ingest-service';
 import { PreIngestServiceFactoryImpl } from '../operations/pre-ingest/pre-ingest-service-factory-impl';
 
+/** Reasoninglevel values that the config accepts. */
+type ReasoningLevel = 'off' | 'low' | 'medium' | 'high' | 'max';
+
 /** Resolves the template directory for both dev and bundled modes. */
 export function resolveTemplateDir(importMetaUrl: string): string {
   const bundledDir = fileURLToPath(new URL('./templates', importMetaUrl));
@@ -26,10 +29,37 @@ export function resolveTemplateDir(importMetaUrl: string): string {
   return existsSync(bundledDir) ? bundledDir : devDir;
 }
 
+function buildDeepSeekOptions(level: ReasoningLevel): Record<string, unknown> {
+  if (level === 'off') {
+    return { thinking: { type: 'disabled' } };
+  }
+  if (level === 'max') {
+    return { thinking: { type: 'enabled' }, reasoningEffort: 'max' };
+  }
+  return { thinking: { type: 'enabled' }, reasoningEffort: 'high' };
+}
+
+function buildOpenRouterOptions(level: ReasoningLevel): Record<string, unknown> {
+  if (level === 'off') {
+    return {};
+  }
+  const effortMap: Record<string, string> = {
+    low: 'low',
+    medium: 'medium',
+    high: 'high',
+    max: 'xhigh',
+  };
+  return { reasoning: { effort: effortMap[level] } };
+}
+
 /** Shared wiring helpers used by both factories. */
 function wireServices(logger: Logger, config: ExolithConfig) {
   const model = createModel(config);
-  const provider = createProvider(config.provider, model);
+  const level: ReasoningLevel = config.reasoningLevel ?? 'off';
+  const providerOptions: Record<string, Record<string, unknown>> = config.provider === 'deepseek'
+    ? { deepseek: buildDeepSeekOptions(level) }
+    : { openrouter: buildOpenRouterOptions(level) };
+  const provider = createProvider(config.provider, model, providerOptions);
   const slugger = new SluggerServiceImpl();
   const identifier = new IdentifierServiceImpl(slugger);
   const llmService = new LlmServiceImpl(provider, logger);
@@ -60,11 +90,15 @@ function createModel(config: ExolithConfig): LanguageModel {
   return openrouter(config.model ?? 'deepseek/deepseek-v4-pro');
 }
 
-function createProvider(provider: string, model: LanguageModel): LlmProvider {
+function createProvider(
+  provider: string,
+  model: LanguageModel,
+  providerOptions?: Record<string, Record<string, unknown>>,
+): LlmProvider {
   if (provider === 'deepseek') {
-    return new DeepSeekLlmProvider(model);
+    return new DeepSeekLlmProvider(model, providerOptions);
   }
-  return new OpenRouterLlmProvider(model);
+  return new OpenRouterLlmProvider(model, providerOptions);
 }
 
 /** Builds the pre-ingest factory wired with all dependencies. */
