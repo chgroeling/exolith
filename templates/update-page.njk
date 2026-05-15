@@ -6,24 +6,20 @@ You are updating an existing wiki page with newly extracted knowledge from a sou
 **Description:** {{ itemDescription }}
 **Source context:** {{ itemSourceContext }}
 
-## Current Page Content
-{{ currentPageContent }}
-
-## Current Page Notes (Structured Context)
-The existing page notes are provided below as structured JSON for context. The `human` field contains the user's personal notes — review this for additional perspective, but do not include it in your output. The YAML frontmatter and human notes section are handled programmatically.
+## Current Page (Structured JSON)
+The existing page including all frontmatter, content, claims, open questions, and personal notes is provided below as structured JSON. The `human` field contains the user's personal notes — review this for additional perspective, but do not include it in your output. The YAML frontmatter and human notes section are handled programmatically.
 
 ```json
 {{ currentNote }}
 ```
 
-{% if relevantPages and relevantPages.length > 0 %}
-## Relevant Existing Wiki Pages
-These are existing wiki pages that are semantically relevant to {{ itemName }}. Their full content is provided so you can establish cross-connections and claims between this page and those pages.
+{% if relevantNotes %}
+## Relevant Existing Wiki Pages (Structured JSON)
+These pages are semantically relevant to {{ itemName }}. Their full structure is provided as JSON including frontmatter, content, claims, open questions, and personal notes. Use them to establish cross-connections.
 
-{% for page in relevantPages %}
-### {{ page.title }} ({{ page.path }})
-{{ page.content }}
-{% endfor %}
+```json
+{{ relevantNotes }}
+```
 {% endif %}
 
 ## Source Page
@@ -33,9 +29,9 @@ New knowledge was extracted from: [[{{ sourcePath }}]]
 
 Update the page by integrating the new knowledge. Return a JSON object with the fields below. The YAML frontmatter and human notes section are handled programmatically — do NOT include them in your output.
 
-1. **Prose merge:** Weave new information naturally into the body text. Do NOT replace existing content — expand and enrich it. The body text after the YAML frontmatter (under # Title) is prose.
+1. **Prose merge:** Weave new information naturally into the body text. The `content` field of the current page shows the existing prose. Do NOT replace existing content — expand and enrich it.
 
-2. **Structured context:** The current page notes are provided above as JSON. Use the existing claims, open questions, and human notes for context when making update decisions. Do not include them in your output — they are handled programmatically.
+2. **Structured context:** The current page and relevant pages are provided above as JSON. Use the existing claims, open questions, and human notes for context when making update decisions. Do not include them in your output — they are handled programmatically.
 
 3. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims. Each claim must:
    - Have a unique `slug` field (kebab-case, e.g. "cortisol-senkung")
@@ -47,7 +43,7 @@ Update the page by integrating the new knowledge. Return a JSON object with the 
      - Claims asserting a connection to another entity → `entities/entity-slug`
      - Claims asserting a connection to another concept → `concepts/concept-slug`
    - Optionally include `evidenceLocation` (e.g. "paragraph 3") and `limitation`
-   - Decision logic for existing claims:
+   - Decision logic for existing claims (review the `claims` array in the current page JSON):
      - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace and set old status to `superseded`
      - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND as additional perspective
      - If claims contradict → CONFLICT: mark both as `contested`

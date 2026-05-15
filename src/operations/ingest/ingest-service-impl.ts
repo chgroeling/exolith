@@ -6,6 +6,7 @@ import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
 import { parseNote } from '../../core/note-parser';
+import type { ParsedNote } from '../../core/note-parser';
 import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
@@ -81,14 +82,6 @@ interface PageSkeleton {
   title: string;
   tags: string[];
   body: string;
-}
-
-/** A relevant page fully read for the update template context. */
-interface RelevantPage {
-  slug: string;
-  title: string;
-  path: string;
-  content: string;
 }
 
 const PAGE_TYPE_MAP: Record<string, string> = {
@@ -561,7 +554,6 @@ export class Ingest implements IngestService {
     const humanBlockContent = extractHumanBlock(currentContent);
     const frontmatter = parseYamlFrontmatter(currentContent);
     const currentNote = parseNote(currentContent);
-    const cleanPageContent = stripHumanBlock(currentContent);
 
     const allEntries = [...(index.get('entity') ?? []), ...(index.get('concept') ?? [])];
     const relevantSlugs = await this.filterRelevantPages(item, allEntries);
@@ -574,10 +566,9 @@ export class Ingest implements IngestService {
       itemType: item.type,
       itemDescription: item.description,
       itemSourceContext: item.sourceContext,
-      currentPageContent: cleanPageContent,
       currentNote: JSON.stringify(currentNote, null, 2),
+      relevantNotes: JSON.stringify(relevantPages, null, 2),
       sourcePath: sourceRelativePath,
-      relevantPages,
       today,
     });
 
@@ -592,7 +583,7 @@ export class Ingest implements IngestService {
     const schema = pageType === 'entity' ? updateEntityPageSchema : updateConceptPageSchema;
     const schemaName = pageType === 'entity' ? 'UpdateEntityPage' : 'UpdateConceptPage';
 
-    const skeleton = await this.llmService.generateStructured<
+    const pageOutput = await this.llmService.generateStructured<
       PageSkeleton & {
         claims?: Array<{
           slug: string;
@@ -612,11 +603,11 @@ export class Ingest implements IngestService {
       schemaName,
       schemaDescription: `Updated ${pageType} page with claims, cross-connections, and open questions.`,
     });
-    log.trace({ skeleton, updatePrompt }, 'Updated page structured output');
+    log.trace({ pageOutput, updatePrompt }, 'Updated page structured output');
 
-    const confidence = skeleton.claims?.length
+    const confidence = pageOutput.claims?.length
       ? (
-          skeleton.claims.reduce((sum, c) => sum + c.confidence, 0) / skeleton.claims.length
+          pageOutput.claims.reduce((sum, c) => sum + c.confidence, 0) / pageOutput.claims.length
         ).toFixed(2)
       : '0.50';
 
@@ -624,15 +615,15 @@ export class Ingest implements IngestService {
 
     const pageContent = this.promptService.render(outputTemplateName, {
       id: pageType === 'entity' ? `entity.${matchedSlug}` : `concept.${matchedSlug}`,
-      title: skeleton.title,
+      title: pageOutput.title,
       status: (frontmatter.status as string) ?? 'review',
-      tags: skeleton.tags ?? [],
+      tags: pageOutput.tags ?? [],
       confidence,
       created: (frontmatter.created as string) ?? today,
       updated: today,
-      body: skeleton.body,
-      claims: skeleton.claims ?? [],
-      openQuestions: skeleton.openQuestions ?? [],
+      body: pageOutput.body,
+      claims: pageOutput.claims ?? [],
+      openQuestions: pageOutput.openQuestions ?? [],
       humanBlockContent: humanBlockContent || undefined,
     });
 
@@ -685,16 +676,13 @@ export class Ingest implements IngestService {
     return result.relevantSlugs;
   }
 
-  /**
-   * Reads the full content of the pages identified as relevant by the filter step.
-   * Returns an array of {@link RelevantPage} for use in the update template context.
-   */
+  /** Reads and parses the pages identified as relevant by the filter step. Returns parsed note objects for use in the update template context. */
   private async readRelevantPages(
     slugs: string[],
     index: Map<string, IndexEntry[]>,
-  ): Promise<RelevantPage[]> {
+  ): Promise<ParsedNote[]> {
     const log = this.logger.child({ method_name: 'readRelevantPages' });
-    const relevantPages: RelevantPage[] = [];
+    const relevantPages: ParsedNote[] = [];
     const allEntries = [...index.values()].flat();
 
     for (const slug of slugs) {
@@ -704,12 +692,7 @@ export class Ingest implements IngestService {
       const pagePath = join(this.config.vaultPath, entry.path);
       try {
         const rawContent = await readFile(pagePath, 'utf-8');
-        relevantPages.push({
-          slug,
-          title: entry.title,
-          path: entry.path,
-          content: rawContent,
-        });
+        relevantPages.push(parseNote(rawContent));
       } catch (err) {
         log.warn({ slug, pagePath, err }, 'Could not read relevant page');
       }
@@ -1043,15 +1026,4 @@ function extractHumanBlock(content: string): string {
   let inner = content.slice(startIndex + startMarker.length, endIndex);
   inner = inner.trim();
   return inner;
-}
-
-/** Removes the human block (comment markers and content between them) from a page. */
-function stripHumanBlock(content: string): string {
-  const startMarker = '<!-- exolith:human:start -->';
-  const endMarker = '<!-- exolith:human:end -->';
-  const startIndex = content.indexOf(startMarker);
-  if (startIndex === -1) return content;
-  const endIndex = content.indexOf(endMarker, startIndex);
-  if (endIndex === -1) return content;
-  return (content.slice(0, startIndex) + content.slice(endIndex + endMarker.length)).trim();
 }
