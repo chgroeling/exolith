@@ -10,16 +10,32 @@
           "matchedSlug": {
             "type": "string",
             "description": "The slug of the matching existing page"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explanation of why this is a semantic match"
           }
         },
-        "required": ["extractedName", "matchedSlug"],
+        "required": ["extractedName", "matchedSlug", "reason"],
         "additionalProperties": false
-      }
+      },
+      "description": "Names that semantically match existing pages"
     },
     "unmatched": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Names that have no semantic match"
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "The extracted name that had no match" },
+          "reason": {
+            "type": "string",
+            "description": "Explanation of why no existing page matched"
+          }
+        },
+        "required": ["name", "reason"],
+        "additionalProperties": false
+      },
+      "description": "Names that have no semantic match, with reasons"
     }
   },
   "required": ["matches", "unmatched"],

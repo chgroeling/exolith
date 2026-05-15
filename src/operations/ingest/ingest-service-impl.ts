@@ -56,8 +56,8 @@ interface IndexEntry {
 
 /** Semantic match result from the LLM. */
 interface SemanticMatchResult {
-  matches: Array<{ extractedName: string; matchedSlug: string }>;
-  unmatched: string[];
+  matches: Array<{ extractedName: string; matchedSlug: string; reason: string }>;
+  unmatched: Array<{ name: string; reason: string }>;
 }
 
 /** Unified view of an entity or concept being updated — used across filter and update steps. */
@@ -237,7 +237,11 @@ export class Ingest implements IngestService {
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
 
     const entityMatches = await this.resolveMatches(
-      this.extractionResult.entities.map((e) => ({ name: e.name, slug: e.slug })),
+      this.extractionResult.entities.map((e) => ({
+        name: e.name,
+        slug: e.slug,
+        description: e.description,
+      })),
       index.get('entity') ?? [],
       'entity',
     );
@@ -249,7 +253,11 @@ export class Ingest implements IngestService {
     }
 
     const conceptMatches = await this.resolveMatches(
-      this.extractionResult.concepts.map((c) => ({ name: c.name, slug: c.slug })),
+      this.extractionResult.concepts.map((c) => ({
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+      })),
       index.get('concept') ?? [],
       'concept',
     );
@@ -470,7 +478,7 @@ export class Ingest implements IngestService {
     const today = new Date().toISOString().slice(0, 10);
 
     const matches = await this.resolveMatches(
-      [{ name: item.name, slug: item.slug }],
+      [{ name: item.name, slug: item.slug, description: item.description }],
       entries,
       pageType,
     );
@@ -710,13 +718,13 @@ export class Ingest implements IngestService {
    * Returns a map from name to matched slug.
    */
   private async resolveMatches(
-    items: { name: string; slug: string }[],
+    items: { name: string; slug: string; description?: string }[],
     entries: IndexEntry[],
     pageType: string,
   ): Promise<Map<string, string>> {
     const log = this.logger.child({ step: 'resolveMatches', pageType });
     const result = new Map<string, string>();
-    const unmatchedNames: string[] = [];
+    const unmatchedItems: { name: string; description?: string }[] = [];
 
     for (const item of items) {
       const found = entries.find((e) => e.slug === item.slug);
@@ -727,21 +735,29 @@ export class Ingest implements IngestService {
           'Matched via exact slug',
         );
       } else {
-        unmatchedNames.push(item.name);
+        unmatchedItems.push({ name: item.name, description: item.description });
       }
     }
 
-    if (unmatchedNames.length > 0 && entries.length > 0) {
-      log.debug({ unmatchedCount: unmatchedNames.length }, 'Running Phase 2 semantic match');
-      const semanticMatches = await this.semanticMatch(unmatchedNames, entries, pageType);
+    if (unmatchedItems.length > 0 && entries.length > 0) {
+      log.debug({ unmatchedCount: unmatchedItems.length }, 'Running Phase 2 semantic match');
+      const semanticMatches = await this.semanticMatch(unmatchedItems, entries, pageType);
       for (const sm of semanticMatches.matches) {
         if (!result.has(sm.extractedName)) {
           result.set(sm.extractedName, sm.matchedSlug);
           log.trace(
-            { name: sm.extractedName, slug: sm.matchedSlug, method: 'SemanticMatch' },
+            {
+              name: sm.extractedName,
+              slug: sm.matchedSlug,
+              method: 'SemanticMatch',
+              reason: sm.reason,
+            },
             'Matched via semantic match',
           );
         }
+      }
+      for (const um of semanticMatches.unmatched) {
+        log.trace({ name: um.name, reason: um.reason }, 'Not matched via semantic match');
       }
     }
 
@@ -750,7 +766,7 @@ export class Ingest implements IngestService {
 
   /** Runs Phase 2 semantic matching via LLM for names that had no exact slug match. */
   private async semanticMatch(
-    unmatchedNames: string[],
+    unmatchedItems: { name: string; description?: string }[],
     entries: IndexEntry[],
     pageType: string,
   ): Promise<SemanticMatchResult> {
@@ -758,7 +774,7 @@ export class Ingest implements IngestService {
     const systemPrompt = this.promptService.render('system-prompt', {});
     const prompt = this.promptService.render('match-pages', {
       pageType,
-      unmatchedNames,
+      unmatchedItems,
       indexEntries: entries.map((e) => ({
         slug: e.slug,
         title: e.title,

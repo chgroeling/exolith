@@ -58,7 +58,7 @@ const defaultExtractionResult = {
 
 const defaultMatchResult = {
   matches: [],
-  unmatched: [] as string[],
+  unmatched: [] as Array<{ name: string; reason: string }>,
 };
 
 const defaultFilterResult = {
