@@ -121,6 +121,8 @@ export class Ingest implements IngestService {
   private sourceFilePath = '';
   private sourceTitle = '';
   private sourceContent = '';
+  /** Slug matches resolved once before create and update phases to avoid non-deterministic repeated LLM semantic matching. */
+  private matchResults: Map<string, Map<string, string>> = new Map();
 
   constructor(
     private llmService: LlmService,
@@ -159,6 +161,7 @@ export class Ingest implements IngestService {
 
     try {
       await this.extract(newSourcePath);
+      await this.resolveAllMatches();
       await this.createPages();
       await this.compileIndex();
       await this.updateAllPages();
@@ -221,6 +224,47 @@ export class Ingest implements IngestService {
   }
 
   /**
+   * Resolves slug and semantic matches once for all entities and concepts.
+   * Resolution must happen exactly once per ingest — semantic LLM matching is
+   * non-deterministic and repeated calls may produce different results, causing
+   * inconsistent page associations between the create and update phases.
+   */
+  private async resolveAllMatches(): Promise<void> {
+    const log = this.logger.child({ step: 'resolveAllMatches' });
+    const index = await this.loadIndex();
+
+    const entityMatches = await this.resolveMatches(
+      this.extractionResult.entities.map((e) => ({
+        name: e.name,
+        slug: e.slug,
+        description: e.description,
+      })),
+      index.get('entity') ?? [],
+      'entity',
+    );
+    this.matchResults.set('entity', entityMatches);
+
+    const conceptMatches = await this.resolveMatches(
+      this.extractionResult.concepts.map((c) => ({
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+      })),
+      index.get('concept') ?? [],
+      'concept',
+    );
+    this.matchResults.set('concept', conceptMatches);
+
+    log.trace(
+      {
+        entityMatches: Object.fromEntries(entityMatches),
+        conceptMatches: Object.fromEntries(conceptMatches),
+      },
+      'Resolved all entity and concept matches',
+    );
+  }
+
+  /**
    * Step 2a: Creates skeleton pages for all unmatched entities and concepts.
    * Skeletons contain only title, tags, and body — no claims, no cross-connections.
    * Pages that already exist in the index are skipped (they will be updated later).
@@ -233,49 +277,48 @@ export class Ingest implements IngestService {
       data: { sourceFilePath: this.sourceFilePath },
     });
 
-    const index = await this.loadIndex();
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
-
-    const entityMatches = await this.resolveMatches(
-      this.extractionResult.entities.map((e) => ({
-        name: e.name,
-        slug: e.slug,
-        description: e.description,
-      })),
-      index.get('entity') ?? [],
-      'entity',
-    );
+    const entityMatches = this.matchResults.get('entity') ?? new Map();
+    const conceptMatches = this.matchResults.get('concept') ?? new Map();
 
     for (const entity of this.extractionResult.entities) {
-      if (!entityMatches.has(entity.name)) {
-        await this.createEntitySkeleton(entity, entity.slug, sourceRelativePath);
+      if (entityMatches.has(entity.name)) {
+        continue;
       }
+      await this.createEntitySkeleton(entity, entity.slug, sourceRelativePath);
     }
-
-    const conceptMatches = await this.resolveMatches(
-      this.extractionResult.concepts.map((c) => ({
-        name: c.name,
-        slug: c.slug,
-        description: c.description,
-      })),
-      index.get('concept') ?? [],
-      'concept',
-    );
-
-    log.trace(
-      {
-        entityMatches: Object.fromEntries(entityMatches),
-        conceptMatches: Object.fromEntries(conceptMatches),
-      },
-      'Resolved entity and concept matches',
-    );
 
     for (const concept of this.extractionResult.concepts) {
-      if (!conceptMatches.has(concept.name)) {
-        await this.createConceptSkeleton(concept, concept.slug, sourceRelativePath);
+      if (conceptMatches.has(concept.name)) {
+        continue;
+      }
+      await this.createConceptSkeleton(concept, concept.slug, sourceRelativePath);
+    }
+
+    const patchedEntities: string[] = [];
+    const patchedConcepts: string[] = [];
+
+    for (const entity of this.extractionResult.entities) {
+      const em = this.matchResults.get('entity') ?? new Map();
+      if (!em.has(entity.name)) {
+        em.set(entity.name, entity.slug);
+        this.matchResults.set('entity', em);
+        patchedEntities.push(entity.name);
+      }
+    }
+    for (const concept of this.extractionResult.concepts) {
+      const cm = this.matchResults.get('concept') ?? new Map();
+      if (!cm.has(concept.name)) {
+        cm.set(concept.name, concept.slug);
+        this.matchResults.set('concept', cm);
+        patchedConcepts.push(concept.name);
       }
     }
 
+    log.trace(
+      { patchedEntities, patchedConcepts },
+      'Algorithmically patched matchResults for newly created pages',
+    );
     log.info({ createdCount: this.createdPages.length }, 'Create phase complete');
     this.emit({ type: 'step_end', step: 'Creating' });
   }
@@ -473,17 +516,13 @@ export class Ingest implements IngestService {
       pageType,
       name: item.name,
     });
-    const entries = index.get(pageType) ?? [];
     const systemPrompt = this.promptService.render('system-prompt', {});
     const today = new Date().toISOString().slice(0, 10);
-
-    const matches = await this.resolveMatches(
-      [{ name: item.name, slug: item.slug, description: item.description }],
-      entries,
-      pageType,
-    );
-
-    const matchedSlug = matches.get(item.name);
+    const pageMatches = this.matchResults.get(pageType);
+    if (!pageMatches) {
+      throw new Error(`No match results for page type: ${pageType}`);
+    }
+    const matchedSlug = pageMatches.get(item.name);
     if (!matchedSlug) {
       log.error(
         { name: item.name, slug: item.slug },
