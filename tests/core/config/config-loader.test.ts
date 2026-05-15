@@ -24,48 +24,54 @@ describe('ConfigLoader', () => {
   describe('load', () => {
     it('finds exolith.json in cwd', async () => {
       const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ provider: 'openrouter', maxSourceSize: 5000 }));
+      await writeConfig(
+        dir,
+        JSON.stringify({ model: 'openrouter/deepseek/deepseek-v4-pro', maxSourceSize: 5000 }),
+      );
 
       const result = await makeLoader().load(dir);
 
-      expect(result.config).toEqual({ provider: 'openrouter', maxSourceSize: 5000 });
+      expect(result.config).toEqual({
+        model: 'openrouter/deepseek/deepseek-v4-pro',
+        maxSourceSize: 5000,
+      });
       expect(result.rootDir).toBe(dir);
     });
 
-    it('throws for an empty config file (missing provider)', async () => {
+    it('throws for an empty config file (missing model)', async () => {
       const dir = testDir();
-      await writeConfig(dir, '');
+      await writeConfig(dir, '{}');
 
-      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
+      await expect(makeLoader().load(dir)).rejects.toThrow(/model: Invalid input/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
       const dir = testDir();
       const json5Content = `{
         // This is a comment
-        provider: "openrouter",
-        maxSourceSize: 10000,
-        logFile: "exolith.log", // trailing comma
+        model: "openrouter/deepseek/deepseek-v4-pro",
+        maxSourceSize: 10000, // trailing comma
       }`;
       await writeConfig(dir, json5Content);
 
       const result = await makeLoader().load(dir);
 
-      expect(result.config.provider).toBe('openrouter');
+      expect(result.config.model).toBe('openrouter/deepseek/deepseek-v4-pro');
       expect(result.config.maxSourceSize).toBe(10000);
-      expect(result.config.logFile).toBe('exolith.log');
     });
 
     it('bubbles up from a subdirectory to find exolith.json', async () => {
       const rootDir = testDir();
-      await writeConfig(rootDir, JSON.stringify({ provider: 'openrouter', logLevel: 'debug' }));
+      await writeConfig(rootDir, JSON.stringify({ model: 'openrouter/deepseek/deepseek-v4-pro' }));
 
       const cwd = join(rootDir, 'deep', 'nested', 'dir');
       await mkdir(cwd, { recursive: true });
 
       const result = await makeLoader().load(cwd);
 
-      expect(result.config).toEqual({ provider: 'openrouter', logLevel: 'debug' });
+      expect(result.config).toEqual({
+        model: 'openrouter/deepseek/deepseek-v4-pro',
+      });
       expect(result.rootDir).toBe(rootDir);
     });
 
@@ -85,28 +91,13 @@ describe('ConfigLoader', () => {
       await expect(makeLoader().load(dir)).rejects.toThrow(/Malformed configuration/);
     });
 
-    it('throws when provider field is missing', async () => {
+    it('accepts deepseek model format', async () => {
       const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ maxSourceSize: 5000 }));
-
-      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
-    });
-
-    it('throws when provider has an unsupported value', async () => {
-      const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ provider: 'anthropic' }));
-
-      await expect(makeLoader().load(dir)).rejects.toThrow(/provider: Invalid option/);
-    });
-
-    it('accepts deepseek as a valid provider', async () => {
-      const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ provider: 'deepseek', model: 'deepseek-chat' }));
+      await writeConfig(dir, JSON.stringify({ model: 'deepseek/deepseek-v4-flash' }));
 
       const result = await makeLoader().load(dir);
 
-      expect(result.config.provider).toBe('deepseek');
-      expect(result.config.model).toBe('deepseek-chat');
+      expect(result.config.model).toBe('deepseek/deepseek-v4-flash');
       expect(result.rootDir).toBe(dir);
     });
   });
@@ -114,36 +105,40 @@ describe('ConfigLoader', () => {
   describe('loadAt', () => {
     it('loads exolith.json from the specified directory', async () => {
       const dir = testDir();
-      await writeConfig(dir, JSON.stringify({ provider: 'openrouter', maxSourceSize: 5000 }));
+      await writeConfig(
+        dir,
+        JSON.stringify({ model: 'openrouter/deepseek/deepseek-v4-pro', maxSourceSize: 5000 }),
+      );
 
       const result = await makeLoader().loadAt(dir);
 
-      expect(result.config).toEqual({ provider: 'openrouter', maxSourceSize: 5000 });
+      expect(result.config).toEqual({
+        model: 'openrouter/deepseek/deepseek-v4-pro',
+        maxSourceSize: 5000,
+      });
       expect(result.rootDir).toBe(dir);
     });
 
-    it('throws for an empty config file (missing provider)', async () => {
+    it('throws for an empty config file (missing model)', async () => {
       const dir = testDir();
-      await writeConfig(dir, '');
+      await writeConfig(dir, '{}');
 
-      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/provider: Invalid option/);
+      await expect(makeLoader().loadAt(dir)).rejects.toThrow(/model: Invalid input/);
     });
 
     it('supports JSON5 features (comments, trailing commas, unquoted keys)', async () => {
       const dir = testDir();
       const json5Content = `{
         // This is a comment
-        provider: "openrouter",
-        maxSourceSize: 10000,
-        logFile: "exolith.log", // trailing comma
+        model: "openrouter/deepseek/deepseek-v4-pro",
+        maxSourceSize: 10000, // trailing comma
       }`;
       await writeConfig(dir, json5Content);
 
       const result = await makeLoader().loadAt(dir);
 
-      expect(result.config.provider).toBe('openrouter');
+      expect(result.config.model).toBe('openrouter/deepseek/deepseek-v4-pro');
       expect(result.config.maxSourceSize).toBe(10000);
-      expect(result.config.logFile).toBe('exolith.log');
     });
 
     it('throws when exolith.json does not exist at the specified directory', async () => {
@@ -155,7 +150,7 @@ describe('ConfigLoader', () => {
 
     it('does not bubble up — throws even if exolith.json exists in a parent', async () => {
       const rootDir = testDir();
-      await writeConfig(rootDir, JSON.stringify({ provider: 'openrouter', logLevel: 'debug' }));
+      await writeConfig(rootDir, JSON.stringify({ model: 'openrouter/deepseek/deepseek-v4-pro' }));
 
       const childDir = join(rootDir, 'subdir');
       await mkdir(childDir, { recursive: true });

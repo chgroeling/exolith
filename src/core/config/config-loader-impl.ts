@@ -3,6 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import JSON5 from 'json5';
+import pino from 'pino';
 import type { Logger } from 'pino';
 import type { ConfigLoaderService } from './config-loader';
 import { ExolithConfigSchema } from './config-schema';
@@ -10,7 +11,11 @@ import { CONFIG_FILE_NAME } from './config-types';
 import type { ConfigLoadResult, ExolithConfig } from './config-types';
 
 export class ConfigLoaderServiceImpl implements ConfigLoaderService {
-  constructor(private logger?: Logger) {}
+  private logger: Logger;
+
+  constructor(parentLogger?: Logger) {
+    this.logger = parentLogger?.child({ logger: 'config-loader-impl' }) ?? pino({ enabled: false });
+  }
 
   /**
    * Searches upward from `cwd` for {@link CONFIG_FILE_NAME}.
@@ -28,7 +33,7 @@ export class ConfigLoaderServiceImpl implements ConfigLoaderService {
         const raw = await readFile(candidate, 'utf-8');
         const config = this.parseConfig(candidate, raw);
 
-        this.logger?.info({ configPath: candidate, rootDir: current }, 'Configuration loaded');
+        this.logger.info({ configPath: candidate, rootDir: current }, 'Configuration loaded');
 
         return { config, rootDir: current };
       } catch (err: unknown) {
@@ -73,10 +78,7 @@ export class ConfigLoaderServiceImpl implements ConfigLoaderService {
 
     const config = this.parseConfig(candidate, raw);
 
-    this.logger?.info(
-      { configPath: candidate, rootDir },
-      'Configuration loaded from explicit path',
-    );
+    this.logger.info({ configPath: candidate, rootDir }, 'Configuration loaded from explicit path');
 
     return { config, rootDir };
   }

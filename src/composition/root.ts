@@ -19,6 +19,23 @@ import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-fa
 import type { PreIngestServiceFactory } from '../operations/pre-ingest/pre-ingest-service';
 import { PreIngestServiceFactoryImpl } from '../operations/pre-ingest/pre-ingest-service-factory-impl';
 
+/** Parsed gateway name and model id extracted from the "gateway/model-id" string. */
+interface ParsedModel {
+  gateway: string;
+  modelId: string;
+}
+
+/** Splits the model string on the first "/" to separate gateway from model id. */
+function parseModel(modelStr: string): ParsedModel {
+  const idx = modelStr.indexOf('/');
+  if (idx === -1) {
+    throw new Error(
+      `Invalid model "${modelStr}": must be in "provider/model-id" format (e.g. "deepseek/deepseek-v4-flash" or "openrouter/deepseek/deepseek-v4-pro")`,
+    );
+  }
+  return { gateway: modelStr.slice(0, idx), modelId: modelStr.slice(idx + 1) };
+}
+
 /** Reasoninglevel values that the config accepts. */
 type ReasoningLevel = 'off' | 'low' | 'medium' | 'high' | 'max';
 
@@ -54,12 +71,14 @@ function buildOpenRouterOptions(level: ReasoningLevel): Record<string, unknown> 
 
 /** Shared wiring helpers used by both factories. */
 function wireServices(logger: Logger, config: ExolithConfig) {
-  const model = createModel(config);
+  const modelStr = config.model;
+  const { gateway, modelId } = parseModel(modelStr);
+  const model = createModel(gateway, modelId);
   const level: ReasoningLevel = config.reasoningLevel ?? 'off';
-  const providerOptions: Record<string, Record<string, unknown>> = config.provider === 'deepseek'
+  const providerOptions: Record<string, Record<string, unknown>> = gateway === 'deepseek'
     ? { deepseek: buildDeepSeekOptions(level) }
     : { openrouter: buildOpenRouterOptions(level) };
-  const provider = createProvider(config.provider, model, providerOptions);
+  const provider = createProvider(gateway, model, providerOptions, logger);
   const slugger = new SluggerServiceImpl();
   const identifier = new IdentifierServiceImpl(slugger);
   const llmService = new LlmServiceImpl(provider, logger);
@@ -68,8 +87,8 @@ function wireServices(logger: Logger, config: ExolithConfig) {
   return { llmService, identifier, promptService };
 }
 
-function createModel(config: ExolithConfig): LanguageModel {
-  if (config.provider === 'deepseek') {
+function createModel(gateway: string, modelId: string): LanguageModel {
+  if (gateway === 'deepseek') {
     if (!process.env.DEEPSEEK_API_KEY) {
       throw new Error(
         'DEEPSEEK_API_KEY environment variable is required for the DeepSeek provider.',
@@ -77,7 +96,7 @@ function createModel(config: ExolithConfig): LanguageModel {
     }
 
     const deepseek = createDeepSeek({ apiKey: process.env.DEEPSEEK_API_KEY });
-    return deepseek(config.model ?? 'deepseek-chat');
+    return deepseek(modelId);
   }
 
   if (!process.env.OPENROUTER_API_KEY) {
@@ -87,18 +106,22 @@ function createModel(config: ExolithConfig): LanguageModel {
   }
 
   const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
-  return openrouter(config.model ?? 'deepseek/deepseek-v4-pro');
+  return openrouter(modelId);
 }
 
 function createProvider(
   provider: string,
   model: LanguageModel,
-  providerOptions?: Record<string, Record<string, unknown>>,
+  providerOptions: Record<string, Record<string, unknown>> | undefined,
+  logger: Logger,
 ): LlmProvider {
   if (provider === 'deepseek') {
-    return new DeepSeekLlmProvider(model, providerOptions);
+    return new DeepSeekLlmProvider(model, providerOptions, logger);
   }
-  return new OpenRouterLlmProvider(model, providerOptions);
+  if (provider === 'openrouter') {
+    return new OpenRouterLlmProvider(model, providerOptions, logger);
+  }
+  throw new Error(`Unknown provider "${provider}". Supported: deepseek, openrouter.`);
 }
 
 /** Builds the pre-ingest factory wired with all dependencies. */

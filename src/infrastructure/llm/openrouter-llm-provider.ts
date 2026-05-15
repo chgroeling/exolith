@@ -1,12 +1,21 @@
 import { generateObject, jsonSchema, streamText } from 'ai';
 import type { LanguageModel, ModelMessage } from 'ai';
+import pino from 'pino';
+import type { Logger } from 'pino';
 import type { LlmObjectParams, LlmProvider, LlmStreamParams } from './llm-provider';
 
 export class OpenRouterLlmProvider implements LlmProvider {
+  private logger: Logger;
+
   constructor(
     private model: LanguageModel,
     private providerOptions?: Record<string, Record<string, unknown>>,
-  ) {}
+    parentLogger?: Logger,
+  ) {
+    this.logger =
+      parentLogger?.child({ logger: 'openrouter-llm-provider' }) ?? pino({ enabled: false });
+    this.logger.info({ model, providerOptions }, 'provider initialized');
+  }
 
   streamText(params: LlmStreamParams): { textStream: AsyncIterable<string> } {
     const base = { model: this.model, system: params.system };

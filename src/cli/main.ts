@@ -1,6 +1,6 @@
 import { createWriteStream } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { cancel, intro, outro } from '@clack/prompts';
 import { program } from 'commander';
 import pino from 'pino';
@@ -22,11 +22,6 @@ import { createCliPresentation } from './cli-presentation';
 
 const tableFormatter: TableFormatter = new TableFormatterImpl();
 
-function resolvePath(base: string, p?: string): string | undefined {
-  if (!p) return undefined;
-  return isAbsolute(p) ? p : resolve(base, p);
-}
-
 /** Resolves vault configuration and creates a shared logger. */
 async function bootstrap(
   globalOpts: {
@@ -38,7 +33,12 @@ async function bootstrap(
     maxSourceSize?: string;
   } = {},
 ) {
-  const configLoader = new ConfigLoaderServiceImpl();
+  const logFilePath = globalOpts.logFile ?? 'exolith.log';
+  const logLevel = globalOpts.logLevel ?? 'info';
+  const logStream = createWriteStream(logFilePath, { flags: 'w' });
+  const logger = pino({ level: logLevel, base: undefined }, logStream);
+
+  const configLoader = new ConfigLoaderServiceImpl(logger);
 
   let result: ConfigLoadResult;
 
@@ -54,15 +54,10 @@ async function bootstrap(
   const { config, rootDir } = result;
   const vaultPath = rootDir;
 
-  const logFilePath =
-    resolvePath(rootDir, globalOpts.logFile ?? config.logFile) ?? resolve(rootDir, 'exolith.log');
-  const logLevel = globalOpts.logLevel ?? config.logLevel ?? 'info';
   const maxSourceSize = Number(cmdOpts.maxSourceSize ?? config.maxSourceSize ?? 10485760);
 
-  const logStream = createWriteStream(logFilePath, { flags: 'w' });
-  const logger = pino({ level: logLevel, base: undefined }, logStream);
-
   logger.info({ rootDir }, 'CLI started');
+  logger.trace({ config }, 'current configuration');
 
   return { vaultPath, maxSourceSize, logger, config };
 }
@@ -78,7 +73,7 @@ program
 program
   .command('init')
   .description('Initialize a new exolith vault by writing exolith.json')
-  .option('--provider <provider>', 'LLM provider', 'deepseek')
+  .option('--model <model>', 'model in gateway/model-id format', 'deepseek/deepseek-v4-flash')
   .option(
     '--reasoning-level <level>',
     'reasoning effort level (off, low, medium, high, max)',
@@ -89,9 +84,9 @@ program
     const targetDir = resolve(globalOpts.vaultDir ?? process.cwd());
     const configPath = join(targetDir, CONFIG_FILE_NAME);
 
-    if (options.provider !== 'openrouter' && options.provider !== 'deepseek') {
+    if (!options.model.includes('/')) {
       process.stderr.write(
-        `Error: provider must be "openrouter" or "deepseek", got "${options.provider}"\n`,
+        `Error: model must be in "provider/model-id" format, got "${options.model}"\n`,
       );
       process.exit(1);
     }
@@ -113,7 +108,7 @@ program
     } catch {}
 
     const config: ExolithConfig = {
-      provider: options.provider,
+      model: options.model,
       reasoningLevel: options.reasoningLevel as ExolithConfig['reasoningLevel'],
     };
 

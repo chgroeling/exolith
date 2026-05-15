@@ -1,15 +1,13 @@
 /** Shape of the exolith configuration file (JSON5). */
 export interface ExolithConfig {
-  /** LLM provider. Must be "openrouter" or "deepseek". Required. */
-  provider: 'openrouter' | 'deepseek';
-  /** Model name for the LLM provider. Defaults depend on the chosen provider. */
-  model?: string;
+  /**
+   * Model identifier in `gateway/model-id` format.
+   * The first segment selects the LLM gateway ("deepseek" or "openrouter").
+   * The remainder is the model string passed to that gateway.
+   */
+  model: string;
   /** Maximum allowed source file size in bytes. */
   maxSourceSize?: number;
-  /** Path to the log file. Relative paths are resolved from the root directory. */
-  logFile?: string;
-  /** Log level for Pino. */
-  logLevel?: string;
   /** Reasoning effort level for the LLM. Defaults to "off". */
   reasoningLevel?: 'off' | 'low' | 'medium' | 'high' | 'max';
 }
