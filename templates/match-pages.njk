@@ -1,23 +1,17 @@
 You are matching extracted knowledge elements to existing wiki pages via semantic similarity.
 
-Below are extracted {{pageType}} names that were NOT found by exact slug match. Each includes a description to help you judge semantic overlap. You also receive summaries of all existing {{pageType}} pages from the wiki index.
+Below is a JSON object containing two arrays:
+- `unmatchedItems`: extracted {{pageType}} names that were NOT found by exact slug match. Each includes a description.
+- `indexEntries`: summaries of all existing {{pageType}} pages from the wiki index.
 
 Determine which existing pages (if any) semantically match the extracted names, even if the exact slug differs (e.g. "Cortisol reduction" ↔ "cortisol-senkung-durch-meditation").
 
-## Extracted {{pageType}} names (no exact slug match found)
-{% for item in unmatchedItems %}
-- name: {{ item.name }}
-{% if item.description %}
-  description: {{ item.description }}
-{% endif %}
-{% endfor %}
-
-## Existing {{pageType}} pages (summaries)
-{% for entry in indexEntries %}
-- slug: {{ entry.slug }}
-  title: {{ entry.title }}
-  summary: {{ entry.summary }}
-{% endfor %}
+```json
+{
+  "unmatchedItems": {{ unmatchedItems | dump(2) }},
+  "indexEntries": {{ indexEntries | dump(2) }}
+}
+```
 
 For each extracted name, decide: does it match any existing page semantically? Use the descriptions to disambiguate — two items with similar names but different descriptions should NOT be matched.
 
