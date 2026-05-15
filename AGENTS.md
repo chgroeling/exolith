@@ -65,6 +65,8 @@ Every file, class, interface, public method, and property must carry a TSDoc (`/
 
 Pino — default to `pino({ name: '<module>' })`.
 
+- Methods that need a logger must create a child logger with the method name as the `method_name` key: `const log = this.logger.child({ method_name: '<methodName>' });`. Use the actual JavaScript method name — never an alias or abbreviated form.
+
 ## Code Style
 
 - Spaces for indentation (2 spaces)

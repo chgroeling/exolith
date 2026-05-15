@@ -147,7 +147,8 @@ export class Ingest implements IngestService {
    * @param sourceFilePath Absolute path to the source page in sources/
    */
   async process(sourceFilePath: string): Promise<void> {
-    this.logger.info({ sourceFilePath }, 'Ingest process started');
+    const log = this.logger.child({ method_name: 'process', sourceFilePath });
+    log.info({ sourceFilePath }, 'Ingest process started');
     const vaultPath = this.config.vaultPath;
 
     const inboxDir = join(vaultPath, 'inbox');
@@ -156,7 +157,7 @@ export class Ingest implements IngestService {
     const fileName = sourceFilePath.replace(`${inboxDir}/`, '');
     const newSourcePath = join(sourcesDir, fileName);
     await rename(sourceFilePath, newSourcePath);
-    this.logger.info(
+    log.info(
       { from: sourceFilePath, to: newSourcePath },
       'Moved source page from inbox to sources',
     );
@@ -174,14 +175,14 @@ export class Ingest implements IngestService {
       await this.triggerCompile();
     } catch (err) {
       this.emit({ type: 'error', error: err as Error });
-      this.logger.error({ sourceFilePath: newSourcePath, err }, 'Ingest process failed');
+      log.error({ sourceFilePath: newSourcePath, err }, 'Ingest process failed');
       throw err;
     }
   }
 
   /** Step 1: Extracts structured knowledge — entities and concepts from the source. */
   private async extract(sourceFilePath: string): Promise<void> {
-    const log = this.logger.child({ step: 'extract', sourceFilePath });
+    const log = this.logger.child({ method_name: 'extract', sourceFilePath });
     this.emit({ type: 'step_start', step: 'Extracting', data: { sourceFilePath } });
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
@@ -235,7 +236,7 @@ export class Ingest implements IngestService {
    * inconsistent page associations between the create and update phases.
    */
   private async resolveAllMatches(): Promise<void> {
-    const log = this.logger.child({ step: 'resolveAllMatches' });
+    const log = this.logger.child({ method_name: 'resolveAllMatches' });
     const index = await this.loadIndex();
 
     const entityMatches = await this.resolveMatches(
@@ -275,7 +276,7 @@ export class Ingest implements IngestService {
    * Pages that already exist in the index are skipped (they will be updated later).
    */
   private async createPages(): Promise<void> {
-    const log = this.logger.child({ step: 'createPages' });
+    const log = this.logger.child({ method_name: 'createPages' });
     this.emit({
       type: 'step_start',
       step: 'Creating',
@@ -335,7 +336,7 @@ export class Ingest implements IngestService {
     sourceRelativePath: string,
   ): Promise<void> {
     const log = this.logger.child({
-      step: 'create',
+      method_name: 'createEntitySkeleton',
       pageType: 'entity',
       name: entity.name,
       slug,
@@ -363,6 +364,8 @@ export class Ingest implements IngestService {
       schemaDescription: 'A skeleton entity page for the wiki vault.',
     });
 
+    log.trace({ skeleton }, 'Created entity page skeleton');
+
     const pageContent = this.promptService.render('entity-page-output', {
       id: entity.id,
       title: skeleton.title,
@@ -389,7 +392,7 @@ export class Ingest implements IngestService {
     sourceRelativePath: string,
   ): Promise<void> {
     const log = this.logger.child({
-      step: 'create',
+      method_name: 'createConceptSkeleton',
       pageType: 'concept',
       name: concept.name,
       slug,
@@ -422,6 +425,8 @@ export class Ingest implements IngestService {
       schemaDescription: 'A skeleton concept page for the wiki vault.',
     });
 
+    log.trace({ skeleton }, 'Created concept page skeleton');
+
     const pageContent = this.promptService.render('concept-page-output', {
       id: concept.id,
       title: skeleton.title,
@@ -451,7 +456,7 @@ export class Ingest implements IngestService {
       return;
     }
 
-    const log = this.logger.child({ step: 'compileIndex' });
+    const log = this.logger.child({ method_name: 'compileIndex' });
     this.emit({
       type: 'step_start',
       step: 'RebuildingIndex',
@@ -472,7 +477,7 @@ export class Ingest implements IngestService {
    * claims, cross-connections, and open questions are generated.
    */
   private async updateAllPages(): Promise<void> {
-    const log = this.logger.child({ step: 'updateAllPages' });
+    const log = this.logger.child({ method_name: 'updateAllPages' });
     this.emit({
       type: 'step_start',
       step: 'Updating',
@@ -517,7 +522,7 @@ export class Ingest implements IngestService {
     index: Map<string, IndexEntry[]>,
   ): Promise<void> {
     const log = this.logger.child({
-      step: 'updateSinglePage',
+      method_name: 'updateSinglePage',
       pageType,
       name: item.name,
     });
@@ -591,7 +596,7 @@ export class Ingest implements IngestService {
     item: ItemToUpdate,
     indexEntries: IndexEntry[],
   ): Promise<string[]> {
-    const log = this.logger.child({ step: 'filterRelevantPages', name: item.name });
+    const log = this.logger.child({ method_name: 'filterRelevantPages', name: item.name });
 
     if (indexEntries.length === 0) return [];
 
@@ -616,7 +621,6 @@ export class Ingest implements IngestService {
       schemaDescription:
         'Filter determining which existing wiki pages are relevant to an item being updated.',
     });
-
     log.debug({ relevantSlugs: result.relevantSlugs }, 'Filter result');
     return result.relevantSlugs;
   }
@@ -629,7 +633,7 @@ export class Ingest implements IngestService {
     slugs: string[],
     index: Map<string, IndexEntry[]>,
   ): Promise<RelevantPage[]> {
-    const log = this.logger.child({ step: 'readRelevantPages' });
+    const log = this.logger.child({ method_name: 'readRelevantPages' });
     const relevantPages: RelevantPage[] = [];
     const allEntries = [...index.values()].flat();
 
@@ -656,7 +660,7 @@ export class Ingest implements IngestService {
 
   /** Step 3: Writes a summary entry to the vault log. */
   private async writeLogEntry(): Promise<void> {
-    const log = this.logger.child({ step: 'log' });
+    const log = this.logger.child({ method_name: 'writeLogEntry' });
     this.emit({
       type: 'step_start',
       step: 'Logging',
@@ -729,7 +733,7 @@ export class Ingest implements IngestService {
 
   /** Step 4: Triggers the compile operation — a separate operation that regenerates indices and dashboards. */
   private async triggerCompile(): Promise<void> {
-    const log = this.logger.child({ step: 'compile' });
+    const log = this.logger.child({ method_name: 'triggerCompile' });
     this.emit({
       type: 'step_start',
       step: 'Compiling',
@@ -742,7 +746,7 @@ export class Ingest implements IngestService {
 
   /** Reads and parses index.md into a registry grouped by page type. */
   private async loadIndex(): Promise<Map<string, IndexEntry[]>> {
-    const log = this.logger.child({ step: 'loadIndex' });
+    const log = this.logger.child({ method_name: 'loadIndex' });
     const indexPath = join(this.config.vaultPath, 'index.md');
     let content: string;
     try {
@@ -766,7 +770,7 @@ export class Ingest implements IngestService {
     entries: IndexEntry[],
     pageType: string,
   ): Promise<Map<string, string>> {
-    const log = this.logger.child({ step: 'resolveMatches', pageType });
+    const log = this.logger.child({ method_name: 'resolveMatches', pageType });
     const result = new Map<string, string>();
     const unmatchedItems: { name: string; description?: string }[] = [];
 
@@ -814,7 +818,7 @@ export class Ingest implements IngestService {
     entries: IndexEntry[],
     pageType: string,
   ): Promise<SemanticMatchResult> {
-    const log = this.logger.child({ step: 'semanticMatch', pageType });
+    const log = this.logger.child({ method_name: 'semanticMatch', pageType });
     const systemPrompt = this.promptService.render('system-prompt', {});
     const prompt = this.promptService.render('match-pages', {
       pageType,

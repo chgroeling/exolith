@@ -29,10 +29,10 @@
       },
       " ",
       {
-        "field": "step",
+        "field": "method_name",
         "default-value": "-",
-        "min-width": 15,
-        "max-width": 15,
+        "min-width": 20,
+        "max-width": 20,
         "overflow": "truncate"
       },
       " ",
@@ -64,7 +64,7 @@
         "kind": "string",
         "identifier": true
       },
-      "step": {
+      "method_name": {
         "kind": "string",
         "identifier": true
       },
