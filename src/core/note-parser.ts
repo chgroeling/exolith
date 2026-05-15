@@ -468,9 +468,7 @@ function extractHuman(
 
   const start = startNode.position.end.offset;
   const end = endNode.position.start.offset;
-  let content = body.slice(start, end);
-
-  content = content.replace(/^## (?:Persönliche Notizen|Personal Notes)[^\n]*\n?/m, '');
+  const content = body.slice(start, end);
 
   return content.trim();
 }

@@ -24,7 +24,7 @@ function toTemplateContext(note: ParsedNote): Record<string, unknown> {
     body: note.content,
     claims: note.claims,
     openQuestions: note.openQuestions,
-    humanBlockContent: note.human ? `## Persönliche Notizen\n\n${note.human}` : '',
+    humanBlockContent: note.human || '',
   };
 }
 
@@ -94,7 +94,7 @@ function makeFullEntityNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
     ],
     openQuestions: [makeOpenQuestion()],
     human:
-      'I find Seneca letters more accessible than Marcus Aurelius — less cryptic, more directly applicable.',
+      '## Persönliche Notizen\n\nI find Seneca letters more accessible than Marcus Aurelius — less cryptic, more directly applicable.',
     ...overrides,
   };
 }
@@ -136,7 +136,7 @@ function makeFullConceptNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
       }),
     ],
     human:
-      'Been practicing this since January — subjectively noticeable effect before presentations.',
+      '## Persönliche Notizen\n\nBeen practicing this since January — subjectively noticeable effect before presentations.',
     ...overrides,
   };
 }
@@ -153,16 +153,22 @@ describe('parseNote round-trip', () => {
   it('entity page with no claims, no open questions, and no human note survives round-trip', () => {
     assertRoundTrip(
       'entity-page-output.njk',
-      makeFullEntityNote({ claims: [], openQuestions: [], human: '' }),
+      makeFullEntityNote({ claims: [], openQuestions: [], human: '## Personal Notes' }),
     );
   });
 
   it('entity page with claims but no open questions and no human note survives round-trip', () => {
-    assertRoundTrip('entity-page-output.njk', makeFullEntityNote({ openQuestions: [], human: '' }));
+    assertRoundTrip(
+      'entity-page-output.njk',
+      makeFullEntityNote({ openQuestions: [], human: '## Personal Notes' }),
+    );
   });
 
   it('entity page with open questions but no claims and no human note survives round-trip', () => {
-    assertRoundTrip('entity-page-output.njk', makeFullEntityNote({ claims: [], human: '' }));
+    assertRoundTrip(
+      'entity-page-output.njk',
+      makeFullEntityNote({ claims: [], human: '## Personal Notes' }),
+    );
   });
 
   it('entity page with claim that has no evidenceLocation and no limitation survives round-trip', () => {
@@ -171,7 +177,7 @@ describe('parseNote round-trip', () => {
       makeFullEntityNote({
         claims: [makeClaim({ evidenceLocation: undefined, limitation: undefined })],
         openQuestions: [],
-        human: '',
+        human: '## Personal Notes',
       }),
     );
   });

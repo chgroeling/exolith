@@ -37,10 +37,8 @@ updated: {{ updated }}
 {%- endfor -%}
 
 {% endif %}
-<!-- exolith:human:start -->
-{% if humanBlockContent %}
+<!-- exolith:human:start -->{% if humanBlockContent %}
 {{ humanBlockContent }}{% else %}
 ## Personal Notes
-
 {% endif %}
 <!-- exolith:human:end -->
