@@ -15,7 +15,32 @@ updated: {{ updated }}
 
 {{ body }}
 
+{% if claims and claims.length > 0 %}
+## Claims
+{% for claim in claims %}
+- `id:claim.{{ claim.slug }}` `conf:{{ claim.confidence }}` `status:{{ claim.status }}`
+  {{ claim.text }}
+  *Evidence:* [[{{ claim.evidence }}]]{% if claim.evidenceLocation %} ({{ claim.evidenceLocation }}){% endif %}
+{% if claim.limitation %}
+  *Limitation:* {{ claim.limitation }}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if openQuestions and openQuestions.length > 0 %}
+## Open Questions
+{% for q in openQuestions %}
+- {{ q.question }}
+{% if q.context %}
+  *Kontext:* {{ q.context }}
+{% endif %}
+{% endfor %}
+
+{% endif %}
 <!-- exolith:human:start -->
+{% if humanBlockContent %}
+{{ humanBlockContent }}{% else %}
 ## Personal Notes
 
+{% endif %}
 <!-- exolith:human:end -->

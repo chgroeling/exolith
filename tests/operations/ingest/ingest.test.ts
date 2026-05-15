@@ -25,6 +25,14 @@ const defaultConceptSkeleton = {
   body: 'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios.',
 };
 
+const defaultUpdateSkeleton = {
+  title: 'Updated Title',
+  tags: ['test'],
+  body: 'Updated body content.',
+  claims: [] as Array<Record<string, unknown>>,
+  openQuestions: [] as Array<Record<string, unknown>>,
+};
+
 const defaultExtractionResult = {
   entities: [
     {
@@ -70,6 +78,7 @@ function makeMockLlm(opts?: {
   matchResult?: Record<string, unknown>;
   entitySkeleton?: Record<string, unknown>;
   conceptSkeleton?: Record<string, unknown>;
+  updateSkeleton?: Record<string, unknown>;
   filterResult?: Record<string, unknown>;
   completeResponse?: string;
 }): LlmService {
@@ -113,6 +122,9 @@ function makeMockLlm(opts?: {
       }
       if (schemaName === 'RelevanceFilter') {
         return (opts?.filterResult ?? defaultFilterResult) as unknown as T;
+      }
+      if (schemaName === 'UpdateEntityPage' || schemaName === 'UpdateConceptPage') {
+        return (opts?.updateSkeleton ?? defaultUpdateSkeleton) as unknown as T;
       }
       return {} as unknown as T;
     },
@@ -662,6 +674,9 @@ describe('Ingest', () => {
         if (req.schemaName === 'RelevanceFilter') {
           return defaultFilterResult as unknown as T;
         }
+        if (req.schemaName === 'UpdateEntityPage' || req.schemaName === 'UpdateConceptPage') {
+          return defaultUpdateSkeleton as unknown as T;
+        }
         return defaultMatchResult as unknown as T;
       };
 
@@ -716,16 +731,19 @@ describe('Ingest', () => {
   });
 
   describe('update pages', () => {
-    it('calls complete() for each entity and concept during update phase', async () => {
-      const completeCalls: string[] = [];
+    it('calls generateStructured with update schema for each entity and concept during update phase', async () => {
+      const updateCalls: string[] = [];
 
       const config = makeConfig();
       const filePath = await createTestSourceFile(config.vaultPath);
 
       const llm = makeMockLlm();
-      llm.complete = async (prompt: string) => {
-        completeCalls.push(prompt.slice(0, 100));
-        return 'Updated page content.';
+      const originalGenerateStructured = llm.generateStructured;
+      llm.generateStructured = async <T>(req: LlmStructuredRequest): Promise<T> => {
+        if (req.schemaName === 'UpdateEntityPage' || req.schemaName === 'UpdateConceptPage') {
+          updateCalls.push(req.schemaName);
+        }
+        return originalGenerateStructured.call(llm, req) as unknown as T;
       };
 
       const emit = makeMockEmit();
@@ -742,8 +760,7 @@ describe('Ingest', () => {
 
       await ingest.process(filePath);
 
-      // One complete() call per entity/concept (4 total)
-      expect(completeCalls.length).toBe(4);
+      expect(updateCalls.length).toBe(4);
     });
 
     it('calls the filter step for each item during update', async () => {
@@ -766,6 +783,9 @@ describe('Ingest', () => {
         if (req.schemaName === 'RelevanceFilter') {
           filterCalls.push(req.messages[0].content.slice(0, 50));
           return defaultFilterResult as unknown as T;
+        }
+        if (req.schemaName === 'UpdateEntityPage' || req.schemaName === 'UpdateConceptPage') {
+          return defaultUpdateSkeleton as unknown as T;
         }
         return defaultMatchResult as unknown as T;
       };

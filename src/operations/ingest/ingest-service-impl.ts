@@ -110,6 +110,12 @@ const extractionSchema = loadSchemaFile<Record<string, unknown>>('extraction.sch
 const matchSchema = loadSchemaFile<Record<string, unknown>>('match.schema.json');
 const entityPageSchema = loadSchemaFile<Record<string, unknown>>('entity-page.schema.json');
 const conceptPageSchema = loadSchemaFile<Record<string, unknown>>('concept-page.schema.json');
+const updateEntityPageSchema = loadSchemaFile<Record<string, unknown>>(
+  'update-entity-page.schema.json',
+);
+const updateConceptPageSchema = loadSchemaFile<Record<string, unknown>>(
+  'update-concept-page.schema.json',
+);
 const relevanceFilterSchema = loadSchemaFile<Record<string, unknown>>(
   'relevance-filter.schema.json',
 );
@@ -514,7 +520,7 @@ export class Ingest implements IngestService {
     this.emit({ type: 'step_end', step: 'Updating' });
   }
 
-  /** Updates a single entity or concept page: resolves match, filters relevant pages, reads them, and calls LLM. */
+  /** Updates a single entity or concept page: resolves match, filters relevant pages, reads them, calls LLM. */
   private async updateSinglePage(
     item: ItemToUpdate,
     pageType: 'entity' | 'concept',
@@ -551,6 +557,9 @@ export class Ingest implements IngestService {
       throw err;
     }
 
+    const humanBlockContent = extractHumanBlock(currentContent);
+    const frontmatter = parseYamlFrontmatter(currentContent);
+
     const allEntries = [...(index.get('entity') ?? []), ...(index.get('concept') ?? [])];
     const relevantSlugs = await this.filterRelevantPages(item, allEntries);
     log.debug({ relevantSlugs }, 'Relevant pages filtered');
@@ -575,9 +584,56 @@ export class Ingest implements IngestService {
       name: item.name,
       slug: matchedSlug,
     });
-    const updatedContent = await this.llmService.complete(updatePrompt, systemPrompt);
-    log.debug({ response: updatedContent }, 'LLM update page call');
-    await writeFile(pagePath, updatedContent, 'utf-8');
+
+    const schema = pageType === 'entity' ? updateEntityPageSchema : updateConceptPageSchema;
+    const schemaName = pageType === 'entity' ? 'UpdateEntityPage' : 'UpdateConceptPage';
+
+    const skeleton = await this.llmService.generateStructured<
+      PageSkeleton & {
+        claims?: Array<{
+          slug: string;
+          confidence: number;
+          status: string;
+          text: string;
+          evidence: string;
+          evidenceLocation?: string;
+          limitation?: string;
+        }>;
+        openQuestions?: Array<{ question: string; context?: string }>;
+      }
+    >({
+      systemPrompt,
+      messages: [{ role: 'user', content: updatePrompt }],
+      schema,
+      schemaName,
+      schemaDescription: `Updated ${pageType} page with claims, cross-connections, and open questions.`,
+    });
+    log.trace({ skeleton, updatePrompt }, 'Updated page structured output');
+
+    const confidence = skeleton.claims?.length
+      ? (
+          skeleton.claims.reduce((sum, c) => sum + c.confidence, 0) / skeleton.claims.length
+        ).toFixed(2)
+      : '0.50';
+
+    const outputTemplateName = pageType === 'entity' ? 'entity-page-output' : 'concept-page-output';
+
+    const pageContent = this.promptService.render(outputTemplateName, {
+      id: pageType === 'entity' ? `entity.${matchedSlug}` : `concept.${matchedSlug}`,
+      title: skeleton.title,
+      status: (frontmatter.status as string) ?? 'review',
+      tags: skeleton.tags ?? [],
+      confidence,
+      created: (frontmatter.created as string) ?? today,
+      updated: today,
+      body: skeleton.body,
+      claims: skeleton.claims ?? [],
+      openQuestions: skeleton.openQuestions ?? [],
+      humanBlockContent: humanBlockContent || undefined,
+    });
+
+    log.debug({ response: pageContent }, 'LLM update page call');
+    await writeFile(pagePath, pageContent, 'utf-8');
     this.updatedPages.push(`${PAGE_DIRS[pageType]}/${matchedSlug}.md`);
     this.emit({
       type: 'page_updated',
@@ -970,4 +1026,17 @@ function parseIndex(content: string): Map<string, IndexEntry[]> {
   }
 
   return result;
+}
+
+/** Extracts the content between human block markers from a page. Returns an empty string if no human block is found. */
+function extractHumanBlock(content: string): string {
+  const startMarker = '<!-- exolith:human:start -->';
+  const endMarker = '<!-- exolith:human:end -->';
+  const startIndex = content.indexOf(startMarker);
+  if (startIndex === -1) return '';
+  const endIndex = content.indexOf(endMarker, startIndex);
+  if (endIndex === -1) return '';
+  let inner = content.slice(startIndex + startMarker.length, endIndex);
+  inner = inner.trim();
+  return inner;
 }

@@ -1,0 +1,82 @@
+{
+  // UpdateConceptPage structured output schema.
+  // Defines the expected JSON shape for LLM concept page updates.
+  // The final markdown is rendered programmatically from this JSON via concept-page-output.njk.
+  // The human block is never part of the LLM output — it is extracted before the call
+  // and appended programmatically after rendering.
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The canonical name of the concept."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Lowercase tags based on the concept domain (e.g. ['stoicism', 'psychology']). Merge new tags from the source with existing tags on the page."
+    },
+    "body": {
+      "type": "string",
+      "description": "Updated encyclopedia-style description. Weave new information from the source naturally into the existing body prose — enrich, do not replace. Write in the same language as the source content."
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "A short, unique, kebab-case slug for this claim within the page (e.g. 'cortisol-reduction'). The full claim ID is composed programmatically as 'claim.{slug}'."
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence estimate (0.0-1.0) based on evidence quality."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "uncertain", "contested", "superseded", "deprecated"],
+            "description": "Claim status. Use 'active' for well-supported claims, 'uncertain' for speculative assertions."
+          },
+          "text": {
+            "type": "string",
+            "description": "The claim text — a single verifiable assertion."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Wikilink target without brackets. For source-derived claims: the source page path (e.g. 'sources/schneider-2024'). For entity connections: 'entities/entity-slug'. For concept connections: 'concepts/concept-slug'."
+          },
+          "evidenceLocation": {
+            "type": "string",
+            "description": "Optional location reference within the evidence (e.g. 'paragraph 3', 'n=1,200')."
+          },
+          "limitation": {
+            "type": "string",
+            "description": "Optional methodological or content limitation."
+          }
+        },
+        "required": ["slug", "confidence", "status", "text", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "openQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "An unanswered question raised by the new information or its interaction with existing content."
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional context explaining why the question matters."
+          }
+        },
+        "required": ["question"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["title", "body"],
+  "additionalProperties": false,
+}

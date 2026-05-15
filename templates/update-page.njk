@@ -24,40 +24,32 @@ New knowledge was extracted from: [[{{ sourcePath }}]]
 
 ## Instructions
 
-Update the page above by integrating the new knowledge. Follow these rules precisely:
+Update the page by integrating the new knowledge. Return a JSON object with the fields below. The YAML frontmatter and human notes section are handled programmatically — do NOT include them in your output.
 
 1. **Prose merge:** Weave new information naturally into the body text. Do NOT replace existing content — expand and enrich it. The body text after the YAML frontmatter (under # Title) is prose.
 
-2. **Human Block preservation:** NEVER modify anything between `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. Leave these sections exactly as they are.
+2. **Note:** The current page content may contain a human notes section delimited by `<!-- exolith:human:start -->` and `<!-- exolith:human:end -->`. This is provided for context only. Do not include it in your output.
 
-3. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims for the `## Claims` section. Each claim must:
-   - Have a unique `id:claim.xxx` derived from the claim text
-   - Include a confidence estimate (0.0-1.0) based on evidence quality
-   - Have exactly one `*Evidence:*` wikilink — never more than one:
-     - Claims derived from the source → `*Evidence:* [[{{ sourcePath }}]]`
-     - Claims asserting a connection to another entity → `*Evidence:* [[entities/entity-slug]]`
-     - Claims asserting a connection to another concept → `*Evidence:* [[concepts/concept-slug]]`
+3. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims. Each claim must:
+   - Have a unique `slug` field (kebab-case, e.g. "cortisol-senkung")
+   - Include a `confidence` estimate (0.0-1.0) based on evidence quality
+   - Include a `status` field: "active" for well-supported, "uncertain" for speculative
+   - Include a `text` field with the claim text
+   - Include exactly one `evidence` wikilink target (without brackets):
+     - Claims derived from the source → `sources/{{ sourcePath }}`
+     - Claims asserting a connection to another entity → `entities/entity-slug`
+     - Claims asserting a connection to another concept → `concepts/concept-slug`
+   - Optionally include `evidenceLocation` (e.g. "paragraph 3") and `limitation`
    - Decision logic for existing claims:
      - If a substantively similar claim exists AND new claim has HIGHER confidence → SUPERSEDE: replace and set old status to `superseded`
      - If similar claim exists AND new claim has LOWER/EQUAL confidence → APPEND as additional perspective
      - If claims contradict → CONFLICT: mark both as `contested`
      - If no similar claim → CREATE
-   Format each claim as:
-   ```
-   - `id:claim.xxx` `conf:0.X` `status:active`
-     Claim text here.
-     *Evidence:* [[{{ sourcePath }}]] (location)
-     *Limitation:* any limitations here
-   ```
 
 4. **Cross-connections:** Use the relevant pages above to establish connections. If {{ itemName }} relates to any of those pages, create claims that link to them via the evidence field.
 
-5. **Open Questions:** If the extracted information raises unanswered questions, add them to the `## Offene Fragen` section. Format as:
-   ```
-   - Question text here?
-     *Kontext:* context
-   ```
+5. **Open Questions:** If the extracted information raises unanswered questions, list them with a `question` field and optional `context` field.
 
-6. **YAML frontmatter:** Update the `updated` field to today's date ({{ today }}). If the page has claims, recalculate `confidence` as the arithmetic mean of all claim confidences. Leave all other frontmatter fields unchanged.
+6. **Tags:** Merge any new relevant tags from the source with the existing tags on the page. Return the full set of lowercase tags.
 
-Return the complete updated page content (including YAML frontmatter) as a single string.
+Return only the JSON object with fields: title, tags, body, claims (optional), openQuestions (optional).
