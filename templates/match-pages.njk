@@ -4,8 +4,6 @@ Below is a JSON object containing two arrays:
 - `unmatchedItems`: extracted {{pageType}} names that were NOT found by exact slug match. Each includes a description.
 - `indexEntries`: summaries of all existing {{pageType}} pages from the wiki index.
 
-Determine which existing pages (if any) semantically match the extracted names, even if the exact slug differs (e.g. "Cortisol reduction" ↔ "cortisol-senkung-durch-meditation").
-
 ```json
 {
   "unmatchedItems": {{ unmatchedItems | dump(2) }},
@@ -13,8 +11,20 @@ Determine which existing pages (if any) semantically match the extracted names, 
 }
 ```
 
-For each extracted name, decide: does it match any existing page semantically? Use the descriptions to disambiguate — two items with similar names but different descriptions should NOT be matched.
+## Rules
 
-Only match when there is a strong semantic overlap (near-identical meaning or the same real-world referent). If no existing page describes substantially the same thing, mark it as unmatched. Do NOT force weak matches.
+1. For each extracted name in `unmatchedItems`, compare it against ALL entries in `indexEntries`.
+2. For each comparison, first classify the relationship as one of:
+   - **Equivalent** — the extracted name and the index entry refer to the exact same real-world entity or concept (synonyms, direct translations, alternate spellings). Example: "Cortisol reduction" ↔ "cortisol-senkung-durch-meditation".
+   - **PartOf** — the extracted name is a component, subset, or sub-technique of the index entry, or vice versa. Example: "Engine" is PartOf "Car". "Atomic Note" is PartOf "Zettelkasten".
+   - **Related** — the two share a domain but describe different, distinct concepts.
+3. **ONLY output a match when the relationship is Equivalent.** Do NOT output matches for PartOf or Related relationships.
+4. Each extracted name can match AT MOST ONE existing page. If no existing page is Equivalent, the extracted name remains unmatched.
 
-For every match and every unmatched name, provide a concise reason explaining your decision.
+## Negative example — what NOT to match
+
+- Do NOT match "Zettelkasten" (a note-taking system) with "Atomare Notiz" / "Atomic Note" (a single note component within that system). The relationship is PartOf, not Equivalent.
+
+## Important
+
+Do NOT force weak or partial matches. If no existing page is substantively the same thing, mark it as unmatched. For every match and every unmatched name, provide a concise reason explaining your decision.

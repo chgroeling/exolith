@@ -56,7 +56,12 @@ interface IndexEntry {
 
 /** Semantic match result from the LLM. */
 interface SemanticMatchResult {
-  matches: Array<{ extractedName: string; matchedSlug: string; reason: string }>;
+  matches: Array<{
+    extractedName: string;
+    matchedSlug: string;
+    relationship: string;
+    reason: string;
+  }>;
   unmatched: Array<{ name: string; reason: string }>;
 }
 
@@ -829,6 +834,35 @@ export class Ingest implements IngestService {
       schemaDescription:
         'Result of semantic matching between extracted names and existing wiki page summaries.',
     });
+
+    const matchedNames = new Set(result.matches.map((m) => m.extractedName));
+    const unmatchedNames = new Set(result.unmatched.map((u) => u.name));
+    const inputNames = new Set(unmatchedItems.map((i) => i.name));
+
+    const intersection = [...matchedNames].filter((n) => unmatchedNames.has(n));
+    if (intersection.length > 0) {
+      log.warn(
+        { names: intersection },
+        'LLM returned names in both matches and unmatched — discarding from unmatched',
+      );
+      result.unmatched = result.unmatched.filter((u) => !intersection.includes(u.name));
+    }
+
+    const accounted = new Set([...matchedNames, ...unmatchedNames]);
+    for (const name of inputNames) {
+      if (!accounted.has(name)) {
+        log.warn({ name }, 'LLM omitted extracted name — marking as unmatched');
+        result.unmatched.push({ name, reason: 'LLM did not provide a match decision.' });
+      }
+    }
+
+    for (const name of accounted) {
+      if (!inputNames.has(name)) {
+        log.warn({ name }, 'LLM returned name not in input — discarding');
+      }
+    }
+    result.matches = result.matches.filter((m) => inputNames.has(m.extractedName));
+    result.unmatched = result.unmatched.filter((u) => inputNames.has(u.name));
 
     log.trace({ prompt, response: result }, 'LLM semantic match call');
     return result;

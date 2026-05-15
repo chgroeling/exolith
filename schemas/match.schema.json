@@ -3,6 +3,7 @@
   "properties": {
     "matches": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -11,18 +12,24 @@
             "type": "string",
             "description": "The slug of the matching existing page"
           },
+          "relationship": {
+            "type": "string",
+            "enum": ["Equivalent", "PartOf", "Related"],
+            "description": "How the extracted name relates to the matched page. Only Equivalent relationships should be included in matches."
+          },
           "reason": {
             "type": "string",
             "description": "Explanation of why this is a semantic match"
           }
         },
-        "required": ["extractedName", "matchedSlug", "reason"],
+        "required": ["extractedName", "matchedSlug", "relationship", "reason"],
         "additionalProperties": false
       },
-      "description": "Names that semantically match existing pages"
+      "description": "Names that semantically match existing pages. Each extracted name must appear at most once — across both matches and unmatched."
     },
     "unmatched": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -35,7 +42,7 @@
         "required": ["name", "reason"],
         "additionalProperties": false
       },
-      "description": "Names that have no semantic match, with reasons"
+      "description": "Names that have no semantic match, with reasons. Each extracted name must appear at most once — across both matches and unmatched."
     }
   },
   "required": ["matches", "unmatched"],
