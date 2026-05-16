@@ -5,7 +5,7 @@
     "id": { "type": "string" },
     "title": { "type": "string" },
     "status": { "type": "string" },
-    "tags": { "type": "array", "items": { "type": "string" }, "optional": true },
+    "tags": { "type": "array", "items": { "type": "string" } },
     "created": { "type": "string" },
     "updated": { "type": "string" },
     "authors": { "type": "array", "items": { "type": "string" } },
