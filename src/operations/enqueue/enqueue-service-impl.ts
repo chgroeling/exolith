@@ -1,6 +1,6 @@
 // Specification: docs/operations/enqueue.md
 
-import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
@@ -59,6 +59,7 @@ export class Enqueue implements EnqueueService {
 
     try {
       await this.readRawSource();
+      await this.archiveRawSource();
 
       let shouldDiscuss = false;
       if (!this.config.skipDiscuss) {
@@ -121,6 +122,16 @@ export class Enqueue implements EnqueueService {
     this.rawContent = buffer.toString('utf-8');
     this.logger.info({ filePath, size: buffer.length }, 'Raw source read successfully');
     this.emit({ type: 'step_end', step: 'Reading' });
+  }
+
+  /** Copies the raw source file into the vault's raw-sources/ directory for provenance. */
+  private async archiveRawSource(): Promise<void> {
+    const fileName = basename(this.filePath);
+    const archiveDir = join(this.config.vaultPath, 'raw-sources');
+    await mkdir(archiveDir, { recursive: true });
+    const destPath = join(archiveDir, fileName);
+    await copyFile(this.filePath, destPath);
+    this.logger.info({ destPath }, 'Raw source archived');
   }
 
   /**

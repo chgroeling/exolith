@@ -337,7 +337,7 @@ describe('Enqueue', () => {
       expect(userContent).toContain('discussionSummary: ## Summary');
     });
 
-    it('does not archive when discussion is skipped', async () => {
+    it('archives raw source to raw-sources/ regardless of discussion', async () => {
       const config = makeConfig();
       await mkdir(config.vaultPath, { recursive: true });
       const filePath = join(config.vaultPath, 'source.md');
@@ -357,7 +357,8 @@ describe('Enqueue', () => {
       await enqueue.process(filePath);
 
       const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
-      await expect(readFile(archivedPath, 'utf-8')).rejects.toThrow();
+      const content = await readFile(archivedPath, 'utf-8');
+      expect(content).toBe('# Test\n\nContent');
     });
   });
 

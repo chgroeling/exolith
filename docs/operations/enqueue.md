@@ -1,10 +1,10 @@
 # Enqueue
 
-Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `inbox/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
+Prepares a raw source for later ingest: validates the file, archives a copy to `raw-sources/`, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `inbox/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
 
 ## The Five Steps of Enqueue
 
-1. Read and validate the raw source file (no LLM)
+1. Read, validate, and archive the raw source file (no LLM)
 2. Discuss key takeaways with the human (interactive, **skippable**)
 3. Summarize the discussion feedback (LLM, **skippable** — only when discussion occurred)
 4. Extract structured source page data (LLM)
@@ -12,11 +12,11 @@ Prepares a raw source for later ingest: validates the file, optionally discusses
 
 ---
 
-## Step 1 — Read Raw Source Completely
+## Step 1 — Read, Validate, and Archive
 
-The first step reads and validates the raw source file without involving the LLM. The file is checked for existence, type (`.md`, `.txt`, `.textile`), size (under the configured limit), and binary content (null bytes rejected). Once validated, the full content is read into memory.
+The first step reads and validates the raw source file without involving the LLM. The file is checked for existence, type (`.md`, `.txt`, `.textile`), size (under the configured limit), and binary content (null bytes rejected). Once validated, the full content is read into memory and a copy is archived to `raw-sources/` for provenance.
 
-New sources land in `inbox/`. The raw content is held in memory for the subsequent discussion and source page creation.
+The raw content is held in memory for the subsequent discussion and source page creation.
 
 ---
 
