@@ -485,6 +485,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render('entity-page-output', {
       id: entity.id,
       title: skeleton.title,
+      type: 'entity',
       tldr: skeleton.tldr,
       status: 'review',
       tags: skeleton.tags ?? [],
@@ -547,6 +548,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render('concept-page-output', {
       id: concept.id,
       title: skeleton.title,
+      type: 'concept',
       tldr: skeleton.tldr,
       status: 'review',
       tags: skeleton.tags ?? [],
@@ -740,6 +742,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render(outputTemplateName, {
       id: pageType === 'entity' ? `entity.${matchedSlug}` : `concept.${matchedSlug}`,
       title: pageOutput.title,
+      type: pageType,
       tldr: pageOutput.tldr,
       status: currentNote.frontmatter.status || 'review',
       tags: pageOutput.tags ?? [],

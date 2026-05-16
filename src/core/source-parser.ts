@@ -9,6 +9,7 @@ import { loadSchemaFile } from './schema-loader';
 export interface ParsedSourceFrontmatter {
   id: string;
   title: string;
+  type: string;
   status: string;
   tags: string[];
   created: string;
@@ -89,6 +90,7 @@ function parseSourceFrontmatter(fmString: string): ParsedSourceFrontmatter {
     return {
       id: '',
       title: '',
+      type: '',
       status: 'active',
       tags: [],
       created: '',
@@ -106,6 +108,7 @@ function parseSourceFrontmatter(fmString: string): ParsedSourceFrontmatter {
   return {
     id: (validated.id as string) ?? '',
     title: (validated.title as string) ?? '',
+    type: (validated.type as string) ?? '',
     status: (validated.status as string) ?? 'active',
     tags: Array.isArray(validated.tags) ? (validated.tags as string[]) : [],
     created: (validated.created as string) ?? '',

@@ -45,6 +45,7 @@ export interface ParsedOpenQuestion {
 export interface ParsedFrontmatter {
   id: string;
   title: string;
+  type: string;
   status: string;
   tags: string[];
   confidence: number;
@@ -140,6 +141,7 @@ function parseFrontmatter(fmString: string): ParsedFrontmatter {
     return {
       id: '',
       title: '',
+      type: '',
       status: 'active',
       tags: [],
       confidence: 0,
@@ -155,6 +157,7 @@ function parseFrontmatter(fmString: string): ParsedFrontmatter {
   return {
     id: validated.id ?? '',
     title: validated.title ?? '',
+    type: (validated.type as string) ?? '',
     status: validated.status ?? 'active',
     tags: validated.tags ?? [],
     confidence: validated.confidence ?? 0,
@@ -167,6 +170,7 @@ function parseFrontmatter(fmString: string): ParsedFrontmatter {
 interface PartialParsedFrontmatter {
   id?: string;
   title?: string;
+  type?: string;
   status?: string;
   tags?: string[];
   confidence?: number;

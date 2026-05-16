@@ -221,6 +221,7 @@ async function createTestSourceFile(vaultPath: string): Promise<string> {
     '---',
     'id: source.test-source',
     'title: Test Source Page',
+    'type: test',
     'status: active',
     'tags:',
     '  - test',
@@ -414,7 +415,7 @@ describe('Ingest', () => {
       await mkdir(join(config.vaultPath, 'entities'), { recursive: true });
       await mkdir(join(config.vaultPath, 'concepts'), { recursive: true });
       const pageContent =
-        '---\nid: entity.seneca\ntitle: Seneca\nstatus: active\nconfidence: 0.8\ncreated: 2026-01-01\nupdated: 2026-01-01\n---\n\n# Seneca\n\nContent.';
+        '---\nid: entity.seneca\ntitle: Seneca\ntype: entity\nstatus: active\nconfidence: 0.8\ncreated: 2026-01-01\nupdated: 2026-01-01\n---\n\n# Seneca\n\nContent.';
       await writeFile(join(config.vaultPath, 'entities', 'seneca.md'), pageContent, 'utf-8');
       await writeFile(
         join(config.vaultPath, 'entities', 'dr.-maria-schneider.md'),
@@ -425,6 +426,7 @@ describe('Ingest', () => {
         join(config.vaultPath, 'concepts', 'praemeditatio-malorum.md'),
         pageContent
           .replace('entity.seneca', 'concept.praemeditatio-malorum')
+          .replace('type: entity', 'type: concept')
           .replace('Seneca', 'Praemeditatio Malorum'),
         'utf-8',
       );
@@ -432,6 +434,7 @@ describe('Ingest', () => {
         join(config.vaultPath, 'concepts', 'cortisol-reduction-through-meditation.md'),
         pageContent
           .replace('entity.seneca', 'concept.cortisol-reduction-through-meditation')
+          .replace('type: entity', 'type: concept')
           .replace('Seneca', 'Cortisol Reduction'),
         'utf-8',
       );

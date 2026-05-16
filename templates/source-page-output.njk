@@ -1,6 +1,7 @@
 ---
 id: {{ id }}
 title: {{ title }}
+type: {{ type }}
 status: active
 tags:
 {%- for tag in tags %}
@@ -19,8 +20,6 @@ rawSource: raw-sources/{{ fileName }}
 # {{ title }}
 
 > **TL;DR:** {{ tldr }}
-
-*Type:* {{ type }}
 
 {{ summary }}
 

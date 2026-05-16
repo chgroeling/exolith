@@ -80,6 +80,7 @@ function makeMockPrompt(): PromptService {
           '---',
           `id: ${context.id}`,
           `title: ${context.title}`,
+          `type: ${context.type}`,
           'status: active',
           'tags:',
           ...(context.tags as string[]).map((t: string) => `  - ${t}`),
@@ -94,8 +95,6 @@ function makeMockPrompt(): PromptService {
           `# ${context.title}`,
           '',
           `> **TL;DR:** ${context.tldr as string}`,
-          '',
-          `*Type:* ${context.type}`,
           '',
           context.summary as string,
           '',
@@ -541,7 +540,7 @@ describe('Enqueue', () => {
       const sourcePath = join(config.vaultPath, 'inbox', 'specific-article.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
-      expect(pageContent).toContain('*Type:* paper');
+      expect(pageContent).toContain('type: paper');
       expect(pageContent).toContain('  - Jane Doe');
       expect(pageContent).toContain('reference: https://example.org/paper');
     });

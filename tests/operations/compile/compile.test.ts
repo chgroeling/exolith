@@ -11,6 +11,7 @@ import type { PipelineEvent, Question } from '../../../src/operations/pipeline-p
 const ENTITY_SENECA = `---
 id: entity.seneca
 title: Seneca
+type: entity
 confidence: 0.9
 status: active
 tags:
@@ -55,6 +56,7 @@ Personal note content.
 const ENTITY_MARIA = `---
 id: entity.maria-schneider
 title: Maria Schneider
+type: entity
 confidence: 0.8
 status: active
 tags:
@@ -84,6 +86,7 @@ Researcher at the University of Tübingen, author of the 2024 meta-study.
 const CONCEPT_STOIZISMUS = `---
 id: concept.stoizismus
 title: Stoizismus
+type: concept
 confidence: 0.8
 status: active
 tags:
@@ -109,6 +112,7 @@ Seneca was one of its most important representatives.
 const CONCEPT_PRAEMEDITATIO = `---
 id: concept.praemeditatio-malorum
 title: Praemeditatio Malorum
+type: concept
 confidence: 0.7
 status: active
 tags:
@@ -147,6 +151,7 @@ The technique has been empirically validated.
 const SOURCE_BRIEFE = `---
 id: source.briefe-an-lucilius
 title: Letters to Lucilius (13th Letter)
+type: transcript
 status: active
 tags:
   - philosophie
@@ -160,7 +165,6 @@ updated: 2026-05-01
 
 > **TL;DR:** Seneca's 13th letter to Lucilius explores the nature of fear and anxiety, arguing that anticipated suffering causes more distress than real suffering.
 
-*Type:* transcript
 *Author(s):* Lucius Annaeus Seneca
 *Date:* ca. 62-64 CE
 *URL/Reference:* —
@@ -177,6 +181,7 @@ Seneca reflects on the nature of fear and anxiety in the 13th letter to Lucilius
 const SOURCE_SCHNEIDER = `---
 id: source.schneider-metastudie-2024
 title: Schneider Meta-Study 2024
+type: paper
 status: active
 tags:
   - psychologie
@@ -189,7 +194,6 @@ updated: 2026-05-02
 
 > **TL;DR:** Schneider's 2024 meta-study with n=1,200 participants found that praemeditatio malorum reduces cortisol by 18%.
 
-*Type:* paper
 *Author(s):* Dr. Maria Schneider
 *Date:* 2024
 *URL/Reference:* —
@@ -380,6 +384,7 @@ This page has no YAML frontmatter at all.
       const noClaims = `---
 id: entity.no-claims
 title: No Claims Entity
+type: entity
 status: active
 tags:
   - test
@@ -418,6 +423,7 @@ This entity has no claims section at all.
       const germanClaims = `---
 id: entity.german
 title: German Entity
+type: entity
 status: active
 tags:
   - test

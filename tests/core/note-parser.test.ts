@@ -16,6 +16,7 @@ function toTemplateContext(note: ParsedNote): Record<string, unknown> {
   return {
     id: note.frontmatter.id,
     title: note.frontmatter.title,
+    type: note.frontmatter.type,
     tldr: note.tldr,
     status: note.frontmatter.status,
     tags: note.frontmatter.tags,
@@ -38,6 +39,7 @@ function assertRoundTrip(templateName: string, note: ParsedNote): void {
 
   expect(parsed.frontmatter.id).toBe(note.frontmatter.id);
   expect(parsed.frontmatter.title).toBe(note.frontmatter.title);
+  expect(parsed.frontmatter.type).toBe(note.frontmatter.type);
   expect(parsed.tldr).toBe(note.tldr);
   expect(parsed.frontmatter.status).toBe(note.frontmatter.status);
   expect(parsed.frontmatter.tags).toEqual(note.frontmatter.tags);
@@ -76,6 +78,7 @@ function makeFullEntityNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
     frontmatter: {
       id: 'entity.seneca',
       title: 'Seneca',
+      type: 'entity',
       status: 'active',
       tags: ['philosophie', 'stoizismus', 'antike'],
       confidence: 0.9,
@@ -109,6 +112,7 @@ function makeFullConceptNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
     frontmatter: {
       id: 'concept.praemeditatio-malorum',
       title: 'Praemeditatio Malorum',
+      type: 'concept',
       status: 'active',
       tags: ['stoicism', 'psychology', 'anxiety-management'],
       confidence: 0.7,
@@ -195,6 +199,7 @@ describe('parseNote round-trip', () => {
 
     expect(result.frontmatter.id).toBe('');
     expect(result.frontmatter.title).toBe('');
+    expect(result.frontmatter.type).toBe('');
     expect(result.tldr).toBe('');
     expect(result.frontmatter.status).toBe('active');
     expect(result.frontmatter.tags).toEqual([]);
@@ -218,6 +223,7 @@ describe('frontmatter parsing via parseNote', () => {
     const yaml = [
       'id: entity.seneca',
       'title: Seneca',
+      'type: entity',
       'status: active',
       'tags:',
       '  - philosophie',
@@ -231,6 +237,7 @@ describe('frontmatter parsing via parseNote', () => {
 
     expect(result.frontmatter.id).toBe('entity.seneca');
     expect(result.frontmatter.title).toBe('Seneca');
+    expect(result.frontmatter.type).toBe('entity');
     expect(result.frontmatter.status).toBe('active');
     expect(result.frontmatter.tags).toEqual(['philosophie', 'stoizismus']);
     expect(result.frontmatter.confidence).toBe(0.9);
@@ -241,7 +248,7 @@ describe('frontmatter parsing via parseNote', () => {
 
   it('applies defaults for missing optional fields', () => {
     const yaml =
-      'id: entity.test\ntitle: Test\nstatus: active\ntags:\nconfidence: 0.5\ncreated: 2026-01-01\nupdated: 2026-01-01';
+      'id: entity.test\ntitle: Test\ntype: entity\nstatus: active\ntags:\nconfidence: 0.5\ncreated: 2026-01-01\nupdated: 2026-01-01';
 
     const result = parseNote(wrap(yaml));
 
@@ -252,14 +259,14 @@ describe('frontmatter parsing via parseNote', () => {
 
   it('rejects unknown keys in strict mode', () => {
     const yaml =
-      'id: entity.test\ntitle: Test\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nunknown_field: value';
+      'id: entity.test\ntitle: Test\ntype: entity\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nunknown_field: value';
 
     expect(() => parseNote(wrap(yaml))).toThrow();
   });
 
   it('rejects malformed YAML', () => {
     const yaml =
-      'id: entity.test\ntitle: Test\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nbad: [unclosed';
+      'id: entity.test\ntitle: Test\ntype: entity\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nbad: [unclosed';
 
     expect(() => parseNote(wrap(yaml))).toThrow();
   });
@@ -272,6 +279,7 @@ describe('frontmatter parsing via parseNote', () => {
     const yaml = [
       'id: entity.test',
       'title: Test',
+      'type: entity',
       'status: active',
       'tags:',
       '  - alpha',
