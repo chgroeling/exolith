@@ -14,10 +14,10 @@ import { OpenRouterLlmProvider } from '../infrastructure/llm/openrouter-llm-prov
 import { PromptServiceImpl } from '../infrastructure/prompt/prompt-service-impl';
 import type { CompileServiceFactory } from '../operations/compile/compile-service';
 import { CompileServiceFactoryImpl } from '../operations/compile/compile-service-factory-impl';
+import type { EnqueueServiceFactory } from '../operations/enqueue/enqueue-service';
+import { EnqueueServiceFactoryImpl } from '../operations/enqueue/enqueue-service-factory-impl';
 import type { IngestServiceFactory } from '../operations/ingest/ingest-service';
 import { IngestServiceFactoryImpl } from '../operations/ingest/ingest-service-factory-impl';
-import type { PreIngestServiceFactory } from '../operations/pre-ingest/pre-ingest-service';
-import { PreIngestServiceFactoryImpl } from '../operations/pre-ingest/pre-ingest-service-factory-impl';
 
 /** Parsed gateway name and model id extracted from the "gateway/model-id" string. */
 interface ParsedModel {
@@ -124,13 +124,10 @@ function createProvider(
   throw new Error(`Unknown provider "${provider}". Supported: deepseek, openrouter.`);
 }
 
-/** Builds the pre-ingest factory wired with all dependencies. */
-export function buildPreIngestFactory(
-  logger: Logger,
-  config: ExolithConfig,
-): PreIngestServiceFactory {
+/** Builds the enqueue factory wired with all dependencies. */
+export function buildEnqueueFactory(logger: Logger, config: ExolithConfig): EnqueueServiceFactory {
   const { llmService, identifier, promptService } = wireServices(logger, config);
-  return new PreIngestServiceFactoryImpl(llmService, identifier, promptService, logger);
+  return new EnqueueServiceFactoryImpl(llmService, identifier, promptService, logger);
 }
 
 /** Builds the compile factory wired with all dependencies. */

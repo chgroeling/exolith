@@ -1,8 +1,8 @@
-# Pre-Ingest
+# Enqueue
 
 Prepares a raw source for later ingest: validates the file, optionally discusses key takeaways with the human, summarizes the discussion, extracts structured data from the LLM, and writes a processed source page to `inbox/`. The discussion and summarization steps are skippable — sources can be written without human calibration.
 
-## The Five Steps of Pre-Ingest
+## The Five Steps of Enqueue
 
 1. Read and validate the raw source file (no LLM)
 2. Discuss key takeaways with the human (interactive, **skippable**)
@@ -22,7 +22,7 @@ New sources land in `inbox/`. The raw content is held in memory for the subseque
 
 ## Step 2 — Interactive Discussion (Skippable)
 
-Before the LLM creates the source page, the human may engage in an interactive discussion. The human can **skip this step entirely** — the source page will be created from the raw content alone, and no summarization or archiving takes place.
+Before the LLM creates the source page, the human may engage in an interactive discussion. The human can **skip this step entirely** — the source page will be created from the raw content alone, and no summarization takes place.
 
 If the human chooses to discuss, the LLM reads the raw source content and summarizes it conversationally, then asks the human for opinionated judgment to calibrate the upcoming extraction step.
 
@@ -60,5 +60,5 @@ The structured source page data is formatted as a markdown file with YAML frontm
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [ingest.md](ingest.md) — the ingest operation (processes source pages from `sources/`)
+* [ingest.md](ingest.md) — the ingest operation (processes source pages from `inbox/`)
 * [../pages/source-spec.md](../pages/source-spec.md) — source page specification

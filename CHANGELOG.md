@@ -28,10 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--version` flag to CLI
 - Streaming and waiting-for-input pipeline states
 - File list service with content-based identifiers
-- Pre-ingest `list` and `process` subcommands for batch processing
+- Enqueue `list` and `process` subcommands for batch processing
 - Ingest `list` and `process` subcommands for source pages from the vault
 - File-loaded Zod config schema with JSON5 schema descriptor
-- `PreIngestResult` discriminated union type
+- `EnqueueResult` discriminated union type
 - `init` command tests
 - Ingest pipeline with LLM-driven knowledge extraction, page updates, and logging
 - Compile operation (`compile-service`) with factory and tests
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convert `Presentation` and `Operations` enum members to PascalCase
 - Replace imperative `validateConfig()` with `ExolithConfigSchema.safeParse()`
 - Extract shared `loadSchemaFile` helper for JSON5 schema resolution, with SourcePage schema externalized to `schemas/`
-- Rename `ingest`/`pre-ingest` implementation files to `-service-impl` suffix convention
+- Rename `ingest`/`enqueue` implementation files to `-service-impl` suffix convention
 - Extract table output to `TableFormatter` interface and implementation in `core/`
 - Restructure test files to mirror `src/` directory layout
 - Extract source page output formatting to `templates/source-page-output.njk`
@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Defer stream messages until first chunk arrives
 - Cancel and SIGINT handling during pipeline execution
 - Remove duplicate error output on failure
-- Fix `LogSuccess` context in pre-ingest process
+- Fix `LogSuccess` context in enqueue process
 - Fix DeepSeek provider test mocks to return valid stream/generate results instead of throwing
 - Remove extra `StopSpin` from `SourcePageWritten` event to prevent double-stop
 

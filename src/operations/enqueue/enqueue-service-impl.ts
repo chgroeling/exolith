@@ -1,4 +1,4 @@
-// Specification: docs/operations/pre-ingest.md
+// Specification: docs/operations/enqueue.md
 
 import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
@@ -9,7 +9,7 @@ import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { PipelineEvent, Question } from '../pipeline-presentation';
-import type { PreIngestConfig, PreIngestResult, PreIngestService } from './pre-ingest-service';
+import type { EnqueueConfig, EnqueueResult, EnqueueService } from './enqueue-service';
 
 /** Structured output from the LLM for a source page. */
 interface SourcePage {
@@ -31,7 +31,7 @@ const sourcePageSchema = loadSchemaFile<{ properties: Record<string, unknown> }>
 
 const sourcePagePropertyKeys = Object.keys(sourcePageSchema.properties);
 
-export class PreIngest implements PreIngestService {
+export class Enqueue implements EnqueueService {
   private rawContent = '';
   private filePath = '';
   private discussionSummary = '';
@@ -41,21 +41,21 @@ export class PreIngest implements PreIngestService {
     private llmService: LlmService,
     private identifier: IdentifierService,
     private promptService: PromptService,
-    private config: PreIngestConfig,
+    private config: EnqueueConfig,
     private emit: (event: PipelineEvent) => void,
     private ask: <T>(question: Question<T>) => Promise<T>,
     parentLogger?: Logger,
   ) {
-    this.logger = parentLogger?.child({ logger: 'pre-ingest' }) ?? pino({ enabled: false });
+    this.logger = parentLogger?.child({ logger: 'enqueue' }) ?? pino({ enabled: false });
   }
 
   /**
-   * Runs the full pre-ingest pipeline on a raw source file.
+   * Runs the full enqueue pipeline on a raw source file.
    * @param filePath Absolute path to the raw source file
    */
-  async process(filePath: string): Promise<PreIngestResult> {
+  async process(filePath: string): Promise<EnqueueResult> {
     this.filePath = filePath;
-    this.logger.info({ filePath }, 'Pre-ingest process started');
+    this.logger.info({ filePath }, 'Enqueue process started');
 
     try {
       await this.readRawSource();
@@ -80,7 +80,7 @@ export class PreIngest implements PreIngestService {
       return { sourcePath };
     } catch (err) {
       this.emit({ type: 'error', error: err as Error });
-      this.logger.error({ filePath, err }, 'Pre-ingest process failed');
+      this.logger.error({ filePath, err }, 'Enqueue process failed');
       throw err;
     }
   }

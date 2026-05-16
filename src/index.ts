@@ -4,4 +4,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   run();
 }
 
-export { buildIngestFactory, buildPreIngestFactory } from './composition/root';
+export { buildIngestFactory, buildEnqueueFactory } from './composition/root';

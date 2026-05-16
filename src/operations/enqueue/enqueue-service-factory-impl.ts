@@ -2,14 +2,10 @@ import type { IdentifierService } from '../../core/identifier-service';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { PipelineEvent, Question } from '../pipeline-presentation';
-import type {
-  PreIngestConfig,
-  PreIngestService,
-  PreIngestServiceFactory,
-} from './pre-ingest-service';
-import { PreIngest } from './pre-ingest-service-impl';
+import type { EnqueueConfig, EnqueueService, EnqueueServiceFactory } from './enqueue-service';
+import { Enqueue } from './enqueue-service-impl';
 
-export class PreIngestServiceFactoryImpl implements PreIngestServiceFactory {
+export class EnqueueServiceFactoryImpl implements EnqueueServiceFactory {
   constructor(
     private llmService: LlmService,
     private identifier: IdentifierService,
@@ -17,13 +13,13 @@ export class PreIngestServiceFactoryImpl implements PreIngestServiceFactory {
     private parentLogger?: import('pino').Logger,
   ) {}
 
-  /** Creates a {@link PreIngestService} wired to this factory's dependencies. */
+  /** Creates a {@link EnqueueService} wired to this factory's dependencies. */
   create(
-    config: PreIngestConfig,
+    config: EnqueueConfig,
     emit: (event: PipelineEvent) => void,
     ask: <T>(question: Question<T>) => Promise<T>,
-  ): PreIngestService {
-    return new PreIngest(
+  ): EnqueueService {
+    return new Enqueue(
       this.llmService,
       this.identifier,
       this.promptService,

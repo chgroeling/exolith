@@ -7,8 +7,8 @@ import pino from 'pino';
 import pkg from '../../package.json' with { type: 'json' };
 import {
   buildCompileFactory,
+  buildEnqueueFactory,
   buildIngestFactory,
-  buildPreIngestFactory,
   resolveTemplateDir,
 } from '../composition/root';
 import { ConfigLoaderServiceImpl } from '../core/config/config-loader-impl';
@@ -138,7 +138,7 @@ program
     };
     process.once('SIGINT', sigintHandler);
 
-    const factory = buildPreIngestFactory(logger, config);
+    const factory = buildEnqueueFactory(logger, config);
     const { emit, ask } = createCliPresentation();
     const service = factory.create(
       { maxSourceSize, vaultPath, skipDiscuss: options.skipDiscuss },

@@ -1,4 +1,4 @@
-/** Specification: docs/operations/pre-ingest.md — source page parsing */
+/** Specification: docs/operations/enqueue.md — source page parsing */
 
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';

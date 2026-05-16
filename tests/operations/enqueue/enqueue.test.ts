@@ -1,4 +1,4 @@
-// Specification: docs/operations/pre-ingest.md
+// Specification: docs/operations/enqueue.md
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,9 +8,9 @@ import type { IdentifierService } from '../../../src/core/identifier-service';
 import type { IdentifierType } from '../../../src/core/types';
 import type { LlmService, LlmStructuredRequest } from '../../../src/infrastructure/llm/llm-service';
 import type { PromptService } from '../../../src/infrastructure/prompt/prompt-service';
+import type { EnqueueConfig } from '../../../src/operations/enqueue/enqueue-service';
+import { Enqueue } from '../../../src/operations/enqueue/enqueue-service-impl';
 import type { PipelineEvent, Question } from '../../../src/operations/pipeline-presentation';
-import type { PreIngestConfig } from '../../../src/operations/pre-ingest/pre-ingest-service';
-import { PreIngest } from '../../../src/operations/pre-ingest/pre-ingest-service-impl';
 
 function makeMockLlm(opts?: {
   streamDelay?: () => Promise<void>;
@@ -123,7 +123,7 @@ function makeMockAsk<T>(response: T): <U>(question: Question<U>) => Promise<U> {
   return <U>() => Promise.resolve(response as unknown as U);
 }
 
-function makeConfig(overrides?: Partial<PreIngestConfig>): PreIngestConfig {
+function makeConfig(overrides?: Partial<EnqueueConfig>): EnqueueConfig {
   return {
     maxSourceSize: 1024 * 1024,
     vaultPath: join(tmpdir(), `exolith-test-${Date.now()}`),
@@ -131,7 +131,7 @@ function makeConfig(overrides?: Partial<PreIngestConfig>): PreIngestConfig {
   };
 }
 
-describe('PreIngest', () => {
+describe('Enqueue', () => {
   describe('readRawSource', () => {
     it('reads a valid .md file', async () => {
       const config = makeConfig();
@@ -141,7 +141,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -150,7 +150,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
     });
 
     it('rejects unsupported file extensions', async () => {
@@ -161,7 +161,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -170,7 +170,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).rejects.toThrow('Unsupported file type');
+      await expect(enqueue.process(filePath)).rejects.toThrow('Unsupported file type');
     });
 
     it('rejects files exceeding maxSourceSize', async () => {
@@ -181,7 +181,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -190,7 +190,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).rejects.toThrow('Source file exceeds maximum size');
+      await expect(enqueue.process(filePath)).rejects.toThrow('Source file exceeds maximum size');
     });
 
     it('rejects binary files', async () => {
@@ -203,7 +203,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -212,7 +212,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).rejects.toThrow('Source file appears to be binary');
+      await expect(enqueue.process(filePath)).rejects.toThrow('Source file appears to be binary');
     });
   });
 
@@ -225,7 +225,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(false);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -234,7 +234,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
 
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
@@ -253,7 +253,7 @@ describe('PreIngest', () => {
         askCalled = true;
         return Promise.resolve(true as unknown as T);
       };
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -262,7 +262,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
       expect(askCalled).toBe(false);
     });
 
@@ -274,7 +274,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -283,7 +283,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
     });
 
     it('handles multiple human inputs in the discussion loop', async () => {
@@ -302,7 +302,7 @@ describe('PreIngest', () => {
       const filePath = join(config.vaultPath, 'source.md');
       await writeFile(filePath, '# Test\n\nMulti-turn content', 'utf-8');
 
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -311,7 +311,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
     });
 
     it('stores discussion summary for source page extraction', async () => {
@@ -329,16 +329,9 @@ describe('PreIngest', () => {
       };
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
-        llm,
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        emit,
-        ask,
-      );
+      const enqueue = new Enqueue(llm, makeMockIdentifier(), makeMockPrompt(), config, emit, ask);
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const userContent = capturedRequest?.messages?.[0]?.content ?? '';
       expect(userContent).toContain('discussionSummary: ## Summary');
@@ -352,7 +345,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(false);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -361,7 +354,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const archivedPath = join(config.vaultPath, 'raw-sources', 'source.md');
       await expect(readFile(archivedPath, 'utf-8')).rejects.toThrow();
@@ -389,16 +382,9 @@ describe('PreIngest', () => {
         capturedRequest = req;
         return defaultSourcePage as unknown as T;
       };
-      const preIngest = new PreIngest(
-        llm,
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        emit,
-        ask,
-      );
+      const enqueue = new Enqueue(llm, makeMockIdentifier(), makeMockPrompt(), config, emit, ask);
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const userContent = capturedRequest?.messages?.[0]?.content ?? '';
       expect(userContent).toContain('discussionSummary: expected-summary');
@@ -414,7 +400,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -423,7 +409,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const expectedPath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(expectedPath, 'utf-8');
@@ -438,7 +424,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -447,7 +433,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
@@ -470,7 +456,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -479,7 +465,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
@@ -495,7 +481,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -504,7 +490,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
@@ -534,7 +520,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm({ structuredResponse }),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -543,7 +529,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       const sourcePath = join(config.vaultPath, 'inbox', 'specific-article.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
@@ -569,16 +555,9 @@ describe('PreIngest', () => {
         capturedRequest = req;
         return defaultSourcePage as unknown as T;
       };
-      const preIngest = new PreIngest(
-        llm,
-        makeMockIdentifier(),
-        makeMockPrompt(),
-        config,
-        emit,
-        ask,
-      );
+      const enqueue = new Enqueue(llm, makeMockIdentifier(), makeMockPrompt(), config, emit, ask);
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       expect(capturedRequest).toBeDefined();
       const userContent = capturedRequest?.messages[0].content;
@@ -615,7 +594,7 @@ describe('PreIngest', () => {
         }
       };
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -624,7 +603,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       expect(states).toEqual([
         'Reading',
@@ -658,7 +637,7 @@ describe('PreIngest', () => {
         }
       };
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -667,7 +646,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       expect(fileNames).toEqual(['source.md', 'source.md', 'source.md']);
     });
@@ -689,7 +668,7 @@ describe('PreIngest', () => {
         }
       };
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -698,7 +677,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       expect(finalData?.fileName).toBe('source.md');
       expect(finalData?.sourcePath).toContain('inbox/');
@@ -718,7 +697,7 @@ describe('PreIngest', () => {
         }
       };
       const ask = makeMockAsk(false);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -727,7 +706,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await preIngest.process(filePath);
+      await enqueue.process(filePath);
 
       expect(states).toEqual([
         'Reading',
@@ -753,7 +732,7 @@ describe('PreIngest', () => {
         }
       };
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -762,7 +741,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).rejects.toThrow();
+      await expect(enqueue.process(filePath)).rejects.toThrow();
 
       expect(states).toEqual(['Reading']);
     });
@@ -777,7 +756,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(true);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -786,7 +765,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
     });
 
     it('runs the full pipeline without discussion when skipped', async () => {
@@ -797,7 +776,7 @@ describe('PreIngest', () => {
 
       const emit = makeMockEmit();
       const ask = makeMockAsk(false);
-      const preIngest = new PreIngest(
+      const enqueue = new Enqueue(
         makeMockLlm(),
         makeMockIdentifier(),
         makeMockPrompt(),
@@ -806,7 +785,7 @@ describe('PreIngest', () => {
         ask,
       );
 
-      await expect(preIngest.process(filePath)).resolves.not.toThrow();
+      await expect(enqueue.process(filePath)).resolves.not.toThrow();
     });
   });
 });

@@ -19,7 +19,7 @@ interface StepActions {
 
 /** Maps pipeline step names to their display behaviour. */
 const STEP_DISPLAY: Record<string, StepActions> = {
-  // Pre-ingest states
+  // Enqueue states
   Reading: {
     start: [{ action: 'Step', label: 'Reading: {fileName}' }],
   },
@@ -75,7 +75,7 @@ const STEP_DISPLAY: Record<string, StepActions> = {
  * {@link https://clack.cc @clack/prompts} spinners, steps, and streamed text.
  *
  * @remarks
- * Works for both pre-ingest and ingest pipelines. The same functions
+ * Works for both enqueue and ingest pipelines. The same functions
  * are passed to either operation — unused event types are simply never emitted.
  */
 export function createCliPresentation(): {

@@ -2,7 +2,7 @@
 
 The core workflow. A **source page** from `sources/` is not just indexed, but **actively integrated into the wiki**. This is the decisive difference from RAG: not storing chunks and searching later, but weaving the knowledge into the existing structure immediately.
 
-Source pages are created by the [Pre-Ingest](pre-ingest.md) operation (or placed manually in `sources/`).
+Source pages are created by the [Enqueue](enqueue.md) operation (or placed manually in `inbox/`).
 
 ## The Steps of Ingest
 
@@ -245,7 +245,7 @@ Triggers the [compile](compile.md) operation — a separate operation that regen
 ## See Also
 
 * [../architecture.md](../architecture.md) — architectural overview
-* [pre-ingest.md](pre-ingest.md) — the pre-ingest operation (creates source pages in `sources/`)
+* [enqueue.md](enqueue.md) — the enqueue operation (creates source pages in `inbox/`)
 * [../pages/source-spec.md](../pages/source-spec.md) — source page specification
 * [../cross-cutting/claim-spec.md](../cross-cutting/claim-spec.md) — claim specification
 * [compile.md](compile.md) — compile operation (triggered in step 6)
