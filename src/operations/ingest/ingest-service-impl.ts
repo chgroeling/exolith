@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
+import type { IndexEntry } from '../../core/index-parser';
+import { PAGE_TYPE_MAP, parseIndex } from '../../core/index-parser';
 import { parseNote } from '../../core/note-parser';
 import type { ParsedNote } from '../../core/note-parser';
 import { loadSchemaFile } from '../../core/schema-loader';
@@ -47,15 +49,6 @@ interface ExtractionResult {
   concepts: ExtractedConcept[];
 }
 
-/** A parsed entry from index.md. */
-interface IndexEntry {
-  slug: string;
-  title: string;
-  pageType: string;
-  summary: string;
-  path: string;
-}
-
 /** Semantic match result from the LLM. */
 interface SemanticMatchResult {
   matches: Array<{
@@ -83,14 +76,6 @@ interface PageSkeleton {
   tags: string[];
   body: string;
 }
-
-const PAGE_TYPE_MAP: Record<string, string> = {
-  Sources: 'source',
-  Entities: 'entity',
-  Concepts: 'concept',
-  Syntheses: 'synthesis',
-  Reports: 'report',
-};
 
 const PAGE_DIRS: Record<string, string> = {
   entity: 'entities',
@@ -217,7 +202,7 @@ export class Ingest implements IngestService {
     }
 
     this.extractionResult = rawResult as unknown as ExtractionResult;
-    log.debug({ prompt, response: this.extractionResult }, 'LLM extract knowledge call');
+    log.trace({ prompt, response: this.extractionResult }, 'LLM extract knowledge call');
 
     log.info(
       {
@@ -239,6 +224,13 @@ export class Ingest implements IngestService {
     const log = this.logger.child({ method_name: 'resolveAllMatches' });
     const index = await this.loadIndex();
 
+    log.info(
+      {
+        entityCount: this.extractionResult.entities.length,
+        conceptCount: this.extractionResult.concepts.length,
+      },
+      'Resolving all entity and concept matches',
+    );
     const entityMatches = await this.resolveMatches(
       this.extractionResult.entities.map((e) => ({
         name: e.name,
@@ -271,12 +263,131 @@ export class Ingest implements IngestService {
   }
 
   /**
+   * Resolves extracted items to existing page slugs using two-phase lookup:
+   * Phase 1 — exact slug match (uses pre-computed item slug); Phase 2 — LLM-based semantic match.
+   * Returns a map from name to matched slug.
+   */
+  private async resolveMatches(
+    items: { name: string; slug: string; description?: string }[],
+    entries: IndexEntry[],
+    pageType: string,
+  ): Promise<Map<string, string>> {
+    const log = this.logger.child({ method_name: 'resolveMatches', pageType });
+    const result = new Map<string, string>();
+    const unmatchedItems: { name: string; description?: string }[] = [];
+
+    for (const item of items) {
+      const found = entries.find((e) => e.slug === item.slug);
+      if (found) {
+        result.set(item.name, found.slug);
+        log.trace(
+          { name: item.name, slug: found.slug, method: 'ExactSlugMatch' },
+          'Matched via exact slug',
+        );
+      } else {
+        unmatchedItems.push({ name: item.name, description: item.description });
+      }
+    }
+
+    if (unmatchedItems.length > 0 && entries.length > 0) {
+      log.debug({ unmatchedCount: unmatchedItems.length }, 'Running Phase 2 semantic match');
+      const semanticMatches = await this.semanticMatch(unmatchedItems, entries, pageType);
+      for (const sm of semanticMatches.matches) {
+        if (!result.has(sm.extractedName)) {
+          result.set(sm.extractedName, sm.matchedSlug);
+          log.trace(
+            {
+              name: sm.extractedName,
+              slug: sm.matchedSlug,
+              method: 'SemanticMatch',
+              reason: sm.reason,
+            },
+            'Matched via semantic match',
+          );
+        }
+      }
+      for (const um of semanticMatches.unmatched) {
+        log.trace({ name: um.name, reason: um.reason }, 'Not matched via semantic match');
+      }
+    }
+
+    return result;
+  }
+
+  /** Runs Phase 2 semantic matching via LLM for names that had no exact slug match. */
+  private async semanticMatch(
+    unmatchedItems: { name: string; description?: string }[],
+    entries: IndexEntry[],
+    pageType: string,
+  ): Promise<SemanticMatchResult> {
+    const log = this.logger.child({ method_name: 'semanticMatch', pageType });
+    const systemPrompt = this.promptService.render('system-prompt', {});
+    const prompt = this.promptService.render('match-pages', {
+      pageType,
+      unmatchedItems,
+      indexEntries: entries.map((e) => ({
+        slug: e.slug,
+        title: e.title,
+        summary: e.summary,
+      })),
+    });
+
+    const result = await this.llmService.generateStructured<SemanticMatchResult>({
+      systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+      schema: matchSchema,
+      schemaName: 'SemanticMatchResult',
+      schemaDescription:
+        'Result of semantic matching between extracted names and existing wiki page summaries.',
+    });
+
+    const matchedNames = new Set(result.matches.map((m) => m.extractedName));
+    const unmatchedNames = new Set(result.unmatched.map((u) => u.name));
+    const inputNames = new Set(unmatchedItems.map((i) => i.name));
+
+    const intersection = [...matchedNames].filter((n) => unmatchedNames.has(n));
+    if (intersection.length > 0) {
+      log.warn(
+        { names: intersection },
+        'LLM returned names in both matches and unmatched — discarding from unmatched',
+      );
+      result.unmatched = result.unmatched.filter((u) => !intersection.includes(u.name));
+    }
+
+    const accounted = new Set([...matchedNames, ...unmatchedNames]);
+    for (const name of inputNames) {
+      if (!accounted.has(name)) {
+        log.warn({ name }, 'LLM omitted extracted name — marking as unmatched');
+        result.unmatched.push({ name, reason: 'LLM did not provide a match decision.' });
+      }
+    }
+
+    for (const name of accounted) {
+      if (!inputNames.has(name)) {
+        log.warn({ name }, 'LLM returned name not in input — discarding');
+      }
+    }
+    result.matches = result.matches.filter((m) => inputNames.has(m.extractedName));
+    result.unmatched = result.unmatched.filter((u) => inputNames.has(u.name));
+
+    log.trace({ prompt, response: result }, 'LLM semantic match call');
+    return result;
+  }
+
+  /**
    * Step 2a: Creates skeleton pages for all unmatched entities and concepts.
    * Skeletons contain only title, tags, and body — no claims, no cross-connections.
    * Pages that already exist in the index are skipped (they will be updated later).
    */
   private async createPages(): Promise<void> {
     const log = this.logger.child({ method_name: 'createPages' });
+    log.info(
+      {
+        entityCount: this.extractionResult.entities.length,
+        conceptCount: this.extractionResult.concepts.length,
+      },
+      'Starting create pages phase',
+    );
     this.emit({
       type: 'step_start',
       step: 'Creating',
@@ -364,7 +475,7 @@ export class Ingest implements IngestService {
       schemaDescription: 'A skeleton entity page for the wiki vault.',
     });
 
-    log.trace({ skeleton }, 'Created entity page skeleton');
+    log.trace({ skeleton, createPrompt }, 'Created entity page skeleton');
 
     const pageContent = this.promptService.render('entity-page-output', {
       id: entity.id,
@@ -425,7 +536,7 @@ export class Ingest implements IngestService {
       schemaDescription: 'A skeleton concept page for the wiki vault.',
     });
 
-    log.trace({ skeleton }, 'Created concept page skeleton');
+    log.trace({ skeleton, createPrompt }, 'Created concept page skeleton');
 
     const pageContent = this.promptService.render('concept-page-output', {
       id: concept.id,
@@ -484,6 +595,13 @@ export class Ingest implements IngestService {
       data: { sourceFilePath: this.sourceFilePath },
     });
 
+    log.info(
+      {
+        entityCount: this.extractionResult.entities.length,
+        conceptCount: this.extractionResult.concepts.length,
+      },
+      'Starting update all pages phase',
+    );
     const index = await this.loadIndex();
     const sourceRelativePath = `sources/${this.sourceFileName.replace(/\.md$/, '')}`;
 
@@ -672,7 +790,7 @@ export class Ingest implements IngestService {
       schemaDescription:
         'Filter determining which existing wiki pages are relevant to an item being updated.',
     });
-    log.debug({ relevantSlugs: result.relevantSlugs }, 'Filter result');
+    log.trace({ prompt, result }, 'Filter result');
     return result.relevantSlugs;
   }
 
@@ -802,118 +920,6 @@ export class Ingest implements IngestService {
     log.trace({ index: Object.fromEntries(index) }, 'Index parse result');
     return index;
   }
-
-  /**
-   * Resolves extracted items to existing page slugs using two-phase lookup:
-   * Phase 1 — exact slug match (uses pre-computed item slug); Phase 2 — LLM-based semantic match.
-   * Returns a map from name to matched slug.
-   */
-  private async resolveMatches(
-    items: { name: string; slug: string; description?: string }[],
-    entries: IndexEntry[],
-    pageType: string,
-  ): Promise<Map<string, string>> {
-    const log = this.logger.child({ method_name: 'resolveMatches', pageType });
-    const result = new Map<string, string>();
-    const unmatchedItems: { name: string; description?: string }[] = [];
-
-    for (const item of items) {
-      const found = entries.find((e) => e.slug === item.slug);
-      if (found) {
-        result.set(item.name, found.slug);
-        log.trace(
-          { name: item.name, slug: found.slug, method: 'ExactSlugMatch' },
-          'Matched via exact slug',
-        );
-      } else {
-        unmatchedItems.push({ name: item.name, description: item.description });
-      }
-    }
-
-    if (unmatchedItems.length > 0 && entries.length > 0) {
-      log.debug({ unmatchedCount: unmatchedItems.length }, 'Running Phase 2 semantic match');
-      const semanticMatches = await this.semanticMatch(unmatchedItems, entries, pageType);
-      for (const sm of semanticMatches.matches) {
-        if (!result.has(sm.extractedName)) {
-          result.set(sm.extractedName, sm.matchedSlug);
-          log.trace(
-            {
-              name: sm.extractedName,
-              slug: sm.matchedSlug,
-              method: 'SemanticMatch',
-              reason: sm.reason,
-            },
-            'Matched via semantic match',
-          );
-        }
-      }
-      for (const um of semanticMatches.unmatched) {
-        log.trace({ name: um.name, reason: um.reason }, 'Not matched via semantic match');
-      }
-    }
-
-    return result;
-  }
-
-  /** Runs Phase 2 semantic matching via LLM for names that had no exact slug match. */
-  private async semanticMatch(
-    unmatchedItems: { name: string; description?: string }[],
-    entries: IndexEntry[],
-    pageType: string,
-  ): Promise<SemanticMatchResult> {
-    const log = this.logger.child({ method_name: 'semanticMatch', pageType });
-    const systemPrompt = this.promptService.render('system-prompt', {});
-    const prompt = this.promptService.render('match-pages', {
-      pageType,
-      unmatchedItems,
-      indexEntries: entries.map((e) => ({
-        slug: e.slug,
-        title: e.title,
-        summary: e.summary,
-      })),
-    });
-
-    const result = await this.llmService.generateStructured<SemanticMatchResult>({
-      systemPrompt,
-      messages: [{ role: 'user', content: prompt }],
-      schema: matchSchema,
-      schemaName: 'SemanticMatchResult',
-      schemaDescription:
-        'Result of semantic matching between extracted names and existing wiki page summaries.',
-    });
-
-    const matchedNames = new Set(result.matches.map((m) => m.extractedName));
-    const unmatchedNames = new Set(result.unmatched.map((u) => u.name));
-    const inputNames = new Set(unmatchedItems.map((i) => i.name));
-
-    const intersection = [...matchedNames].filter((n) => unmatchedNames.has(n));
-    if (intersection.length > 0) {
-      log.warn(
-        { names: intersection },
-        'LLM returned names in both matches and unmatched — discarding from unmatched',
-      );
-      result.unmatched = result.unmatched.filter((u) => !intersection.includes(u.name));
-    }
-
-    const accounted = new Set([...matchedNames, ...unmatchedNames]);
-    for (const name of inputNames) {
-      if (!accounted.has(name)) {
-        log.warn({ name }, 'LLM omitted extracted name — marking as unmatched');
-        result.unmatched.push({ name, reason: 'LLM did not provide a match decision.' });
-      }
-    }
-
-    for (const name of accounted) {
-      if (!inputNames.has(name)) {
-        log.warn({ name }, 'LLM returned name not in input — discarding');
-      }
-    }
-    result.matches = result.matches.filter((m) => inputNames.has(m.extractedName));
-    result.unmatched = result.unmatched.filter((u) => inputNames.has(u.name));
-
-    log.trace({ prompt, response: result }, 'LLM semantic match call');
-    return result;
-  }
 }
 
 /** Extracts the body content after YAML frontmatter delimiters. */
@@ -962,56 +968,6 @@ function parseYamlFrontmatter(rawContent: string): Record<string, unknown> {
       result[key] = value;
     }
   }
-  return result;
-}
-
-/** Parses index.md into a registry of entries grouped by page type. */
-function parseIndex(content: string): Map<string, IndexEntry[]> {
-  const result = new Map<string, IndexEntry[]>();
-  const sections = content.split(/\n(?=## )/);
-
-  for (const section of sections) {
-    const headingMatch = section.match(/^## (\w+)/);
-    if (!headingMatch) continue;
-
-    const headingName = headingMatch[1];
-    const pageType = PAGE_TYPE_MAP[headingName];
-    if (!pageType) continue;
-
-    const entries: IndexEntry[] = [];
-    const entryBlocks = section.split(/\n- \[\[/);
-    for (let i = 1; i < entryBlocks.length; i++) {
-      const blockLines = entryBlocks[i].split('\n');
-
-      const linkMatch = blockLines[0]?.match(/^([^\]]+)\]\]/);
-      if (!linkMatch) continue;
-
-      const path = linkMatch[1];
-      const slug = path.split('/').pop() ?? '';
-
-      let summary = '';
-      for (let j = 1; j < blockLines.length; j++) {
-        const dashIdx = blockLines[j].indexOf('—');
-        if (dashIdx !== -1) {
-          summary = blockLines[j].slice(dashIdx + 1).trim();
-          break;
-        }
-      }
-
-      const fullPath = `${path}.md`;
-
-      entries.push({
-        slug,
-        title: slug,
-        pageType,
-        summary,
-        path: fullPath,
-      });
-    }
-
-    result.set(pageType, entries);
-  }
-
   return result;
 }
 
