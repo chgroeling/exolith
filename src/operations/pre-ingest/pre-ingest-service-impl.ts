@@ -15,9 +15,9 @@ import type { PreIngestConfig, PreIngestResult, PreIngestService } from './pre-i
 interface SourcePage {
   title: string;
   type: string;
-  authors: string;
+  authors: string[];
   date: string;
-  urlOrReference: string;
+  reference: string;
   summary: string;
   mainPoints: string[];
   tags: string[];

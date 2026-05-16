@@ -11,6 +11,7 @@ import { PAGE_TYPE_MAP, parseIndex } from '../../core/index-parser';
 import { parseNote } from '../../core/note-parser';
 import type { ParsedNote } from '../../core/note-parser';
 import { loadSchemaFile } from '../../core/schema-loader';
+import { parseSource } from '../../core/source-parser';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
 import type { PromptService } from '../../infrastructure/prompt/prompt-service';
 import type { CompileService } from '../compile/compile-service';
@@ -173,11 +174,13 @@ export class Ingest implements IngestService {
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
     this.sourceContent = body;
-    const parsed = parseNote(rawContent);
-    this.sourceTitle = parsed.frontmatter.title || this.sourceFileName;
+    const parsedSource = parseSource(rawContent);
+    this.sourceTitle = parsedSource.frontmatter.title || this.sourceFileName;
 
     const systemPrompt = this.promptService.render('system-prompt', {});
-    const prompt = this.promptService.render('extract-knowledge', { sourceContent: body });
+    const prompt = this.promptService.render('extract-knowledge', {
+      sourceContent: JSON.stringify(parsedSource, null, 2),
+    });
 
     log.info('Extracting knowledge from source page');
     const rawResult = await this.llmService.generateStructured<{

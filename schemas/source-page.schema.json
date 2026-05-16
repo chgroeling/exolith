@@ -6,9 +6,9 @@
   "properties": {
     "title": { "type": "string" },
     "type": { "type": "string", "enum": ["article", "paper", "transcript", "note", "book"] },
-    "authors": { "type": "string" },
+    "authors": { "type": "array", "items": { "type": "string" } },
     "date": { "type": "string" },
-    "urlOrReference": { "type": "string" },
+    "reference": { "type": "string" },
     "summary": { "type": "string" },
     "mainPoints": { "type": "array", "items": { "type": "string" } },
     "tags": { "type": "array", "items": { "type": "string" } },

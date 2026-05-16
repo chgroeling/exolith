@@ -13,17 +13,19 @@ export interface ParsedSourceFrontmatter {
   tags: string[];
   created: string;
   updated: string;
-  authors?: string;
-  url?: string;
-  source?: string;
+  authors: string[];
+  reference: string;
+  rawSource: string;
 }
 
 /** Structured JSON representation of a source page with parsed sections. */
 export interface ParsedSource {
   /** Validated YAML frontmatter fields. */
   frontmatter: ParsedSourceFrontmatter;
-  /** The summary text between the # Title heading and the first ## section heading. */
-  summary: string;
+  /** The prose body between the # Title heading and the first ## section heading. */
+  body: string;
+  /** The list items from the ## Main Points section. */
+  mainPoints: string[];
 }
 
 /** Describes a single property in the source frontmatter schema descriptor file. */
@@ -89,6 +91,9 @@ function parseSourceFrontmatter(fmString: string): ParsedSourceFrontmatter {
       tags: [],
       created: '',
       updated: '',
+      authors: [],
+      reference: '',
+      rawSource: '',
     };
   }
 
@@ -103,15 +108,14 @@ function parseSourceFrontmatter(fmString: string): ParsedSourceFrontmatter {
     tags: Array.isArray(validated.tags) ? (validated.tags as string[]) : [],
     created: (validated.created as string) ?? '',
     updated: (validated.updated as string) ?? '',
-    authors: validated.authors as string | undefined,
-    url: validated.url as string | undefined,
-    source: validated.source as string | undefined,
+    authors: Array.isArray(validated.authors) ? (validated.authors as string[]) : [],
+    reference: (validated.reference as string) ?? '',
+    rawSource: (validated.rawSource as string) ?? '',
   };
 }
 
 /**
  * Parses a full source page markdown string into a structured {@link ParsedSource} JSON object.
- * Uses remark for stable markdown parsing.
  */
 export function parseSource(markdown: string): ParsedSource {
   const fmString = extractFrontmatterString(markdown);
@@ -119,24 +123,27 @@ export function parseSource(markdown: string): ParsedSource {
   const body = extractBodyAfterFrontmatter(markdown);
 
   const headingMatch = body.match(/^#\s+.+$/m);
-  let summary = '';
+  let sourceBody = '';
+  let mainPoints: string[] = [];
   if (headingMatch && headingMatch.index !== undefined) {
     const afterHeading = body.slice(headingMatch.index + headingMatch[0].length);
-    const firstSentence = afterHeading.match(/^[^.!?]+[.!?]/);
-    if (firstSentence) {
-      summary = firstSentence[0].trim();
+
+    const mainPointsMatch = afterHeading.match(/\n##\s+Main\s+Points\s*\n/i);
+    if (mainPointsMatch && mainPointsMatch.index !== undefined) {
+      sourceBody = afterHeading.slice(0, mainPointsMatch.index).trim();
+      const pointsSection = afterHeading.slice(mainPointsMatch.index + mainPointsMatch[0].length);
+      mainPoints = pointsSection
+        .split('\n')
+        .map((l) => l.replace(/^-\s+/, '').trim())
+        .filter(Boolean);
     } else {
-      const nextHeadingMatch = afterHeading.match(/\n##\s/);
-      if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
-        summary = afterHeading.slice(0, nextHeadingMatch.index).trim();
-      } else {
-        summary = afterHeading.trim();
-      }
+      sourceBody = afterHeading.trim();
     }
   }
 
   return {
     frontmatter: parseSourceFrontmatter(fmString),
-    summary,
+    body: sourceBody,
+    mainPoints,
   };
 }

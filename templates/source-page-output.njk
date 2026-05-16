@@ -8,9 +8,12 @@ tags:
 {%- endfor %}
 created: {{ created }}
 updated: {{ updated }}
-authors: {{ authors }}
-url: {{ urlOrReference | default('') }}
-source: raw-sources/{{ fileName }}
+authors:
+{%- for author in authors %}
+  - {{ author }}
+{%- endfor %}
+reference: {{ reference }}
+rawSource: raw-sources/{{ fileName }}
 ---
 
 # {{ title }}
