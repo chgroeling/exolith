@@ -14,13 +14,13 @@ function createEnv(): Environment {
 /** Converts a ParsedNote to the template context expected by entity-page-output.njk and concept-page-output.njk. */
 function toTemplateContext(note: ParsedNote): Record<string, unknown> {
   return {
-    id: note.id,
-    title: note.title,
-    status: note.status,
-    tags: note.tags,
-    confidence: note.confidence,
-    created: note.created,
-    updated: note.updated,
+    id: note.frontmatter.id,
+    title: note.frontmatter.title,
+    status: note.frontmatter.status,
+    tags: note.frontmatter.tags,
+    confidence: note.frontmatter.confidence,
+    created: note.frontmatter.created,
+    updated: note.frontmatter.updated,
     body: note.content,
     claims: note.claims,
     openQuestions: note.openQuestions,
@@ -35,13 +35,13 @@ function assertRoundTrip(templateName: string, note: ParsedNote): void {
   const markdown = env.render(templateName, context);
   const parsed = parseNote(markdown);
 
-  expect(parsed.id).toBe(note.id);
-  expect(parsed.title).toBe(note.title);
-  expect(parsed.status).toBe(note.status);
-  expect(parsed.tags).toEqual(note.tags);
-  expect(parsed.confidence).toBe(note.confidence);
-  expect(parsed.created).toBe(note.created);
-  expect(parsed.updated).toBe(note.updated);
+  expect(parsed.frontmatter.id).toBe(note.frontmatter.id);
+  expect(parsed.frontmatter.title).toBe(note.frontmatter.title);
+  expect(parsed.frontmatter.status).toBe(note.frontmatter.status);
+  expect(parsed.frontmatter.tags).toEqual(note.frontmatter.tags);
+  expect(parsed.frontmatter.confidence).toBe(note.frontmatter.confidence);
+  expect(parsed.frontmatter.created).toBe(note.frontmatter.created);
+  expect(parsed.frontmatter.updated).toBe(note.frontmatter.updated);
   expect(parsed.content).toBe(note.content);
   expect(parsed.claims).toEqual(note.claims);
   expect(parsed.openQuestions).toEqual(note.openQuestions);
@@ -71,13 +71,15 @@ function makeOpenQuestion(overrides: Partial<ParsedOpenQuestion> = {}): ParsedOp
 
 function makeFullEntityNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
   return {
-    id: 'entity.seneca',
-    title: 'Seneca',
-    status: 'active',
-    tags: ['philosophie', 'stoizismus', 'antike'],
-    confidence: 0.9,
-    created: '2026-04-15',
-    updated: '2026-05-02',
+    frontmatter: {
+      id: 'entity.seneca',
+      title: 'Seneca',
+      status: 'active',
+      tags: ['philosophie', 'stoizismus', 'antike'],
+      confidence: 0.9,
+      created: '2026-04-15',
+      updated: '2026-05-02',
+    },
     content:
       'Lucius Annaeus Seneca was a Roman philosopher, dramatist, and statesman. His Letters to Lucilius are a collection of 124 moral letters.',
     claims: [
@@ -101,13 +103,15 @@ function makeFullEntityNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
 
 function makeFullConceptNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
   return {
-    id: 'concept.praemeditatio-malorum',
-    title: 'Praemeditatio Malorum',
-    status: 'active',
-    tags: ['stoicism', 'psychology', 'anxiety-management'],
-    confidence: 0.7,
-    created: '2026-05-02',
-    updated: '2026-05-02',
+    frontmatter: {
+      id: 'concept.praemeditatio-malorum',
+      title: 'Praemeditatio Malorum',
+      status: 'active',
+      tags: ['stoicism', 'psychology', 'anxiety-management'],
+      confidence: 0.7,
+      created: '2026-05-02',
+      updated: '2026-05-02',
+    },
     content:
       'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios. It serves as anxiety management through confrontation rather than suppression.',
     claims: [
@@ -185,16 +189,94 @@ describe('parseNote round-trip', () => {
   it('parseNote returns sensible defaults for an empty page', () => {
     const result = parseNote('');
 
-    expect(result.id).toBe('');
-    expect(result.title).toBe('');
-    expect(result.status).toBe('active');
-    expect(result.tags).toEqual([]);
-    expect(result.confidence).toBe(0);
-    expect(result.created).toBe('');
-    expect(result.updated).toBe('');
+    expect(result.frontmatter.id).toBe('');
+    expect(result.frontmatter.title).toBe('');
+    expect(result.frontmatter.status).toBe('active');
+    expect(result.frontmatter.tags).toEqual([]);
+    expect(result.frontmatter.confidence).toBe(0);
+    expect(result.frontmatter.created).toBe('');
+    expect(result.frontmatter.updated).toBe('');
     expect(result.content).toBe('');
     expect(result.claims).toEqual([]);
     expect(result.openQuestions).toEqual([]);
     expect(result.human).toBe('');
+  });
+});
+
+describe('frontmatter parsing via parseNote', () => {
+  /** Wraps a YAML string in frontmatter delimiters with a minimal body. */
+  function wrap(yaml: string): string {
+    return `---\n${yaml}\n---\n\n# Test\n\nContent.`;
+  }
+
+  it('parses valid YAML frontmatter with all fields', () => {
+    const yaml = [
+      'id: entity.seneca',
+      'title: Seneca',
+      'status: active',
+      'tags:',
+      '  - philosophie',
+      '  - stoizismus',
+      'confidence: 0.9',
+      'created: 2026-04-15',
+      'updated: 2026-05-02',
+    ].join('\n');
+
+    const result = parseNote(wrap(yaml));
+
+    expect(result.frontmatter.id).toBe('entity.seneca');
+    expect(result.frontmatter.title).toBe('Seneca');
+    expect(result.frontmatter.status).toBe('active');
+    expect(result.frontmatter.tags).toEqual(['philosophie', 'stoizismus']);
+    expect(result.frontmatter.confidence).toBe(0.9);
+    expect(result.frontmatter.created).toBe('2026-04-15');
+    expect(result.frontmatter.updated).toBe('2026-05-02');
+    expect(result.content).toBe('Content.');
+  });
+
+  it('applies defaults for missing optional fields', () => {
+    const yaml =
+      'id: entity.test\ntitle: Test\nstatus: active\ntags:\nconfidence: 0.5\ncreated: 2026-01-01\nupdated: 2026-01-01';
+
+    const result = parseNote(wrap(yaml));
+
+    expect(result.frontmatter.status).toBe('active');
+    expect(result.frontmatter.confidence).toBe(0.5);
+    expect(result.frontmatter.tags).toEqual([]);
+  });
+
+  it('rejects unknown keys in strict mode', () => {
+    const yaml =
+      'id: entity.test\ntitle: Test\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nunknown_field: value';
+
+    expect(() => parseNote(wrap(yaml))).toThrow();
+  });
+
+  it('rejects malformed YAML', () => {
+    const yaml =
+      'id: entity.test\ntitle: Test\nstatus: active\ncreated: 2026-01-01\nupdated: 2026-01-01\nbad: [unclosed';
+
+    expect(() => parseNote(wrap(yaml))).toThrow();
+  });
+
+  it('rejects frontmatter that is not a mapping', () => {
+    expect(() => parseNote(wrap('- list_item'))).toThrow();
+  });
+
+  it('parses tags as an array', () => {
+    const yaml = [
+      'id: entity.test',
+      'title: Test',
+      'status: active',
+      'tags:',
+      '  - alpha',
+      '  - beta',
+      'created: 2026-01-01',
+      'updated: 2026-01-01',
+    ].join('\n');
+
+    const result = parseNote(wrap(yaml));
+
+    expect(result.frontmatter.tags).toEqual(['alpha', 'beta']);
   });
 });

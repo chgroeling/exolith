@@ -7,7 +7,7 @@ import type { Logger } from 'pino';
 import type { IdentifierService } from '../../core/identifier-service';
 import type { IndexEntry } from '../../core/index-parser';
 import { PAGE_TYPE_MAP, parseIndex } from '../../core/index-parser';
-import { parseNote } from '../../core/note-parser';
+import { extractBodyAfterFrontmatter, parseNote } from '../../core/note-parser';
 import type { ParsedNote } from '../../core/note-parser';
 import { loadSchemaFile } from '../../core/schema-loader';
 import type { LlmService } from '../../infrastructure/llm/llm-service';
@@ -172,8 +172,8 @@ export class Ingest implements IngestService {
     const rawContent = await readFile(sourceFilePath, 'utf-8');
     const body = extractBodyAfterFrontmatter(rawContent);
     this.sourceContent = body;
-    const frontmatter = parseYamlFrontmatter(rawContent);
-    this.sourceTitle = (frontmatter.title as string) ?? this.sourceFileName;
+    const parsed = parseNote(rawContent);
+    this.sourceTitle = parsed.frontmatter.title || this.sourceFileName;
 
     const systemPrompt = this.promptService.render('system-prompt', {});
     const prompt = this.promptService.render('extract-knowledge', { sourceContent: body });
@@ -670,7 +670,6 @@ export class Ingest implements IngestService {
     }
 
     const humanBlockContent = extractHumanBlock(currentContent);
-    const frontmatter = parseYamlFrontmatter(currentContent);
     const currentNote = parseNote(currentContent);
 
     const allEntries = [...(index.get('entity') ?? []), ...(index.get('concept') ?? [])];
@@ -734,10 +733,10 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render(outputTemplateName, {
       id: pageType === 'entity' ? `entity.${matchedSlug}` : `concept.${matchedSlug}`,
       title: pageOutput.title,
-      status: (frontmatter.status as string) ?? 'review',
+      status: currentNote.frontmatter.status || 'review',
       tags: pageOutput.tags ?? [],
       confidence,
-      created: (frontmatter.created as string) ?? today,
+      created: currentNote.frontmatter.created || today,
       updated: today,
       body: pageOutput.body,
       claims: pageOutput.claims ?? [],
@@ -920,55 +919,6 @@ export class Ingest implements IngestService {
     log.trace({ index: Object.fromEntries(index) }, 'Index parse result');
     return index;
   }
-}
-
-/** Extracts the body content after YAML frontmatter delimiters. */
-function extractBodyAfterFrontmatter(rawContent: string): string {
-  const lines = rawContent.split('\n');
-  if (lines[0]?.trim() !== '---') return rawContent;
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
-  }
-
-  if (endIndex === -1) return rawContent;
-  return lines
-    .slice(endIndex + 1)
-    .join('\n')
-    .trim();
-}
-
-/** Parses YAML frontmatter into a key-value map. */
-function parseYamlFrontmatter(rawContent: string): Record<string, unknown> {
-  const lines = rawContent.split('\n');
-  if (lines[0]?.trim() !== '---') return {};
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
-  }
-
-  if (endIndex === -1) return {};
-
-  const result: Record<string, unknown> = {};
-  for (let i = 1; i < endIndex; i++) {
-    const line = lines[i];
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-    const key = line.slice(0, colonIndex).trim();
-    const value = line.slice(colonIndex + 1).trim();
-    if (key && value) {
-      result[key] = value;
-    }
-  }
-  return result;
 }
 
 /** Extracts the content between human block markers from a page. Returns an empty string if no human block is found. */

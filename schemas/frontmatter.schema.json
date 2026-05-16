@@ -1,0 +1,13 @@
+{
+  // Frontmatter schema descriptor for YAML validation.
+  // Defines the shape of wiki page YAML frontmatter for runtime validation.
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" }, "optional": true },
+    "confidence": { "type": "number", "optional": true },
+    "created": { "type": "string" },
+    "updated": { "type": "string" },
+  },
+}

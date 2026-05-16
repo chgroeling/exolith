@@ -407,7 +407,7 @@ describe('Ingest', () => {
       await mkdir(join(config.vaultPath, 'entities'), { recursive: true });
       await mkdir(join(config.vaultPath, 'concepts'), { recursive: true });
       const pageContent =
-        '---\nid: entity.seneca\ntitle: Seneca\nstatus: active\nconfidence: 0.8\n---\n\n# Seneca\n\nContent.';
+        '---\nid: entity.seneca\ntitle: Seneca\nstatus: active\nconfidence: 0.8\ncreated: 2026-01-01\nupdated: 2026-01-01\n---\n\n# Seneca\n\nContent.';
       await writeFile(join(config.vaultPath, 'entities', 'seneca.md'), pageContent, 'utf-8');
       await writeFile(
         join(config.vaultPath, 'entities', 'dr.-maria-schneider.md'),

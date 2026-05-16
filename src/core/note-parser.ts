@@ -3,16 +3,14 @@
 import type { Emphasis, Heading, List, ListItem, Literal, Parent, Root } from 'mdast';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
+import { parse as parseYaml } from 'yaml';
+import { z } from 'zod';
+import { loadSchemaFile } from './schema-loader';
 
 /** Structured JSON representation of a wiki page with all sections parsed. */
 export interface ParsedNote {
-  id: string;
-  title: string;
-  status: string;
-  tags: string[];
-  confidence: number;
-  created: string;
-  updated: string;
+  /** Validated YAML frontmatter fields. */
+  frontmatter: ParsedFrontmatter;
   /** The prose body between the # Title heading and the first ## section heading. */
   content: string;
   /** Structured claims from the ## Claims section. */
@@ -38,6 +36,68 @@ export interface ParsedClaim {
 export interface ParsedOpenQuestion {
   question: string;
   context?: string;
+}
+
+/** Validated YAML frontmatter fields extracted from a wiki page. */
+export interface ParsedFrontmatter {
+  id: string;
+  title: string;
+  status: string;
+  tags: string[];
+  confidence: number;
+  created: string;
+  updated: string;
+}
+
+/** Describes a single property in the frontmatter schema descriptor file. */
+interface FrontmatterSchemaProperty {
+  type: 'string' | 'number' | 'array';
+  items?: { type: 'string' };
+  optional?: boolean;
+}
+
+/** Top-level shape of the frontmatter schema descriptor file. */
+interface FrontmatterSchemaDescriptor {
+  properties: Record<string, FrontmatterSchemaProperty>;
+}
+
+/** Builds a strict Zod object schema from the frontmatter JSON5 descriptor at runtime. */
+function buildFrontmatterSchema(): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const descriptor = loadSchemaFile<FrontmatterSchemaDescriptor>('frontmatter.schema.json');
+  const shape: Record<string, z.ZodTypeAny> = {};
+
+  for (const [key, prop] of Object.entries(descriptor.properties)) {
+    let zodType: z.ZodTypeAny;
+
+    switch (prop.type) {
+      case 'string':
+        zodType = z.string();
+        break;
+      case 'number':
+        zodType = z.number();
+        break;
+      case 'array':
+        zodType = z.array(z.string());
+        break;
+    }
+
+    if (prop.optional) {
+      zodType = zodType.nullable().optional();
+    }
+
+    shape[key] = zodType;
+  }
+
+  return z.object(shape).strict();
+}
+
+/** Lazily initialized strict Zod schema for frontmatter validation. */
+let _frontmatterSchema: z.ZodObject<Record<string, z.ZodTypeAny>> | undefined;
+function getFrontmatterSchema(): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  if (!_frontmatterSchema) {
+    _frontmatterSchema = buildFrontmatterSchema();
+  }
+  return _frontmatterSchema;
 }
 
 const HUMAN_START = '<!-- exolith:human:start -->';
@@ -107,63 +167,44 @@ function headingMatches(node: Heading, names: string[]): boolean {
   return names.includes(text);
 }
 
-/** Parses YAML frontmatter key-value lines into a typed record. Handles string, number, boolean, null, and list values. */
-function parseFrontmatter(fmString: string): Record<string, unknown> {
-  if (!fmString) return {};
-
-  const lines = fmString.split('\n');
-  const result: Record<string, unknown> = {};
-  let currentListKey: string | null = null;
-  let currentList: string[] = [];
-
-  for (const rawLine of lines) {
-    const trimmed = rawLine.trim();
-    if (trimmed === '') continue;
-
-    if (trimmed.startsWith('- ') && currentListKey) {
-      currentList.push(trimmed.slice(2).trim());
-      continue;
-    }
-
-    if (currentListKey) {
-      result[currentListKey] = [...currentList];
-      currentListKey = null;
-      currentList = [];
-    }
-
-    const colonIndex = rawLine.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = rawLine.slice(0, colonIndex).trim();
-    const rawValue = rawLine.slice(colonIndex + 1).trim();
-
-    if (rawValue === '' || rawValue === 'null') {
-      if (currentListKey) {
-        result[currentListKey] = [...currentList];
-        currentListKey = null;
-        currentList = [];
-      }
-      currentListKey = key;
-      currentList = [];
-      continue;
-    }
-
-    if (rawValue === 'true') {
-      result[key] = true;
-    } else if (rawValue === 'false') {
-      result[key] = false;
-    } else if (/^-?\d+(\.\d+)?$/.test(rawValue)) {
-      result[key] = Number(rawValue);
-    } else {
-      result[key] = rawValue;
-    }
+/** Parses YAML frontmatter using the yaml library and validates against a strict Zod schema. */
+function parseFrontmatter(fmString: string): ParsedFrontmatter {
+  if (!fmString.trim()) {
+    return {
+      id: '',
+      title: '',
+      status: 'active',
+      tags: [],
+      confidence: 0,
+      created: '',
+      updated: '',
+    };
   }
 
-  if (currentListKey) {
-    result[currentListKey] = [...currentList];
-  }
+  const raw = parseYaml(fmString);
+  const schema = getFrontmatterSchema();
+  const validated = schema.parse(raw) as PartialParsedFrontmatter;
 
-  return result;
+  return {
+    id: validated.id ?? '',
+    title: validated.title ?? '',
+    status: validated.status ?? 'active',
+    tags: validated.tags ?? [],
+    confidence: validated.confidence ?? 0,
+    created: validated.created ?? '',
+    updated: validated.updated ?? '',
+  };
+}
+
+/** Shape of frontmatter after Zod validation with optional fields potentially undefined. */
+interface PartialParsedFrontmatter {
+  id?: string;
+  title?: string;
+  status?: string;
+  tags?: string[];
+  confidence?: number;
+  created?: string;
+  updated?: string;
 }
 
 /**
@@ -172,7 +213,6 @@ function parseFrontmatter(fmString: string): Record<string, unknown> {
  */
 export function parseNote(markdown: string): ParsedNote {
   const fmString = extractFrontmatterString(markdown);
-  const fm = parseFrontmatter(fmString);
 
   const body = extractBodyAfterFrontmatter(markdown);
   const ast = unified().use(remarkParse).parse(body) as Root;
@@ -224,13 +264,7 @@ export function parseNote(markdown: string): ParsedNote {
   const human = extractHuman(body, children, humanStartIndex, humanEndIndex);
 
   return {
-    id: (fm.id as string) ?? '',
-    title: (fm.title as string) ?? '',
-    status: (fm.status as string) ?? 'active',
-    tags: Array.isArray(fm.tags) ? (fm.tags as string[]) : [],
-    confidence: typeof fm.confidence === 'number' ? fm.confidence : 0,
-    created: (fm.created as string) ?? '',
-    updated: (fm.updated as string) ?? '',
+    frontmatter: parseFrontmatter(fmString),
     content,
     claims,
     openQuestions,

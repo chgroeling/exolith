@@ -154,25 +154,25 @@ export class Compile implements CompileService {
           const body = extractBodyAfterFrontmatter(rawContent);
 
           const pageType = extractPageType(rawContent) ?? DIR_TO_PAGE_TYPE[dir] ?? 'entity';
-          const slug = parsed.id.includes('.')
-            ? parsed.id.slice(parsed.id.indexOf('.') + 1)
-            : parsed.title.toLowerCase().replace(/\s+/g, '-');
+          const slug = parsed.frontmatter.id.includes('.')
+            ? parsed.frontmatter.id.slice(parsed.frontmatter.id.indexOf('.') + 1)
+            : parsed.frontmatter.title.toLowerCase().replace(/\s+/g, '-');
           const summary = extractSummary(body);
           const pagePath = relative(vaultPath, fullEntryPath);
 
           this.pages.set(pagePath, {
-            id: parsed.id,
+            id: parsed.frontmatter.id,
             slug,
-            title: parsed.title,
+            title: parsed.frontmatter.title,
             pageType,
             summary,
             path: pagePath,
             hasOpenQuestions: parsed.openQuestions.length > 0,
             openQuestions: parsed.openQuestions,
-            confidence: parsed.confidence,
-            status: parsed.status,
-            tags: parsed.tags,
-            updatedAt: parsed.updated,
+            confidence: parsed.frontmatter.confidence,
+            status: parsed.frontmatter.status,
+            tags: parsed.frontmatter.tags,
+            updatedAt: parsed.frontmatter.updated,
           });
         }
       } catch {
