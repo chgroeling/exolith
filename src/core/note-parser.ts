@@ -1,10 +1,11 @@
-/** Specification: docs/operations/ingest.md — note parsing via remark */
+/** Specification: docs/operations/ingest.md — entity and concept page parsing via remark */
 
 import type { Emphasis, Heading, List, ListItem, Literal, Parent, Root } from 'mdast';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { extractBodyAfterFrontmatter, extractFrontmatterString } from './frontmatter-utils';
 import { loadSchemaFile } from './schema-loader';
 
 /** Structured JSON representation of a wiki page with all sections parsed. */
@@ -102,42 +103,6 @@ function getFrontmatterSchema(): z.ZodObject<Record<string, z.ZodTypeAny>> {
 
 const HUMAN_START = '<!-- exolith:human:start -->';
 const HUMAN_END = '<!-- exolith:human:end -->';
-
-/** Extracts the YAML frontmatter string between '---' delimiters. */
-function extractFrontmatterString(content: string): string {
-  const lines = content.split('\n');
-  if (lines[0]?.trim() !== '---') return '';
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
-  }
-  if (endIndex === -1) return '';
-  return lines.slice(1, endIndex).join('\n');
-}
-
-/** Extracts the body content after YAML frontmatter delimiters. */
-export function extractBodyAfterFrontmatter(rawContent: string): string {
-  const lines = rawContent.split('\n');
-  if (lines[0]?.trim() !== '---') return rawContent;
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
-  }
-
-  if (endIndex === -1) return rawContent;
-  return lines
-    .slice(endIndex + 1)
-    .join('\n')
-    .trim();
-}
 
 /** Collects the plain text content from a heading node's children. */
 function headingPlainText(node: Heading): string {

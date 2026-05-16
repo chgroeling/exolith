@@ -84,17 +84,15 @@ function makeMockPrompt(): PromptService {
           ...(context.tags as string[]).map((t: string) => `  - ${t}`),
           `created: ${context.created}`,
           `updated: ${context.updated}`,
+          `authors: ${context.authors}`,
+          `url: ${context.urlOrReference || ''}`,
+          `source: raw-sources/${context.fileName}`,
           '---',
           '',
           `# ${context.title}`,
           '',
           `*Type:* ${context.type}`,
-          `*Author(s):* ${context.authors}`,
-          `*Date:* ${context.date}`,
-          `*URL/Reference:* ${context.urlOrReference || '-'}`,
-          `*Original File:* [[raw-sources/${context.fileName}]]`,
           '',
-          '## Summary',
           context.summary as string,
           '',
           '## Main Points',
@@ -485,7 +483,7 @@ describe('PreIngest', () => {
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
-      expect(pageContent).toContain('*Original File:* [[raw-sources/my-article.md]]');
+      expect(pageContent).toContain('source: raw-sources/my-article.md');
     });
 
     it('includes summary, main points, and key takeaways sections', async () => {
@@ -510,7 +508,6 @@ describe('PreIngest', () => {
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
-      expect(pageContent).toContain('## Summary');
       expect(pageContent).toContain('Test summary paragraph.');
       expect(pageContent).toContain('## Main Points');
       expect(pageContent).toContain('- Main point 1');
@@ -551,9 +548,8 @@ describe('PreIngest', () => {
       const pageContent = await readFile(sourcePath, 'utf-8');
 
       expect(pageContent).toContain('*Type:* paper');
-      expect(pageContent).toContain('*Author(s):* Jane Doe');
-      expect(pageContent).toContain('*Date:* 2025-07-15');
-      expect(pageContent).toContain('*URL/Reference:* https://example.org/paper');
+      expect(pageContent).toContain('authors: Jane Doe');
+      expect(pageContent).toContain('url: https://example.org/paper');
     });
 
     it('passes the enriched source context to the LLM', async () => {

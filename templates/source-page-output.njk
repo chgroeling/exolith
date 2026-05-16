@@ -8,17 +8,15 @@ tags:
 {%- endfor %}
 created: {{ created }}
 updated: {{ updated }}
+authors: {{ authors }}
+url: {{ urlOrReference | default('') }}
+source: raw-sources/{{ fileName }}
 ---
 
 # {{ title }}
 
 *Type:* {{ type }}
-*Author(s):* {{ authors }}
-*Date:* {{ date }}
-*URL/Reference:* {{ urlOrReference | default('-') }}
-*Original File:* [[raw-sources/{{ fileName }}]]
 
-## Summary
 {{ summary }}
 
 ## Main Points

@@ -1,0 +1,15 @@
+{
+  // Source page frontmatter schema descriptor for YAML validation.
+  // Extends the base frontmatter with source-specific fields.
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" }, "optional": true },
+    "created": { "type": "string" },
+    "updated": { "type": "string" },
+    "authors": { "type": "string", "optional": true },
+    "url": { "type": "string", "optional": true },
+    "source": { "type": "string", "optional": true },
+  },
+}
