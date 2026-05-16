@@ -60,7 +60,7 @@ function extractFrontmatterString(content: string): string {
 }
 
 /** Extracts the body content after YAML frontmatter delimiters. */
-function extractBodyAfterFrontmatter(rawContent: string): string {
+export function extractBodyAfterFrontmatter(rawContent: string): string {
   const lines = rawContent.split('\n');
   if (lines[0]?.trim() !== '---') return rawContent;
 

@@ -4,14 +4,10 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
+import { extractBodyAfterFrontmatter, parseNote } from '../../core/note-parser';
+import type { ParsedOpenQuestion } from '../../core/note-parser';
 import type { PipelineEvent, Question } from '../pipeline-presentation';
 import type { CompileConfig, CompileService } from './compile-service';
-
-/** A parsed open question from the ## Offene Fragen chapter. */
-interface ParsedQuestion {
-  question: string;
-  context: string;
-}
 
 /** In-memory model of a wiki page, built during parseAllPages. */
 interface WikiPage {
@@ -22,8 +18,8 @@ interface WikiPage {
   summary: string;
   path: string;
   hasOpenQuestions: boolean;
-  openQuestions: ParsedQuestion[];
-  confidence: number | null;
+  openQuestions: ParsedOpenQuestion[];
+  confidence: number;
   status: string;
   tags: string[];
   updatedAt: string;
@@ -38,72 +34,25 @@ const DIR_TO_PAGE_TYPE: Record<string, string> = {
   syntheses: 'synthesis',
 };
 
-/** Parses YAML frontmatter into a key-value map. Handles string, number, boolean, null, and list values. */
-function parseFrontmatter(rawContent: string): Record<string, unknown> {
-  const lines = rawContent.split('\n');
-  if (lines[0]?.trim() !== '---') return {};
+/** Finds a chapter section by heading name and returns its body text, or empty string if not found. */
+function extractSection(body: string, headingPattern: RegExp): string {
+  const match = body.match(headingPattern);
+  if (!match || match.index === undefined) return '';
 
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
+  const start = match.index + match[0].length;
+  const remaining = body.slice(start);
+
+  const nextHeadingMatch = remaining.match(/\n##\s/);
+  if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
+    return remaining.slice(0, nextHeadingMatch.index);
   }
-  if (endIndex === -1) return {};
+  return remaining;
+}
 
-  const result: Record<string, unknown> = {};
-  let currentListKey: string | null = null;
-  let currentList: string[] = [];
-
-  for (let i = 1; i < endIndex; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed === '') continue;
-
-    if (trimmed.startsWith('- ') && currentListKey) {
-      currentList.push(trimmed.slice(2).trim());
-      continue;
-    }
-
-    if (currentListKey) {
-      result[currentListKey] = [...currentList];
-      currentListKey = null;
-      currentList = [];
-    }
-
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = line.slice(0, colonIndex).trim();
-    const rawValue = line.slice(colonIndex + 1).trim();
-
-    if (rawValue === '' || rawValue === 'null') {
-      if (i + 1 < endIndex && lines[i + 1].trim().startsWith('- ')) {
-        currentListKey = key;
-        currentList = [];
-      } else {
-        result[key] = null;
-      }
-      continue;
-    }
-
-    if (rawValue === 'true') {
-      result[key] = true;
-    } else if (rawValue === 'false') {
-      result[key] = false;
-    } else if (/^-?\d+(\.\d+)?$/.test(rawValue)) {
-      result[key] = Number(rawValue);
-    } else {
-      result[key] = rawValue;
-    }
-  }
-
-  if (currentListKey) {
-    result[currentListKey] = [...currentList];
-  }
-
-  return result;
+/** Extracts the YAML frontmatter `page` field override for page type, or null if not present. */
+function extractPageType(rawContent: string): string | null {
+  const match = rawContent.match(/^page:\s*(\S.+)$/m);
+  return match?.[1]?.trim() ?? null;
 }
 
 /** Extracts the first sentence after the first # heading as the page summary. */
@@ -155,57 +104,6 @@ function extractSummary(body: string): string {
   return text.replace(/\n/g, ' ').trim().slice(0, 200);
 }
 
-/** Finds a chapter section by heading name and returns its body text, or empty string if not found. */
-function extractSection(body: string, headingPattern: RegExp): string {
-  const match = body.match(headingPattern);
-  if (!match || match.index === undefined) return '';
-
-  const start = match.index + match[0].length;
-  const remaining = body.slice(start);
-
-  const nextHeadingMatch = remaining.match(/\n##\s/);
-  if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
-    return remaining.slice(0, nextHeadingMatch.index);
-  }
-  return remaining;
-}
-
-/** Parses open questions from the ## Offene Fragen (or ## Open Questions) chapter. */
-function parseOpenQuestions(body: string): ParsedQuestion[] {
-  const section =
-    extractSection(body, /\n##\s+(Offene\s+Fragen|Open\s+Questions)\s*\n/i) ||
-    extractSection(body, /\n##\s+Offene\s+Fragen\s*\n/i) ||
-    extractSection(body, /\n##\s+Open\s+Questions\s*\n/i);
-  if (!section) return [];
-
-  const normalizedSection = section.startsWith('\n') ? section : `\n${section}`;
-  const questions: ParsedQuestion[] = [];
-  const questionBlocks = normalizedSection.split(/\n-\s+/);
-
-  for (let i = 1; i < questionBlocks.length; i++) {
-    const block = questionBlocks[i];
-    const lines = block.split('\n');
-
-    const question = (lines[0] ?? '').trim();
-    let context = '';
-
-    for (let j = 1; j < lines.length; j++) {
-      const line = lines[j].trim();
-      if (!line) continue;
-
-      if (/^\*(Context|Kontext):\*/i.test(line)) {
-        context = line.replace(/^\*(Context|Kontext):[\s*]*/i, '').trim();
-      }
-    }
-
-    if (question) {
-      questions.push({ question, context });
-    }
-  }
-
-  return questions;
-}
-
 export class Compile implements CompileService {
   private logger: Logger;
   private pages: Map<string, WikiPage> = new Map();
@@ -252,37 +150,29 @@ export class Compile implements CompileService {
 
           const fullEntryPath = join(entry.parentPath ?? dirPath, entry.name);
           const rawContent = await readFile(fullEntryPath, 'utf-8');
-          const fm = parseFrontmatter(rawContent);
+          const parsed = parseNote(rawContent);
+          const body = extractBodyAfterFrontmatter(rawContent);
 
-          const id = (fm.id as string) ?? '';
-          const pageType = (fm.page as string) ?? DIR_TO_PAGE_TYPE[dir] ?? 'entity';
-          const slug = id.includes('.')
-            ? id.slice(id.indexOf('.') + 1)
-            : ((fm.title as string)?.toLowerCase().replace(/\s+/g, '-') ?? '');
-          const title = (fm.title as string) ?? entry.name.replace(/\.md$/, '');
-          const status = (fm.status as string) ?? 'active';
-          const tags = Array.isArray(fm.tags) ? (fm.tags as string[]) : [];
-          const confidence = fm.confidence !== undefined ? (fm.confidence as number | null) : null;
-          const updatedAt = (fm.updated as string) ?? '';
+          const pageType = extractPageType(rawContent) ?? DIR_TO_PAGE_TYPE[dir] ?? 'entity';
+          const slug = parsed.id.includes('.')
+            ? parsed.id.slice(parsed.id.indexOf('.') + 1)
+            : parsed.title.toLowerCase().replace(/\s+/g, '-');
+          const summary = extractSummary(body);
           const pagePath = relative(vaultPath, fullEntryPath);
 
-          const body = extractBodyAfterFrontmatter(rawContent);
-          const summary = extractSummary(body);
-          const openQuestions = parseOpenQuestions(body);
-
           this.pages.set(pagePath, {
-            id,
+            id: parsed.id,
             slug,
-            title,
+            title: parsed.title,
             pageType,
             summary,
             path: pagePath,
-            hasOpenQuestions: openQuestions.length > 0,
-            openQuestions,
-            confidence,
-            status,
-            tags,
-            updatedAt,
+            hasOpenQuestions: parsed.openQuestions.length > 0,
+            openQuestions: parsed.openQuestions,
+            confidence: parsed.confidence,
+            status: parsed.status,
+            tags: parsed.tags,
+            updatedAt: parsed.updated,
           });
         }
       } catch {
@@ -336,7 +226,7 @@ export class Compile implements CompileService {
         const metaParts: string[] = [];
 
         if (page.hasOpenQuestions) metaParts.push('`❓`');
-        if (page.confidence !== null) metaParts.push(`\`conf:${page.confidence}\``);
+        if (page.confidence > 0) metaParts.push(`\`conf:${page.confidence}\``);
         metaParts.push(`\`${page.status}\``);
 
         if (page.updatedAt) {
@@ -371,24 +261,4 @@ export class Compile implements CompileService {
     this.emit({ type: 'step_start', step: 'WritingBacklinks' });
     this.emit({ type: 'step_end', step: 'WritingBacklinks' });
   }
-}
-
-/** Extracts the body content after YAML frontmatter delimiters. */
-function extractBodyAfterFrontmatter(rawContent: string): string {
-  const lines = rawContent.split('\n');
-  if (lines[0]?.trim() !== '---') return rawContent;
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
-      endIndex = i;
-      break;
-    }
-  }
-
-  if (endIndex === -1) return rawContent;
-  return lines
-    .slice(endIndex + 1)
-    .join('\n')
-    .trim();
 }
