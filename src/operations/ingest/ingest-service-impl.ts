@@ -75,6 +75,7 @@ interface ItemToUpdate {
 /** Structured output from the LLM for a new page skeleton (simplified — no claims, no open questions). */
 interface PageSkeleton {
   title: string;
+  tldr: string;
   tags: string[];
   body: string;
 }
@@ -332,7 +333,7 @@ export class Ingest implements IngestService {
       indexEntries: entries.map((e) => ({
         slug: e.slug,
         title: e.title,
-        summary: e.summary,
+        tldr: e.summary,
       })),
     });
 
@@ -484,6 +485,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render('entity-page-output', {
       id: entity.id,
       title: skeleton.title,
+      tldr: skeleton.tldr,
       status: 'review',
       tags: skeleton.tags ?? [],
       confidence: '0.50',
@@ -545,6 +547,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render('concept-page-output', {
       id: concept.id,
       title: skeleton.title,
+      tldr: skeleton.tldr,
       status: 'review',
       tags: skeleton.tags ?? [],
       confidence: '0.50',
@@ -737,6 +740,7 @@ export class Ingest implements IngestService {
     const pageContent = this.promptService.render(outputTemplateName, {
       id: pageType === 'entity' ? `entity.${matchedSlug}` : `concept.${matchedSlug}`,
       title: pageOutput.title,
+      tldr: pageOutput.tldr,
       status: currentNote.frontmatter.status || 'review',
       tags: pageOutput.tags ?? [],
       confidence,
@@ -781,7 +785,7 @@ export class Ingest implements IngestService {
       indexEntries: indexEntries.map((e) => ({
         slug: e.slug,
         pageType: e.pageType,
-        summary: e.summary,
+        tldr: e.summary,
       })),
     });
 

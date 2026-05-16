@@ -15,18 +15,21 @@ import type { PipelineEvent, Question } from '../../../src/operations/pipeline-p
 
 const defaultEntitySkeleton = {
   title: 'Seneca',
+  tldr: 'Seneca was a Roman Stoic philosopher and statesman.',
   tags: ['philosophie', 'stoizismus'],
   body: 'Lucius Annaeus Seneca was a Roman philosopher and statesman.',
 };
 
 const defaultConceptSkeleton = {
   title: 'Praemeditatio Malorum',
+  tldr: 'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios.',
   tags: ['stoicism', 'psychology'],
   body: 'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios.',
 };
 
 const defaultUpdateSkeleton = {
   title: 'Updated Title',
+  tldr: 'Updated one-sentence summary.',
   tags: ['test'],
   body: 'Updated body content.',
   claims: [] as Array<Record<string, unknown>>,

@@ -31,9 +31,11 @@ Update the page by integrating the new knowledge. Return a JSON object with the 
 
 1. **Prose merge:** Weave new information naturally into the body text. The `content` field of the current page shows the existing prose. Do NOT replace existing content — expand and enrich it.
 
-2. **Structured context:** The current page and relevant pages are provided above as JSON. Use the existing claims, open questions, and human notes for context when making update decisions. Do not include them in your output — they are handled programmatically.
+2. **TL;DR:** Return a single sentence capturing the core point of this page after the update.
 
-3. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims. Each claim must:
+3. **Structured context:** The current page and relevant pages are provided above as JSON. Use the existing claims, open questions, and human notes for context when making update decisions. Do not include them in your output — they are handled programmatically.
+
+4. **Generate claims:** Based on the current item and the relevant pages above, generate verifiable claims. Each claim must:
    - Have a unique `slug` field (kebab-case, e.g. "cortisol-senkung")
    - Include a `confidence` estimate (0.0-1.0) based on evidence quality
    - Include a `status` field: "active" for well-supported, "uncertain" for speculative
@@ -55,4 +57,4 @@ Update the page by integrating the new knowledge. Return a JSON object with the 
 
 6. **Tags:** Merge any new relevant tags from the source with the existing tags on the page. Return the full set of lowercase tags.
 
-Return only the JSON object with fields: title, tags, body, claims (optional), openQuestions (optional).
+Return only the JSON object with fields: title, tldr, tags, body, claims (optional), openQuestions (optional).

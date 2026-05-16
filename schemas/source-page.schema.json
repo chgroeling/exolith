@@ -5,6 +5,7 @@
   "type": "object",
   "properties": {
     "title": { "type": "string" },
+    "tldr": { "type": "string", "description": "A single sentence capturing the core point of this source." },
     "type": { "type": "string", "enum": ["article", "paper", "transcript", "note", "book"] },
     "authors": { "type": "array", "items": { "type": "string" } },
     "date": { "type": "string" },
@@ -13,6 +14,6 @@
     "mainPoints": { "type": "array", "items": { "type": "string" } },
     "tags": { "type": "array", "items": { "type": "string" } },
   },
-  "required": ["title", "type", "authors", "date", "summary", "mainPoints", "tags"],
+  "required": ["title", "tldr", "type", "authors", "date", "summary", "mainPoints", "tags"],
   "additionalProperties": false,
 }

@@ -4,7 +4,6 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import pino from 'pino';
 import type { Logger } from 'pino';
-import { extractBodyAfterFrontmatter } from '../../core/frontmatter-utils';
 import { parseNote } from '../../core/note-parser';
 import type { ParsedOpenQuestion } from '../../core/note-parser';
 import type { PipelineEvent, Question } from '../pipeline-presentation';
@@ -35,74 +34,10 @@ const DIR_TO_PAGE_TYPE: Record<string, string> = {
   syntheses: 'synthesis',
 };
 
-/** Finds a chapter section by heading name and returns its body text, or empty string if not found. */
-function extractSection(body: string, headingPattern: RegExp): string {
-  const match = body.match(headingPattern);
-  if (!match || match.index === undefined) return '';
-
-  const start = match.index + match[0].length;
-  const remaining = body.slice(start);
-
-  const nextHeadingMatch = remaining.match(/\n##\s/);
-  if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
-    return remaining.slice(0, nextHeadingMatch.index);
-  }
-  return remaining;
-}
-
 /** Extracts the YAML frontmatter `page` field override for page type, or null if not present. */
 function extractPageType(rawContent: string): string | null {
   const match = rawContent.match(/^page:\s*(\S.+)$/m);
   return match?.[1]?.trim() ?? null;
-}
-
-/** Extracts the first sentence after the first # heading as the page summary. */
-function extractSummary(body: string): string {
-  const summarySection = extractSection(body, /\n##\s+Summary\s*\n/i);
-  if (summarySection) {
-    const mainPointsSection = extractSection(body, /\n##\s+Main\s+Points\s*\n/i);
-    const parts: string[] = [summarySection.trim()];
-    if (mainPointsSection) {
-      const points = mainPointsSection
-        .split('\n')
-        .map((l) => l.replace(/^-\s+/, '').trim())
-        .filter(Boolean);
-      if (points.length > 0) {
-        parts.push(points.join(', '));
-      }
-    }
-    return parts.join(' ').slice(0, 200);
-  }
-
-  const headingMatch = body.match(/^#\s+.+$/m);
-  if (!headingMatch) return '';
-
-  const afterHeading = body.slice((headingMatch.index ?? 0) + headingMatch[0].length);
-  const lines = afterHeading.split('\n');
-
-  let text = '';
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (line === '' || line.startsWith('## ') || line.startsWith('#')) {
-      if (text) break;
-      continue;
-    }
-    if (line.startsWith('*') && /^\*[^:]+:\*/.test(line)) continue;
-    text += (text ? ' ' : '') + line;
-
-    if (/[.!?]\s/.test(line) || /[.!?]$/.test(line)) {
-      const sentenceMatch = text.match(/^(.*?[.!?])(?:\s|$)/);
-      if (sentenceMatch) {
-        return sentenceMatch[1].replace(/\n/g, ' ').trim();
-      }
-    }
-  }
-
-  const sentenceMatch = text.match(/^(.*?[.!?])(?:\s|$)/);
-  if (sentenceMatch) {
-    return sentenceMatch[1].replace(/\n/g, ' ').trim();
-  }
-  return text.replace(/\n/g, ' ').trim().slice(0, 200);
 }
 
 export class Compile implements CompileService {
@@ -152,13 +87,17 @@ export class Compile implements CompileService {
           const fullEntryPath = join(entry.parentPath ?? dirPath, entry.name);
           const rawContent = await readFile(fullEntryPath, 'utf-8');
           const parsed = parseNote(rawContent);
-          const body = extractBodyAfterFrontmatter(rawContent);
 
           const pageType = extractPageType(rawContent) ?? DIR_TO_PAGE_TYPE[dir] ?? 'entity';
           const slug = parsed.frontmatter.id.includes('.')
             ? parsed.frontmatter.id.slice(parsed.frontmatter.id.indexOf('.') + 1)
             : parsed.frontmatter.title.toLowerCase().replace(/\s+/g, '-');
-          const summary = extractSummary(body);
+          if (!parsed.tldr) {
+            throw new Error(
+              `Page at ${fullEntryPath} is missing a TL;DR blockquote — every page must have a > **TL;DR:** line under the title.`,
+            );
+          }
+          const summary = parsed.tldr;
           const pagePath = relative(vaultPath, fullEntryPath);
 
           this.pages.set(pagePath, {

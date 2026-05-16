@@ -14,6 +14,7 @@ import type { EnqueueConfig, EnqueueResult, EnqueueService } from './enqueue-ser
 /** Structured output from the LLM for a source page. */
 interface SourcePage {
   title: string;
+  tldr: string;
   type: string;
   authors: string[];
   date: string;

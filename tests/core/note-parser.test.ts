@@ -16,6 +16,7 @@ function toTemplateContext(note: ParsedNote): Record<string, unknown> {
   return {
     id: note.frontmatter.id,
     title: note.frontmatter.title,
+    tldr: note.tldr,
     status: note.frontmatter.status,
     tags: note.frontmatter.tags,
     confidence: note.frontmatter.confidence,
@@ -37,6 +38,7 @@ function assertRoundTrip(templateName: string, note: ParsedNote): void {
 
   expect(parsed.frontmatter.id).toBe(note.frontmatter.id);
   expect(parsed.frontmatter.title).toBe(note.frontmatter.title);
+  expect(parsed.tldr).toBe(note.tldr);
   expect(parsed.frontmatter.status).toBe(note.frontmatter.status);
   expect(parsed.frontmatter.tags).toEqual(note.frontmatter.tags);
   expect(parsed.frontmatter.confidence).toBe(note.frontmatter.confidence);
@@ -80,6 +82,7 @@ function makeFullEntityNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
       created: '2026-04-15',
       updated: '2026-05-02',
     },
+    tldr: 'Seneca was a Roman Stoic philosopher whose letters to Lucilius remain foundational texts on practical ethics.',
     content:
       'Lucius Annaeus Seneca was a Roman philosopher, dramatist, and statesman. His Letters to Lucilius are a collection of 124 moral letters.',
     claims: [
@@ -112,6 +115,7 @@ function makeFullConceptNote(overrides: Partial<ParsedNote> = {}): ParsedNote {
       created: '2026-05-02',
       updated: '2026-05-02',
     },
+    tldr: 'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios to manage anxiety, now empirically validated by modern research.',
     content:
       'Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios. It serves as anxiety management through confrontation rather than suppression.',
     claims: [
@@ -191,6 +195,7 @@ describe('parseNote round-trip', () => {
 
     expect(result.frontmatter.id).toBe('');
     expect(result.frontmatter.title).toBe('');
+    expect(result.tldr).toBe('');
     expect(result.frontmatter.status).toBe('active');
     expect(result.frontmatter.tags).toEqual([]);
     expect(result.frontmatter.confidence).toBe(0);

@@ -21,8 +21,10 @@ Return a JSON object with the following shape:
 
 1. **title** — The canonical name of the concept.
 
-2. **tags** — Array of lowercase tags based on the concept domain (e.g. ["stoicism", "psychology", "anxiety-management"]).
+2. **tldr** — A single sentence capturing the core point of this concept page.
 
-3. **body** — A concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally. Write in the same language as the source content.
+3. **tags** — Array of lowercase tags based on the concept domain (e.g. ["stoicism", "psychology", "anxiety-management"]).
 
-Do NOT generate claims, open questions, or cross-connections — those will be added in a later update step. Return only the JSON object with title, tags, and body.
+4. **body** — A concise encyclopedia-style description (2-3 paragraphs) explaining the concept, its significance, and how it relates to other ideas. Weave in the description and source context naturally. Write in the same language as the source content.
+
+Do NOT generate claims, open questions, or cross-connections — those will be added in a later update step. Return only the JSON object with title, tldr, tags, and body.

@@ -50,6 +50,7 @@ function makeMockLlm(opts?: {
 
 const defaultSourcePage = {
   title: 'Test Page',
+  tldr: 'A single sentence summary of this test source page.',
   type: 'article',
   authors: ['Test Author'],
   date: '2026-01-01',
@@ -91,6 +92,8 @@ function makeMockPrompt(): PromptService {
           '---',
           '',
           `# ${context.title}`,
+          '',
+          `> **TL;DR:** ${context.tldr as string}`,
           '',
           `*Type:* ${context.type}`,
           '',
@@ -496,6 +499,9 @@ describe('Enqueue', () => {
       const sourcePath = join(config.vaultPath, 'inbox', 'test-page.md');
       const pageContent = await readFile(sourcePath, 'utf-8');
 
+      expect(pageContent).toContain(
+        '> **TL;DR:** A single sentence summary of this test source page.',
+      );
       expect(pageContent).toContain('Test summary paragraph.');
       expect(pageContent).toContain('## Main Points');
       expect(pageContent).toContain('- Main point 1');
@@ -567,6 +573,7 @@ describe('Enqueue', () => {
       expect(capturedRequest?.schemaName).toBe('SourcePage');
       expect(capturedRequest?.schema.required).toEqual([
         'title',
+        'tldr',
         'type',
         'authors',
         'date',

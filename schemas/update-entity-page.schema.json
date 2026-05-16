@@ -10,6 +10,10 @@
       "type": "string",
       "description": "The canonical name of the entity."
     },
+    "tldr": {
+      "type": "string",
+      "description": "A single sentence capturing the core point of this entity page."
+    },
     "tags": {
       "type": "array",
       "items": { "type": "string" },
@@ -77,6 +81,6 @@
       }
     }
   },
-  "required": ["title", "body"],
+  "required": ["title", "tldr", "body"],
   "additionalProperties": false,
 }

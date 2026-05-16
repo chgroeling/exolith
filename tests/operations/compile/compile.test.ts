@@ -23,6 +23,8 @@ updated: 2026-05-02
 
 # Seneca
 
+> **TL;DR:** Seneca was a Roman Stoic philosopher whose letters to Lucilius remain foundational texts on practical ethics.
+
 Lucius Annaeus Seneca was a Roman philosopher, dramatist, and statesman.
 His "Letters to Lucilius" are a collection of 124 moral letters.
 
@@ -64,6 +66,8 @@ updated: 2026-05-02
 
 # Maria Schneider
 
+> **TL;DR:** Maria Schneider is a researcher at the University of Tübingen who authored a 2024 meta-study on praemeditatio malorum.
+
 Researcher at the University of Tübingen, author of the 2024 meta-study.
 
 ## Claims
@@ -90,6 +94,8 @@ updated: 2026-05-01
 
 # Stoizismus
 
+> **TL;DR:** Stoizismus is the Stoic philosophical school, focused on distinguishing what is controllable from what is not.
+
 The Stoic philosophical school, focused on what is controllable.
 Seneca was one of its most important representatives.
 
@@ -113,6 +119,8 @@ updated: 2026-05-02
 ---
 
 # Praemeditatio Malorum
+
+> **TL;DR:** Praemeditatio malorum is a Stoic exercise of visualizing worst-case scenarios, now empirically validated to reduce anxiety.
 
 Stoic exercise: conscious visualization of the worst to manage anxiety.
 The technique has been empirically validated.
@@ -150,6 +158,8 @@ updated: 2026-05-01
 
 # Letters to Lucilius (13th Letter)
 
+> **TL;DR:** Seneca's 13th letter to Lucilius explores the nature of fear and anxiety, arguing that anticipated suffering causes more distress than real suffering.
+
 *Type:* transcript
 *Author(s):* Lucius Annaeus Seneca
 *Date:* ca. 62-64 CE
@@ -176,6 +186,8 @@ updated: 2026-05-02
 ---
 
 # Schneider Meta-Study 2024
+
+> **TL;DR:** Schneider's 2024 meta-study with n=1,200 participants found that praemeditatio malorum reduces cortisol by 18%.
 
 *Type:* paper
 *Author(s):* Dr. Maria Schneider
@@ -337,6 +349,8 @@ describe('Compile', () => {
 
       const noFrontmatter = `# No Frontmatter
 
+> **TL;DR:** This is a test page without YAML frontmatter.
+
 This page has no YAML frontmatter at all.
 
 ## Claims
@@ -375,6 +389,8 @@ updated: 2026-05-01
 
 # No Claims Entity
 
+> **TL;DR:** An entity page with no claims section for testing edge cases.
+
 This entity has no claims section at all.
 
 ## Verknüpfungen
@@ -410,6 +426,8 @@ updated: 2026-05-01
 ---
 
 # German Entity
+
+> **TL;DR:** A test entity with German-language claim fields.
 
 Ein Test.
 

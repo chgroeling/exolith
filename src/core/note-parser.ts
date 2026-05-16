@@ -12,6 +12,8 @@ import { loadSchemaFile } from './schema-loader';
 export interface ParsedNote {
   /** Validated YAML frontmatter fields. */
   frontmatter: ParsedFrontmatter;
+  /** The TL;DR one-sentence summary extracted from the blockquote under the title. */
+  tldr: string;
   /** The prose body between the # Title heading and the first ## section heading. */
   content: string;
   /** Structured claims from the ## Claims section. */
@@ -224,17 +226,36 @@ export function parseNote(markdown: string): ParsedNote {
     openQuestionsHeadingIndex,
     humanStartIndex,
   );
+
+  const { tldr, cleanContent } = extractTldr(content);
+
   const claims = extractClaimsFromList(children, claimsHeadingIndex);
   const openQuestions = extractOpenQuestionsFromList(children, openQuestionsHeadingIndex);
   const human = extractHuman(body, children, humanStartIndex, humanEndIndex);
 
   return {
     frontmatter: parseFrontmatter(fmString),
-    content,
+    tldr,
+    content: cleanContent,
     claims,
     openQuestions,
     human,
   };
+}
+
+/** Extracts the TL;DR blockquote from the start of the content section. Returns the extracted text and the content with the blockquote removed. */
+function extractTldr(content: string): { tldr: string; cleanContent: string } {
+  const tldrMatch = content.match(/^>\s*\*\*TL;DR:\*\*\s*(.+)/m);
+  if (!tldrMatch || tldrMatch.index === undefined) {
+    return { tldr: '', cleanContent: content };
+  }
+
+  const start = tldrMatch.index;
+  const end = start + tldrMatch[0].length;
+  const tldr = (tldrMatch[1] ?? '').trim();
+  const cleanContent = (content.slice(0, start) + content.slice(end)).trim();
+
+  return { tldr, cleanContent };
 }
 
 /** Extracts the prose body content between the h1 heading and the next section heading. */

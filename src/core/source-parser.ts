@@ -22,6 +22,8 @@ export interface ParsedSourceFrontmatter {
 export interface ParsedSource {
   /** Validated YAML frontmatter fields. */
   frontmatter: ParsedSourceFrontmatter;
+  /** The TL;DR one-sentence summary extracted from the blockquote under the title. */
+  tldr: string;
   /** The prose body between the # Title heading and the first ## section heading. */
   body: string;
   /** The list items from the ## Main Points section. */
@@ -114,13 +116,32 @@ function parseSourceFrontmatter(fmString: string): ParsedSourceFrontmatter {
   };
 }
 
+/** Extracts the TL;DR blockquote from the body. Returns the extracted text and the body with the blockquote removed. */
+function extractSourceTldr(body: string): { tldr: string; cleanBody: string } {
+  const tldrMatch = body.match(/^>\s*\*\*TL;DR:\*\*\s*(.+)/m);
+  if (!tldrMatch || tldrMatch.index === undefined) {
+    return { tldr: '', cleanBody: body };
+  }
+
+  const start = tldrMatch.index;
+  const end = start + tldrMatch[0].length;
+  const tldr = (tldrMatch[1] ?? '').trim();
+  const cleanBody = (body.slice(0, start) + body.slice(end)).trim();
+
+  return { tldr, cleanBody };
+}
+
 /**
  * Parses a full source page markdown string into a structured {@link ParsedSource} JSON object.
  */
 export function parseSource(markdown: string): ParsedSource {
   const fmString = extractFrontmatterString(markdown);
 
-  const body = extractBodyAfterFrontmatter(markdown);
+  const rawBody = extractBodyAfterFrontmatter(markdown);
+
+  const { tldr, cleanBody } = extractSourceTldr(rawBody);
+
+  const body = cleanBody;
 
   const headingMatch = body.match(/^#\s+.+$/m);
   let sourceBody = '';
@@ -143,6 +164,7 @@ export function parseSource(markdown: string): ParsedSource {
 
   return {
     frontmatter: parseSourceFrontmatter(fmString),
+    tldr,
     body: sourceBody,
     mainPoints,
   };
